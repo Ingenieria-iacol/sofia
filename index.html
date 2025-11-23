@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SofI.A. | Hub de Ingeniería</title>
+    <title>Ingeni-Flix | Hub de Ingeniería</title>
     <style>
         /* ESTILOS (CSS) */
         :root {
-            --bg-color: #141414;
-            --card-bg: #2f2f2f;
+            --bg-color: #0a0a0a; /* Fondo un poco más oscuro */
+            --card-bg: #1f1f1f;
             --text-color: #ffffff;
             --primary-color: #e50914;
         }
@@ -25,7 +25,7 @@
             display: flex;
             align-items: center;
             padding: 20px 40px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -33,10 +33,11 @@
 
         .logo {
             color: var(--primary-color);
-            font-size: 1.8rem;
-            font-weight: bold;
+            font-size: 2rem;
+            font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(229, 9, 20, 0.7); /* Brillo rojo en el logo */
         }
 
         /* Contenedor Principal */
@@ -45,36 +46,39 @@
         }
 
         h2 {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             font-weight: normal;
             font-size: 1.5rem;
             color: #e5e5e5;
+            border-left: 4px solid var(--primary-color);
+            padding-left: 10px;
         }
 
         /* Grilla de Herramientas */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Un poco más anchas para que quepa texto */
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
             padding-bottom: 50px;
         }
 
         .card {
             background-color: var(--card-bg);
-            border-radius: 4px;
+            border-radius: 6px;
             overflow: hidden;
             cursor: pointer;
             position: relative;
             aspect-ratio: 16/9;
-            transition: transform 0.3s, z-index 0s 0.3s; /* z-index delay para evitar parpadeo */
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Animación con rebote */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
         /* Efecto Hover (Zoom) */
         .card:hover {
-            transform: scale(1.1); /* Crece un poco más */
+            transform: scale(1.1);
             z-index: 10;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
-            transition-delay: 0.1s; /* Pequeña pausa antes de crecer */
+            box-shadow: 0 15px 30px rgba(0,0,0,0.9);
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .card-img {
@@ -82,12 +86,11 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            transition: filter 0.3s;
+            transition: filter 0.4s;
         }
         
-        /* Oscurecer un poco la imagen al pasar el mouse para leer mejor */
         .card:hover .card-img {
-            filter: brightness(0.7);
+            filter: brightness(0.5) blur(1px); /* Oscurece y desenfoca levemente */
         }
 
         /* Capa de Texto */
@@ -96,47 +99,45 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.6), transparent);
+            top: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
             padding: 20px;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            height: 100%; /* Ocupa todo para el degradado */
             opacity: 1; 
         }
 
         .card-title {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            text-shadow: 0 2px 4px rgba(0,0,0,1);
             margin-bottom: 5px;
-            /* Posicionamiento inicial */
-            transform: translateY(20px); 
+            transform: translateY(25px); 
             transition: transform 0.3s;
         }
 
-        /* Descripción: Oculta por defecto */
+        /* Descripción */
         .card-description {
-            font-size: 0.85rem;
-            color: #cccccc;
+            font-size: 0.9rem;
+            color: #ddd;
             opacity: 0;
-            max-height: 0; /* Altura 0 para no ocupar espacio */
+            max-height: 0;
             transform: translateY(20px);
-            transition: all 0.3s;
+            transition: all 0.4s ease;
             line-height: 1.4;
+            font-weight: 300;
         }
 
         /* ANIMACIÓN AL PASAR EL MOUSE */
-        
-        /* Mueve el título hacia arriba */
         .card:hover .card-title {
-            transform: translateY(0);
+            transform: translateY(-5px);
+            color: var(--primary-color); /* Título se vuelve rojo */
         }
 
-        /* Muestra la descripción */
         .card:hover .card-description {
             opacity: 1;
-            max-height: 100px; /* Le damos espacio para aparecer */
+            max-height: 100px;
             transform: translateY(0);
         }
 
@@ -154,31 +155,33 @@
         }
 
         #viewer-header {
-            padding: 10px 20px;
-            background-color: #000;
+            padding: 15px 30px;
+            background-color: #141414;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #333;
         }
 
         #viewer-title {
             font-weight: bold;
-            color: var(--primary-color);
+            font-size: 1.2rem;
+            color: var(--text-color);
         }
 
         .close-btn {
             color: white;
-            background: transparent;
-            border: 1px solid white;
-            padding: 5px 20px;
+            background: #e50914;
+            border: none;
+            padding: 8px 20px;
             cursor: pointer;
             font-size: 0.9rem;
-            border-radius: 2px;
+            border-radius: 4px;
+            font-weight: bold;
         }
 
         .close-btn:hover {
-            background-color: white;
-            color: black;
+            background-color: #f40612;
         }
 
         iframe {
@@ -193,11 +196,11 @@
 <body>
 
     <header>
-        <div class="logo">SofI.A.</div>
+        <div class="logo">INGENI-FLIX</div>
     </header>
 
     <div class="container">
-        <h2>Herramientas de Ingeniería</h2>
+        <h2>Panel de Aplicaciones</h2>
         <div class="grid" id="tools-grid">
             </div>
     </div>
@@ -205,44 +208,63 @@
     <div id="viewer">
         <div id="viewer-header">
             <span id="viewer-title">Herramienta</span>
-            <button class="close-btn" onclick="cerrarHerramienta()">VOLVER AL CATÁLOGO</button>
+            <button class="close-btn" onclick="cerrarHerramienta()">CERRAR APLICACIÓN</button>
         </div>
         <iframe id="app-frame" src=""></iframe>
     </div>
 
     <script>
         // CONFIGURACIÓN DE TUS APLICACIONES
-        // Ahora incluye el campo "descripcion"
+        // He asignado las imágenes a las categorías que mejor encajan visualmente.
+        
         const herramientas = [
             { 
-                nombre: "Calculadora de Ventilacion", 
-                url: "Calculadora de ventilacion 3631 V_Libre",
-                imagen: "https://placehold.co/600x400/333/FFF?text=Vigas",
-                descripcion: "Version Libre, Evalua la capacidad de ventilacion de un recinto, ingresando solo las tres dimensiones."
+                nombre: "Diseño de Tuberías y Planos", 
+                url: "./planos.html", // Recuerda crear este archivo o cambiar el nombre
+                imagen: "./unnamed (1).jpg", 
+                descripcion: "Entorno CAD para el diseño y revisión de sistemas de tuberías complejos."
             },
             { 
-                nombre: "Conversor Hidráulico", 
-                url: "./hidraulica.html",
-                imagen: "https://placehold.co/600x400/00509e/FFF?text=Hidraulica",
-                descripcion: "Conversión rápida de unidades de presión y caudal para tuberías."
+                nombre: "Dinámica de Fluidos (CFD)", 
+                url: "./fluidos.html",
+                imagen: "./unnamed (8).jpg",
+                descripcion: "Análisis de presión, caudal y principios de Bernoulli en tiempo real."
             },
             { 
-                nombre: "Simulador Eléctrico", 
-                url: "./circuitos.html",
-                imagen: "https://placehold.co/600x400/e6b800/000?text=Circuitos",
-                descripcion: "Simula leyes de Ohm y Kirchhoff en circuitos básicos."
+                nombre: "Instrumentación y Control", 
+                url: "./control.html",
+                imagen: "./unnamed (9).jpg",
+                descripcion: "Simulador de paneles de control industrial y monitoreo de señales."
+            },
+            { 
+                nombre: "Instalaciones de Gas", 
+                url: "./gas.html",
+                imagen: "./unnamed (3).jpg",
+                descripcion: "Esquemas residenciales y comerciales para suministro de gas."
             },
              { 
-                nombre: "Gestor de Proyectos", 
-                url: "./proyectos.html",
-                imagen: "https://placehold.co/600x400/28a745/FFF?text=Proyectos",
-                descripcion: "Diagramas de Gantt simplificados y control de tareas."
+                nombre: "Gestión y Normativa", 
+                url: "./normativa.html",
+                imagen: "./unnamed (11).jpg",
+                descripcion: "Repositorio de leyes, términos y gestión de proyectos de ingeniería."
             },
              { 
-                nombre: "Analisis de Materiales", 
-                url: "./materiales.html",
-                imagen: "https://placehold.co/600x400/555/FFF?text=Materiales",
-                descripcion: "Tabla periódica de propiedades de acero, concreto y madera."
+                nombre: "Almacén e Inventario", 
+                url: "./inventario.html",
+                imagen: "./unnamed (4).jpg",
+                descripcion: "Control de stock para calderas, válvulas y repuestos industriales."
+            },
+            { 
+                nombre: "Sistemas de Ventilación", 
+                url: "./ventilacion.html",
+                imagen: "./Logo ventilacion V_libre.jpg",
+                descripcion: "Cálculo de flujos de aire, admisión y extracción (HVAC)."
+            },
+            { 
+                nombre: "Herramientas y Montaje", 
+                url: "./montaje.html",
+                imagen: "./unnamed (2).jpg",
+                descripcion: "Guías de instalación y selección de herramientas de presión."
             }
         ];
 
@@ -254,7 +276,6 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 
-                // Agregamos la descripción dentro del HTML
                 card.innerHTML = `
                     <img src="${tool.imagen}" alt="${tool.nombre}" class="card-img">
                     <div class="card-overlay">
@@ -263,6 +284,14 @@
                     </div>
                 `;
                 
+                // Si la imagen falla al cargar, mostramos un color de fondo para que no se vea roto
+                const img = card.querySelector('img');
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    card.style.backgroundColor = '#333';
+                    card.innerHTML += '<div style="padding:20px; color:white;">Imagen no encontrada</div>';
+                };
+
                 card.onclick = () => abrirHerramienta(tool.nombre, tool.url);
                 grid.appendChild(card);
             });
