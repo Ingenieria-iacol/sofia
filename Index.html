@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Página de Inicio</title>
+    <style>
+        /* Estilos Generales y Tema Oscuro */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212; /* Fondo oscuro casi negro */
+            color: #e0e0e0; /* Texto gris claro para buen contraste */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Ocupa toda la altura de la pantalla */
+        }
+
+        /* Contenedor principal */
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background-color: #1e1e1e; /* Un tono ligeramente más claro para la tarjeta */
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        p {
+            margin-bottom: 30px;
+            line-height: 1.5;
+            color: #b0b0b0;
+        }
+
+        /* Estilos del Botón */
+        .boton-enlace {
+            display: inline-block;
+            background-color: #007bff; /* Azul vibrante */
+            color: #ffffff;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        /* Efecto al pasar el mouse por encima */
+        .boton-enlace:hover {
+            background-color: #0056b3; /* Azul más oscuro */
+            transform: translateY(-2px); /* Pequeña elevación */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Bienvenido</h1>
+        
+        <p>Haz clic en el botón de abajo para acceder al contenido principal.</p>
+        
+        <a href="https://www.google.com" class="boton-enlace" target="_blank">
+            Ir al Sitio Web
+        </a>
+    </div>
+
+</body>
+</html>
