@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ingeni-Flix | Hub de Ingeniería</title>
     <style>
-        /* ESTILOS (CSS) - El Look de Netflix */
+        /* ESTILOS (CSS) */
         :root {
             --bg-color: #141414;
             --card-bg: #2f2f2f;
             --text-color: #ffffff;
-            --primary-color: #e50914; /* Rojo tipo Netflix */
+            --primary-color: #e50914;
         }
 
         body {
@@ -23,7 +23,6 @@
         /* Cabecera */
         header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             padding: 20px 40px;
             background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
@@ -37,20 +36,7 @@
             font-size: 1.8rem;
             font-weight: bold;
             text-transform: uppercase;
-        }
-
-        .btn-add {
-            background-color: var(--text-color);
-            color: var(--bg-color);
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .btn-add:hover {
-            background-color: #c2c2c2;
+            letter-spacing: 2px;
         }
 
         /* Contenedor Principal */
@@ -60,43 +46,103 @@
 
         h2 {
             margin-bottom: 15px;
+            font-weight: normal;
+            font-size: 1.5rem;
+            color: #e5e5e5;
         }
 
         /* Grilla de Herramientas */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Un poco más anchas para que quepa texto */
             gap: 20px;
+            padding-bottom: 50px;
         }
 
         .card {
             background-color: var(--card-bg);
             border-radius: 4px;
             overflow: hidden;
-            transition: transform 0.3s;
             cursor: pointer;
             position: relative;
-            height: 120px; /* Altura de la tarjeta */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+            aspect-ratio: 16/9;
+            transition: transform 0.3s, z-index 0s 0.3s; /* z-index delay para evitar parpadeo */
         }
 
+        /* Efecto Hover (Zoom) */
         .card:hover {
-            transform: scale(1.05);
+            transform: scale(1.1); /* Crece un poco más */
             z-index: 10;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+            transition-delay: 0.1s; /* Pequeña pausa antes de crecer */
+        }
+
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: filter 0.3s;
+        }
+        
+        /* Oscurecer un poco la imagen al pasar el mouse para leer mejor */
+        .card:hover .card-img {
+            filter: brightness(0.7);
+        }
+
+        /* Capa de Texto */
+        .card-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.6), transparent);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            height: 100%; /* Ocupa todo para el degradado */
+            opacity: 1; 
         }
 
         .card-title {
-            padding: 10px;
-            font-weight: bold;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            margin-bottom: 5px;
+            /* Posicionamiento inicial */
+            transform: translateY(20px); 
+            transition: transform 0.3s;
         }
 
-        /* El Visor (Overlay) */
+        /* Descripción: Oculta por defecto */
+        .card-description {
+            font-size: 0.85rem;
+            color: #cccccc;
+            opacity: 0;
+            max-height: 0; /* Altura 0 para no ocupar espacio */
+            transform: translateY(20px);
+            transition: all 0.3s;
+            line-height: 1.4;
+        }
+
+        /* ANIMACIÓN AL PASAR EL MOUSE */
+        
+        /* Mueve el título hacia arriba */
+        .card:hover .card-title {
+            transform: translateY(0);
+        }
+
+        /* Muestra la descripción */
+        .card:hover .card-description {
+            opacity: 1;
+            max-height: 100px; /* Le damos espacio para aparecer */
+            transform: translateY(0);
+        }
+
+        /* El Visor */
         #viewer {
-            display: none; /* Oculto por defecto */
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -115,21 +161,31 @@
             align-items: center;
         }
 
+        #viewer-title {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
         .close-btn {
             color: white;
             background: transparent;
             border: 1px solid white;
-            padding: 5px 15px;
+            padding: 5px 20px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            border-radius: 2px;
         }
 
-        /* Aquí es donde se proyecta la herramienta */
+        .close-btn:hover {
+            background-color: white;
+            color: black;
+        }
+
         iframe {
             width: 100%;
             height: 100%;
             border: none;
-            background-color: white; /* Fondo blanco para las herramientas */
+            background-color: white;
         }
 
     </style>
@@ -138,94 +194,99 @@
 
     <header>
         <div class="logo">INGENI-FLIX</div>
-        <button class="btn-add" onclick="agregarNuevaHerramienta()">+ Nueva Herramienta</button>
     </header>
 
     <div class="container">
-        <h2>Herramientas Populares</h2>
+        <h2>Herramientas de Ingeniería</h2>
         <div class="grid" id="tools-grid">
             </div>
     </div>
 
     <div id="viewer">
         <div id="viewer-header">
-            <span id="viewer-title">Nombre Herramienta</span>
-            <button class="close-btn" onclick="cerrarHerramienta()">Cerrar X</button>
+            <span id="viewer-title">Herramienta</span>
+            <button class="close-btn" onclick="cerrarHerramienta()">VOLVER AL CATÁLOGO</button>
         </div>
         <iframe id="app-frame" src=""></iframe>
     </div>
 
     <script>
-        // LÓGICA (JavaScript)
-
-        // 1. Nuestra "Base de Datos" inicial (Array de objetos)
-        // Aquí debes poner las URLs de tus herramientas creadas con Gemini
-        let herramientas = [
+        // CONFIGURACIÓN DE TUS APLICACIONES
+        // Ahora incluye el campo "descripcion"
+        const herramientas = [
             { 
-                nombre: "Calculadora de ventilacion 3631 V_Libre", 
-                url: "Calculadora de ventilacion 3631 V_Libre" // Ejemplo: Cambia esto por la ruta de tu archivo local o URL
+                nombre: "Calculadora de Vigas", 
+                url: "./vigas.html",
+                imagen: "https://placehold.co/600x400/333/FFF?text=Vigas",
+                descripcion: "Calcula momentos flectores y fuerzas cortantes en vigas simples."
             },
             { 
-                nombre: "Convertidor de Unidades", 
-                url: "https://bing.com" // Ejemplo
+                nombre: "Conversor Hidráulico", 
+                url: "./hidraulica.html",
+                imagen: "https://placehold.co/600x400/00509e/FFF?text=Hidraulica",
+                descripcion: "Conversión rápida de unidades de presión y caudal para tuberías."
             },
             { 
-                nombre: "Simulador de Circuitos", 
-                url: "about:blank" // Ejemplo
+                nombre: "Simulador Eléctrico", 
+                url: "./circuitos.html",
+                imagen: "https://placehold.co/600x400/e6b800/000?text=Circuitos",
+                descripcion: "Simula leyes de Ohm y Kirchhoff en circuitos básicos."
+            },
+             { 
+                nombre: "Gestor de Proyectos", 
+                url: "./proyectos.html",
+                imagen: "https://placehold.co/600x400/28a745/FFF?text=Proyectos",
+                descripcion: "Diagramas de Gantt simplificados y control de tareas."
+            },
+             { 
+                nombre: "Analisis de Materiales", 
+                url: "./materiales.html",
+                imagen: "https://placehold.co/600x400/555/FFF?text=Materiales",
+                descripcion: "Tabla periódica de propiedades de acero, concreto y madera."
             }
         ];
 
-        // 2. Función para dibujar las tarjetas en la pantalla
         function renderizarGrid() {
             const grid = document.getElementById('tools-grid');
-            grid.innerHTML = ""; // Limpiar contenido actual
+            grid.innerHTML = ""; 
 
-            herramientas.forEach((tool, index) => {
+            herramientas.forEach((tool) => {
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.innerHTML = `<div class="card-title">${tool.nombre}</div>`;
                 
-                // Al hacer clic, abrimos el visor pasando la URL
+                // Agregamos la descripción dentro del HTML
+                card.innerHTML = `
+                    <img src="${tool.imagen}" alt="${tool.nombre}" class="card-img">
+                    <div class="card-overlay">
+                        <div class="card-title">${tool.nombre}</div>
+                        <div class="card-description">${tool.descripcion}</div>
+                    </div>
+                `;
+                
                 card.onclick = () => abrirHerramienta(tool.nombre, tool.url);
-                
                 grid.appendChild(card);
             });
         }
 
-        // 3. Funciones del Visor (Abrir y Cerrar)
         function abrirHerramienta(titulo, url) {
             const viewer = document.getElementById('viewer');
             const frame = document.getElementById('app-frame');
             const titleSpan = document.getElementById('viewer-title');
 
             titleSpan.textContent = titulo;
-            frame.src = url; // Aquí sucede la magia: carga la otra app
+            frame.src = url; 
             viewer.style.display = 'flex';
         }
 
         function cerrarHerramienta() {
             const viewer = document.getElementById('viewer');
             const frame = document.getElementById('app-frame');
-            
-            frame.src = ""; // Limpiamos para detener la ejecución
+            frame.src = ""; 
             viewer.style.display = 'none';
         }
 
-        // 4. Función para agregar herramienta (Simulación)
-        function agregarNuevaHerramienta() {
-            const nombre = prompt("Nombre de la herramienta:");
-            const url = prompt("URL o ruta del archivo (ej: ./mi-herramienta.html):");
-
-            if (nombre && url) {
-                herramientas.push({ nombre: nombre, url: url });
-                renderizarGrid(); // Volvemos a pintar la grilla
-            }
-        }
-
-        // Inicializar la app al cargar
         renderizarGrid();
 
     </script>
 </body>
 </html>
-
