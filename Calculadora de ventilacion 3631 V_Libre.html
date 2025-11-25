@@ -3,223 +3,722 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Potencia de Ventilación</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Inspector NTC 3631 - Offline</title>
     <style>
         :root {
-            font-family: 'Inter', sans-serif;
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --success-text: #065f46;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+            --danger-text: #991b1b;
+            --bg-page: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
         }
-        .container-wrapper {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #f7f9fb;
-            padding: 1rem;
+
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-page); color: var(--text-main); margin: 0; padding: 20px; line-height: 1.5; }
+        
+        /* Layout & Cards */
+        .container { max-width: 900px; margin: 0 auto; }
+        .card { background: var(--bg-card); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); }
+        .card-header { padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid var(--border); font-weight: bold; color: var(--text-muted); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px; }
+
+        /* Typography */
+        h1, h2, h3 { margin: 0; }
+        .header-title { font-size: 1.5rem; color: var(--text-main); display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .header-subtitle { font-size: 0.875rem; color: var(--text-muted); }
+
+        /* Forms */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .form-group { margin-bottom: 10px; }
+        .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
+        .form-input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+        .form-input-clean { border: none; border-bottom: 1px solid var(--border); border-radius: 0; padding: 5px 0; background: transparent; }
+        .form-input-clean:focus { border-bottom-color: var(--primary); }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; padding: 10px; background: #f8fafc; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+        td { padding: 10px; border-bottom: 1px solid var(--border); }
+        .text-right { text-align: right; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: white; color: var(--danger); border: 1px solid var(--border); }
+        .btn-danger:hover { background: var(--danger-bg); }
+        .btn-outline { background: white; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-outline:hover { background: #f8fafc; }
+        .btn-icon { padding: 6px; border-radius: 6px; color: var(--primary); background: transparent; border: none; cursor: pointer; }
+        .btn-icon:hover { background: #eff6ff; }
+        .btn-icon-danger { color: var(--danger); }
+        .btn-icon-danger:hover { background: var(--danger-bg); }
+
+        /* Status Badges & Alerts */
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-success { background: var(--success-bg); color: var(--success-text); }
+        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
+        
+        .alert-box { padding: 15px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+        .alert-success { background: var(--success-bg); color: var(--success-text); }
+        .alert-danger { background: var(--danger-bg); color: var(--danger-text); }
+        
+        /* Icons */
+        .icon { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Custom Components */
+        .checklist-item { display: flex; gap: 15px; padding: 10px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+        .checklist-item:last-child { border-bottom: none; }
+        .checklist-controls { display: flex; flex-direction: column; gap: 8px; min-width: 110px; }
+        .check-btn { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; user-select: none; color: var(--text-muted); }
+        .check-box { width: 20px; height: 20px; border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.2s; }
+        .check-btn.active .check-box { background: var(--success); border-color: var(--success); color: white; }
+        .check-btn.active.na .check-box { background: var(--text-muted); border-color: var(--text-muted); }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.2s; backdrop-filter: blur(2px); }
+        .modal-overlay.open { opacity: 1; visibility: visible; }
+        .modal { background: white; width: 90%; max-width: 600px; max-height: 80vh; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; overflow-y: auto; }
+        .modal-footer { padding: 20px; border-top: 1px solid var(--border); text-align: right; }
+
+        /* Floating Offline Badge */
+        .offline-badge { display: inline-flex; align-items: center; gap: 5px; background: #ecfdf5; color: #059669; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #a7f3d0; margin-top: 5px; }
+
+        /* Media Queries */
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .hide-mobile { display: none; }
+            body { padding: 10px; }
         }
-        input[type="number"]::-webkit-inner-spin-button, 
-        input[type="number"]::-webkit-outer-spin-button { 
-            -webkit-appearance: none;
-            margin: 0;
+
+        @media print {
+            body { background: white; padding: 0; font-size: 12pt; }
+            .no-print { display: none !important; }
+            .card { box-shadow: none; border: none; border-bottom: 1px solid #000; border-radius: 0; margin-bottom: 15px; }
+            .card-header { background: white; border-bottom: 2px solid #000; color: #000; padding-left: 0; }
+            .form-input { border: none; border-bottom: 1px solid #ddd; padding-left: 0; }
+            .alert-box { border: 1px solid #000; color: #000; background: white; }
+            .badge { border: 1px solid #000; color: #000; background: white; }
+            .container { max-width: 100%; }
         }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary-blue': '#1e40af',
-                        'secondary-cyan': '#06b6d4',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body>
 
-<div class="container-wrapper">
-    <div class="w-full max-w-lg bg-white shadow-2xl rounded-xl p-6 sm:p-8 border border-gray-100">
-        
-        <!-- Encabezado -->
-        <h1 class="text-3xl font-extrabold text-primary-blue mb-2 text-center">
-            Ventilación y Volumen
-        </h1>
-        <p class="text-gray-600 mb-6 text-center">
-            Estima la potencia de ventilación requerida y compara con la potencia instalada.
-        </p>
-
-        <!-- Formulario de Entrada -->
-        <div class="space-y-4">
-            
-            <!-- Altura (m) -->
-            <div>
-                <label for="altura" class="block text-sm font-medium text-gray-700 mb-1">Altura (metros)</label>
-                <input type="number" id="altura" placeholder="Ej. 2.5" min="0.1" step="0.1"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-150"
-                       aria-label="Ingresa la altura en metros">
+<div class="container">
+    
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 25px;">
+        <div>
+            <div class="header-title">
+                <!-- Icon CheckFile -->
+                <svg class="icon" style="color: var(--primary); width: 28px; height: 28px;" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15l2 2 4-4"></path></svg>
+                <strong>Inspector NTC 3631</strong>
             </div>
-
-            <!-- Profundidad (m) -->
-            <div>
-                <label for="profundidad" class="block text-sm font-medium text-gray-700 mb-1">Profundidad (metros)</label>
-                <input type="number" id="profundidad" placeholder="Ej. 4.0" min="0.1" step="0.1"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-150"
-                       aria-label="Ingresa la profundidad en metros">
+            <div class="header-subtitle">Herramienta de Evaluación Técnica (Offline)</div>
+            <div class="offline-badge no-print">
+                <svg class="icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                Uso sin conexión activo
             </div>
-
-            <!-- Anchura (m) -->
-            <div>
-                <label for="anchura" class="block text-sm font-medium text-gray-700 mb-1">Anchura (metros)</label>
-                <input type="number" id="anchura" placeholder="Ej. 6.0" min="0.1" step="0.1"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-150"
-                       aria-label="Ingresa la anchura en metros">
-            </div>
-
-            <!-- Potencia Instalada (kW) - NUEVO CAMPO -->
-            <div>
-                <label for="potencia-instalada" class="block text-sm font-medium text-gray-700 mb-1">Potencia Instalada Actual (Kilovatios, kW)</label>
-                <input type="number" id="potencia-instalada" placeholder="Ej. 1.5" min="0" step="0.1"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-150"
-                       aria-label="Ingresa la potencia instalada en Kilovatios">
-            </div>
-
-            <!-- Botón de Cálculo -->
-            <button onclick="calcularPotencia()"
-                    class="w-full bg-primary-blue hover:bg-blue-800 text-white font-semibold py-3 rounded-xl shadow-md transition duration-200 transform hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-secondary-cyan focus:ring-opacity-50">
-                Evaluar Idoneidad de la Potencia
+        </div>
+        <div class="no-print" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+            <button onclick="toggleInfo()" class="btn btn-outline">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                Norma
+            </button>
+            <button onclick="resetApp()" class="btn btn-outline">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                Limpiar
+            </button>
+            <button onclick="window.print()" class="btn btn-success">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                PDF
             </button>
         </div>
+    </div>
 
-        <!-- Área de Resultados -->
-        <div id="resultados" class="mt-8 pt-6 border-t border-gray-200 space-y-4 hidden">
-            <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Resultados de la Evaluación</h2>
-            
-            <!-- Resultado de Volumen -->
-            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <span class="font-medium text-blue-700">Volumen del Espacio:</span>
-                <span id="volumen-output" class="text-lg font-bold text-blue-900"></span>
+    <!-- Report Title Block (Visible only in print/page context) -->
+    <div style="background: #0f172a; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;" class="card-no-shadow">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 5px;">INFORME DE VENTILACIÓN</h2>
+                <div style="font-size: 0.9rem; opacity: 0.8;">Evaluación de conformidad según NTC 3631</div>
             </div>
+            <div class="text-right" style="font-size: 0.9rem;">
+                <div id="displayFecha">Fecha: --/--/----</div>
+                <div id="displayRef">Ref: #0000</div>
+            </div>
+        </div>
+    </div>
 
-            <!-- Resultado de Potencia Máxima a Instalar -->
-            <div class="flex justify-between items-center p-4 bg-secondary-cyan/10 rounded-lg border border-secondary-cyan/40 shadow-md">
-                <span class="font-medium text-cyan-700">Potencia Máxima a Instalar:</span>
-                <span id="potencia-output" class="text-xl font-extrabold text-cyan-900"></span>
+    <!-- 1. Info del Sitio -->
+    <div class="card">
+        <div class="card-header">1. Información del Sitio</div>
+        <div class="card-body">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Inspector / Técnico</label>
+                    <input type="text" id="inspectorName" class="form-input-clean" placeholder="Nombre completo" oninput="updateProjectInfo()">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ciudad</label>
+                    <input type="text" id="city" class="form-input-clean" placeholder="Ciudad de inspección" oninput="updateProjectInfo()">
+                </div>
             </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label class="form-label">Dirección / Ubicación</label>
+                <input type="text" id="address" class="form-input-clean" placeholder="Dirección y detalles del recinto (ej. Cocina)" oninput="updateProjectInfo()">
+            </div>
+        </div>
+    </div>
 
-            <!-- Resultado de la Potencia a instalar a futuro -->
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span class="font-medium text-gray-700">Potencia a instalar a futuro:</span>
-                <span id="diferencia-output" class="text-lg font-bold text-gray-900"></span>
+    <!-- 2. Artefactos -->
+    <div class="card">
+        <div class="card-header">
+            2. Artefactos a Gas (Carga)
+            <button onclick="addAppliance()" class="btn-icon no-print" title="Agregar artefacto">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <table id="appliancesTable">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 20px;">Artefacto</th>
+                        <th style="width: 120px;" class="text-right">Potencia (kW)</th>
+                        <th style="width: 50px;" class="no-print"></th>
+                    </tr>
+                </thead>
+                <tbody id="appliancesList">
+                    <!-- Rows will be injected by JS -->
+                </tbody>
+                <tfoot>
+                    <tr style="background: #f1f5f9; font-weight: bold;">
+                        <td class="text-right">Potencia Conjunta Total:</td>
+                        <td class="text-right" style="color: var(--primary); font-size: 1.1em;" id="totalKWDisplay">0.00 kW</td>
+                        <td class="no-print"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3. Volumen & 4. Aberturas -->
+    <div class="grid-2">
+        
+        <!-- Volumen -->
+        <div class="card">
+            <div class="card-header">3. Análisis de Volumen</div>
+            <div class="card-body">
+                <div class="grid-3" style="margin-bottom: 20px;">
+                    <div>
+                        <label class="form-label">Largo (m)</label>
+                        <input type="number" id="dimL" class="form-input font-mono text-right" placeholder="0" oninput="updateDims()">
+                    </div>
+                    <div>
+                        <label class="form-label">Ancho (m)</label>
+                        <input type="number" id="dimW" class="form-input font-mono text-right" placeholder="0" oninput="updateDims()">
+                    </div>
+                    <div>
+                        <label class="form-label">Alto (m)</label>
+                        <input type="number" id="dimH" class="form-input font-mono text-right" value="2.4" oninput="updateDims()">
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-page); padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="font-size: 0.9rem;">Volumen Real:</span>
+                        <strong class="font-mono" id="realVolDisplay">0.00 m³</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.9rem;">
+                        <span>Requerido (3.4 m³/kW):</span>
+                        <span class="font-mono" id="reqVolDisplay">0.00 m³</span>
+                    </div>
+                    
+                    <div id="volumeStatus" class="alert-box alert-danger" style="margin-top: 15px; justify-content: center; font-weight: bold;">
+                        RECINTO CONFINADO
+                    </div>
+                </div>
             </div>
-            
-            <!-- Clasificación de Idoneidad - NUEVO RESULTADO CLAVE -->
-            <div class="flex justify-center items-center p-4 rounded-lg shadow-xl" id="clasificacion-box">
-                <span class="text-2xl font-black uppercase tracking-wider" id="clasificacion-output"></span>
-            </div>
-            
         </div>
 
-        <!-- Contenedor de Mensajes (Modal/Alert replacement) -->
-        <div id="message-box" class="mt-4 hidden p-4 text-sm rounded-lg border" role="alert"></div>
+        <!-- Aberturas -->
+        <div class="card">
+            <div class="card-header">4. Evaluación de Aberturas</div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Método de Ventilación</label>
+                    <select id="ventMethod" class="form-input" onchange="updateVentMethod()">
+                        <option value="4.1.2">Interior (Combinación Espacios)</option>
+                        <option value="4.2.1a">Exterior - Vertical/Directo</option>
+                        <option value="4.2.1b">Exterior - Horizontal</option>
+                    </select>
+                </div>
 
+                <div id="openingsList" style="margin-top: 20px;">
+                    <!-- Opening Rows injected by JS -->
+                </div>
+
+                <div style="margin-top: 20px; padding: 10px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; color: #1e40af; font-weight: bold;">
+                    <span>Área Libre Total:</span>
+                    <span class="font-mono" style="font-size: 1.1em;" id="totalAreaDisplay">0 cm²</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Calculadora Constructor -->
+    <div class="card" style="border: 2px dashed #a5b4fc; background: #eef2ff;">
+        <div class="card-header" style="background: transparent; border-bottom: 1px solid #c7d2fe; color: #4338ca;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                Herramienta de Dimensionamiento (Técnicos)
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">
+                Calcule el tamaño de corte en pared necesario para cumplir el área requerida.
+            </p>
+            <div class="grid-3">
+                <div class="bg-white p-2 rounded border" style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #e0e7ff;">
+                    <label class="form-label" style="color: #6366f1;">1. Área Requerida</label>
+                    <div style="font-family: monospace; font-size: 1.1rem; font-weight: bold; color: #4b5563;" id="calcReqArea">0 cm²</div>
+                </div>
+                <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #e0e7ff;">
+                    <label class="form-label" style="color: #6366f1;">2. Tipo de Rejilla</label>
+                    <select id="calcGrilleFactor" class="form-input" onchange="updateCalc()" style="padding: 4px;">
+                        <option value="0.60">Metálica (60%)</option>
+                        <option value="0.35">Madera (35%)</option>
+                        <option value="0.90">Mosquitero (90%)</option>
+                        <option value="1.0">Sin Rejilla (100%)</option>
+                    </select>
+                </div>
+                <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #e0e7ff;">
+                    <label class="form-label" style="color: #6366f1;">3. Ancho Corte (cm)</label>
+                    <input type="number" id="calcWidth" value="20" class="form-input font-mono" style="font-weight: bold; color: #4338ca;" oninput="updateCalc()">
+                </div>
+            </div>
+            <div style="margin-top: 15px; display: flex; justify-content: flex-end; align-items: baseline; gap: 10px;">
+                <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: bold; color: #6366f1;">Altura de Corte Sugerida:</span>
+                <span id="calcResultHeight" style="font-size: 2rem; font-weight: 900; color: #4338ca; line-height: 1;">0.0</span>
+                <span style="font-weight: bold; color: #818cf8;">cm</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Checklist -->
+    <div class="card">
+        <div class="card-header">5. Lista de Verificación</div>
+        <div class="card-body" id="checklistContainer" style="padding: 0;">
+            <!-- Generated by JS -->
+        </div>
+        <div class="card-body" style="padding-top: 10px; padding-bottom: 10px;">
+            <div style="font-size: 0.75rem; color: #94a3b8; text-align: right; font-style: italic;">
+                * Debe marcar "Cumple" o "N/A" para aprobar.
+            </div>
+        </div>
+    </div>
+
+    <!-- Dictamen Final -->
+    <div class="card" style="border: 3px solid #1e293b;">
+        <div class="card-body" style="text-align: center;">
+            <h3 style="text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;">Dictamen de Inspección</h3>
+            
+            <div class="grid-2" style="margin-bottom: 20px; text-align: left;">
+                <div>
+                    <div class="form-label">Evaluación Volumen</div>
+                    <div id="finalVolStatus" class="badge badge-danger" style="font-size: 0.9rem; padding: 8px 12px;">INSUFICIENTE</div>
+                </div>
+                <div>
+                    <div class="form-label">Evaluación Aberturas</div>
+                    <div style="font-size: 0.9rem;">
+                        <div>Requerido: <strong id="finalReqArea">0</strong> cm²</div>
+                        <div>Instalado: <strong id="finalInstArea">0</strong> cm²</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="globalResultBox" style="background: #fee2e2; border: 2px solid #ef4444; color: #991b1b; padding: 20px; border-radius: 8px;">
+                <div style="font-size: 2.5rem; font-weight: 900; letter-spacing: 1px; line-height: 1;">NO APROBADO</div>
+                <div style="margin-top: 10px; font-size: 0.9rem;">El recinto NO cumple con las condiciones mínimas de seguridad.</div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 60px; gap: 40px;">
+                <div style="border-top: 2px solid #cbd5e1; padding-top: 10px;">
+                    <div class="form-label" style="text-align: center;">Firma Inspector</div>
+                </div>
+                <div style="border-top: 2px solid #cbd5e1; padding-top: 10px;">
+                    <div class="form-label" style="text-align: center;">Firma Usuario</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="no-print" style="text-align: center; color: #94a3b8; font-size: 0.75rem; margin-top: 30px;">
+        <span id="saveStatus">Guardado localmente.</span>
+    </div>
+
+</div>
+
+<!-- Modal Info -->
+<div id="modalInfo" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 style="display: flex; align-items: center; gap: 10px;">
+                <svg class="icon" style="color: var(--primary);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                Referencia NTC 3631
+            </h3>
+            <button onclick="toggleInfo()" class="btn-icon" style="color: #64748b;"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 15px; background: #eff6ff; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <strong style="color: #1e40af; display: block; margin-bottom: 5px;">4.1.1 Método Estándar (Volumen)</strong>
+                <p style="margin: 0; font-size: 0.9rem;">Mínimo <strong>3.4 m³ por cada kW</strong>. Si es menor, es CONFINADO.</p>
+            </div>
+            <div style="margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong style="color: #334155; display: block; margin-bottom: 5px;">4.1.2 Aberturas (Interior)</strong>
+                <ul style="margin: 0; padding-left: 20px; font-size: 0.9rem;">
+                    <li>Superior: Inicia a > 180cm.</li>
+                    <li>Inferior: Inicia a < 30cm.</li>
+                    <li>Área mínima: Mayor entre 645 cm² o 22 cm²/kW.</li>
+                </ul>
+            </div>
+            <div style="margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <strong style="color: #334155; display: block; margin-bottom: 5px;">4.2.1 Aire Exterior</strong>
+                <ul style="margin: 0; padding-left: 20px; font-size: 0.9rem;">
+                    <li>Vertical: 6 cm²/kW.</li>
+                    <li>Horizontal: 11 cm²/kW.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="toggleInfo()" class="btn btn-primary">Entendido</button>
+        </div>
     </div>
 </div>
 
 <script>
-    const FACTOR_CONVERSION = 3.4;
-
-    function displayMessage(message, type = 'error') {
-        const messageBox = document.getElementById('message-box');
-        messageBox.textContent = message;
-        messageBox.classList.remove('hidden', 'bg-red-100', 'border-red-400', 'text-red-700', 'bg-green-100', 'border-green-400', 'text-green-700');
-        
-        if (type === 'error') {
-            messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-        } else {
-            messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+    // --- STATE MANAGEMENT ---
+    const STORAGE_KEY = 'ntc3631_offline_data';
+    
+    let state = {
+        project: { inspector: '', city: '', address: '' },
+        appliances: [
+            { id: 1, name: 'Estufa Doméstica', kw: 8.0 },
+            { id: 2, name: 'Calentador de Paso', kw: 11.0 }
+        ],
+        dims: { l: 0, w: 0, h: 2.4 },
+        ventMethod: '4.1.2',
+        openings: [
+            { id: 1, type: 'Superior', w: 20, h: 20, factor: 0.7 },
+            { id: 2, type: 'Inferior', w: 20, h: 20, factor: 0.7 }
+        ],
+        checklist: {
+            hSup: 'no', hInf: 'no', grid: 'no', duct: 'no', slope: 'no'
         }
-        
-        messageBox.classList.remove('hidden');
-        
-        setTimeout(() => {
-            messageBox.classList.add('hidden');
-        }, 5000);
-    }
-
-    function calcularPotencia() {
-        // 1. Obtener valores de entrada y convertirlos a números
-        const altura = parseFloat(document.getElementById('altura').value);
-        const profundidad = parseFloat(document.getElementById('profundidad').value);
-        const anchura = parseFloat(document.getElementById('anchura').value);
-        const potenciaInstalada = parseFloat(document.getElementById('potencia-instalada').value);
-
-        const resultadosDiv = document.getElementById('resultados');
-
-        // 2. Validación de entradas
-        if (isNaN(altura) || isNaN(profundidad) || isNaN(anchura) || altura <= 0 || profundidad <= 0 || anchura <= 0) {
-            displayMessage('Por favor, ingresa valores numéricos válidos y mayores que cero para las dimensiones.', 'error');
-            resultadosDiv.classList.add('hidden');
-            return;
-        }
-
-        if (isNaN(potenciaInstalada) || potenciaInstalada < 0) {
-            displayMessage('Por favor, ingresa un valor numérico válido y no negativo para la Potencia Instalada (kW).', 'error');
-            resultadosDiv.classList.add('hidden');
-            return;
-        }
-
-        // 3. Calcular el Volumen (V) en metros cúbicos (m³)
-        const volumen = altura * profundidad * anchura;
-
-        // 4. Calcular la Potencia Máxima a Instalar (P_Max) en Kilovatios (kW)
-        // La fórmula: P_Max (kW) = Volumen (m³) / 3.4 (m³/kW)
-        const potenciaKilowatts = volumen / FACTOR_CONVERSION;
-
-        // 5. Comparación y Diferencia
-        // Diferencia / Potencia a instalar a futuro: Potencia Máxima a Instalar - Potencia Instalada
-        const diferencia = potenciaKilowatts - potenciaInstalada; 
-
-        // 6. Clasificación de Idoneidad (APTO/NO APTO)
-        let clasificacion = '';
-        let clasificacionClase = '';
-        
-        // APTO si la instalada es MENOR que la máxima a instalar
-        if (potenciaInstalada < potenciaKilowatts) {
-            clasificacion = 'APTO';
-            clasificacionClase = 'bg-green-100 border-green-400 text-green-800'; 
-        } else {
-            // NO APTO si la instalada es MAYOR O IGUAL que la máxima a instalar
-            clasificacion = 'NO APTO';
-            clasificacionClase = 'bg-red-100 border-red-400 text-red-800'; 
-        }
-
-        // 7. Formatear y mostrar los resultados
-        document.getElementById('volumen-output').textContent = volumen.toFixed(2) + ' m³';
-        document.getElementById('potencia-output').textContent = potenciaKilowatts.toFixed(2) + ' kW';
-        
-        // Se muestra la Potencia a instalar a futuro
-        document.getElementById('diferencia-output').textContent = diferencia.toFixed(2) + ' kW';
-
-        const clasificacionOutput = document.getElementById('clasificacion-output');
-        const clasificacionBox = document.getElementById('clasificacion-box');
-        
-        clasificacionBox.classList.remove('bg-green-100', 'border-green-400', 'text-green-800', 'bg-red-100', 'border-red-400', 'text-red-800');
-        clasificacionBox.classList.add(...clasificacionClase.split(' '));
-        clasificacionOutput.textContent = clasificacion;
-
-        resultadosDiv.classList.remove('hidden');
-        displayMessage('Evaluación de potencia completada. Revisa la clasificación de Idoneidad.', 'success');
-    }
-
-    window.onload = () => {
-        document.getElementById('altura').value = '';
-        document.getElementById('profundidad').value = '';
-        document.getElementById('anchura').value = '';
-        document.getElementById('potencia-instalada').value = ''; 
     };
 
-</script>
+    const checklistMeta = [
+        { id: 'hSup', label: 'Abertura Superior > 180cm (4.1.2.a)' },
+        { id: 'hInf', label: 'Abertura Inferior < 30cm (4.1.2.a)' },
+        { id: 'grid', label: 'Rejillas limpias y dimensión menor > 8mm' },
+        { id: 'duct', label: 'Ductos independientes (No único vertical)' },
+        { id: 'slope', label: 'Horizontales sin pendiente negativa' }
+    ];
 
+    // --- INIT ---
+    function init() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try { state = JSON.parse(saved); } catch(e) { console.error('Error loading state', e); }
+        }
+
+        // Set Date
+        document.getElementById('displayFecha').textContent = "Fecha: " + new Date().toLocaleDateString();
+        document.getElementById('displayRef').textContent = "Ref: " + Math.floor(Math.random() * 9999);
+
+        // Populate Static Inputs
+        document.getElementById('inspectorName').value = state.project.inspector || '';
+        document.getElementById('city').value = state.project.city || '';
+        document.getElementById('address').value = state.project.address || '';
+        document.getElementById('dimL').value = state.dims.l || '';
+        document.getElementById('dimW').value = state.dims.w || '';
+        document.getElementById('dimH').value = state.dims.h || 2.4;
+        document.getElementById('ventMethod').value = state.ventMethod || '4.1.2';
+
+        renderAppliances();
+        renderOpenings();
+        renderChecklist();
+        calcAll();
+    }
+
+    function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const now = new Date();
+        document.getElementById('saveStatus').textContent = `Guardado: ${now.getHours()}:${now.getMinutes() < 10 ? '0'+now.getMinutes() : now.getMinutes()}`;
+    }
+
+    // --- UPDATERS ---
+    function updateProjectInfo() {
+        state.project.inspector = document.getElementById('inspectorName').value;
+        state.project.city = document.getElementById('city').value;
+        state.project.address = document.getElementById('address').value;
+        save();
+    }
+
+    function updateDims() {
+        state.dims.l = parseFloat(document.getElementById('dimL').value) || 0;
+        state.dims.w = parseFloat(document.getElementById('dimW').value) || 0;
+        state.dims.h = parseFloat(document.getElementById('dimH').value) || 0;
+        calcAll();
+        save();
+    }
+
+    function updateVentMethod() {
+        state.ventMethod = document.getElementById('ventMethod').value;
+        calcAll();
+        save();
+    }
+
+    // --- APPLIANCES LOGIC ---
+    function renderAppliances() {
+        const tbody = document.getElementById('appliancesList');
+        tbody.innerHTML = '';
+        
+        state.appliances.forEach((app, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" class="form-input-clean" value="${app.name}" oninput="updateAppliance(${index}, 'name', this.value)"></td>
+                <td><input type="number" class="form-input text-right font-mono" value="${app.kw}" oninput="updateAppliance(${index}, 'kw', this.value)"></td>
+                <td class="text-center no-print">
+                    <button class="btn-icon btn-icon-danger" onclick="removeAppliance(${index})">
+                        <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        calcAll();
+    }
+
+    window.addAppliance = function() {
+        state.appliances.push({ id: Date.now(), name: '', kw: 0 });
+        renderAppliances();
+        save();
+    };
+
+    window.removeAppliance = function(index) {
+        state.appliances.splice(index, 1);
+        renderAppliances();
+        save();
+    };
+
+    window.updateAppliance = function(index, field, value) {
+        if(field === 'kw') value = parseFloat(value) || 0;
+        state.appliances[index][field] = value;
+        calcAll(); // Only calc numbers, don't re-render table to keep focus
+        save();
+    };
+
+    // --- OPENINGS LOGIC ---
+    function renderOpenings() {
+        const container = document.getElementById('openingsList');
+        container.innerHTML = '';
+
+        state.openings.forEach((op, index) => {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.gap = '10px';
+            div.style.marginBottom = '10px';
+            div.style.alignItems = 'flex-end';
+            
+            div.innerHTML = `
+                <div style="width: 80px;">
+                    <label class="form-label">Ubicación</label>
+                    <div style="font-size: 0.8rem; font-weight: bold; background: #f1f5f9; padding: 6px; border-radius: 4px;">${op.type}</div>
+                </div>
+                <div style="flex: 1;">
+                    <label class="form-label">Ancho x Alto (cm)</label>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="number" class="form-input text-center font-mono" value="${op.w}" oninput="updateOpening(${index}, 'w', this.value)">
+                        <span>x</span>
+                        <input type="number" class="form-input text-center font-mono" value="${op.h}" oninput="updateOpening(${index}, 'h', this.value)">
+                    </div>
+                </div>
+                <div style="width: 70px;">
+                    <label class="form-label">Factor</label>
+                    <input type="number" step="0.1" class="form-input text-center" value="${op.factor}" oninput="updateOpening(${index}, 'factor', this.value)">
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        calcAll();
+    }
+
+    window.updateOpening = function(index, field, value) {
+        state.openings[index][field] = parseFloat(value) || 0;
+        calcAll();
+        save();
+    }
+
+    // --- CHECKLIST LOGIC ---
+    function renderChecklist() {
+        const container = document.getElementById('checklistContainer');
+        container.innerHTML = '';
+        
+        checklistMeta.forEach(meta => {
+            const val = state.checklist[meta.id];
+            const div = document.createElement('div');
+            div.className = 'checklist-item';
+            div.innerHTML = `
+                <div class="checklist-controls">
+                    <div class="check-btn ${val === 'ok' ? 'active' : ''}" onclick="toggleCheck('${meta.id}', 'ok')">
+                        <div class="check-box">✓</div> Cumple
+                    </div>
+                    <div class="check-btn ${val === 'na' ? 'active na' : ''}" onclick="toggleCheck('${meta.id}', 'na')">
+                        <div class="check-box">-</div> N/A
+                    </div>
+                </div>
+                <div style="font-size: 0.9rem; padding-top: 5px;">${meta.label}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    window.toggleCheck = function(id, type) {
+        const current = state.checklist[id];
+        state.checklist[id] = (current === type) ? 'no' : type;
+        renderChecklist();
+        calcAll();
+        save();
+    }
+
+    // --- CALCULATIONS CORE ---
+    function calcAll() {
+        // 1. Total KW
+        const totalKW = state.appliances.reduce((acc, app) => acc + app.kw, 0);
+        document.getElementById('totalKWDisplay').textContent = totalKW.toFixed(2) + ' kW';
+
+        // 2. Volume
+        const volReal = (state.dims.l * state.dims.w * state.dims.h);
+        const volReq = totalKW * 3.4;
+        const isConfined = volReal < volReq;
+        
+        document.getElementById('realVolDisplay').textContent = volReal.toFixed(2) + ' m³';
+        document.getElementById('reqVolDisplay').textContent = volReq.toFixed(2) + ' m³';
+
+        const vStatus = document.getElementById('volumeStatus');
+        const finalVStatus = document.getElementById('finalVolStatus');
+        
+        if(isConfined) {
+            vStatus.className = 'alert-box alert-danger';
+            vStatus.textContent = 'RECINTO CONFINADO (Requiere Aberturas)';
+            finalVStatus.className = 'badge badge-danger';
+            finalVStatus.textContent = 'CONFINADO';
+        } else {
+            vStatus.className = 'alert-box alert-success';
+            vStatus.textContent = 'RECINTO NO CONFINADO (Volumen OK)';
+            finalVStatus.className = 'badge badge-success';
+            finalVStatus.textContent = 'SATISFACTORIO';
+        }
+
+        // 3. Ventilation Reqs
+        let reqArea = 0;
+        if (state.ventMethod === '4.1.2') reqArea = Math.max(645, totalKW * 22);
+        else if (state.ventMethod === '4.2.1a') reqArea = totalKW * 6;
+        else if (state.ventMethod === '4.2.1b') reqArea = totalKW * 11;
+        
+        // 4. Installed Area
+        const instArea = state.openings.reduce((acc, op) => acc + (op.w * op.h * op.factor), 0);
+        
+        document.getElementById('totalAreaDisplay').textContent = instArea.toFixed(0) + ' cm²';
+        
+        // 5. Update Technician Calc
+        document.getElementById('calcReqArea').textContent = reqArea.toFixed(0) + ' cm²';
+        updateCalc(reqArea); // Pass dynamic reqArea
+
+        // 6. Global Status
+        const checklistOK = Object.values(state.checklist).every(v => v === 'ok' || v === 'na');
+        const ventsOK = instArea >= reqArea;
+        
+        // Logic: If NO CONFINED -> OK. If CONFINED -> Needs Vents + Checklist
+        const globalOK = (!isConfined) ? true : (ventsOK && checklistOK);
+
+        const gBox = document.getElementById('globalResultBox');
+        if(globalOK) {
+            gBox.style.background = '#d1fae5';
+            gBox.style.borderColor = '#10b981';
+            gBox.style.color = '#065f46';
+            gBox.innerHTML = `
+                <div style="font-size: 2.5rem; font-weight: 900; letter-spacing: 1px; line-height: 1;">APROBADO</div>
+                <div style="margin-top: 10px; font-size: 0.9rem;">El recinto cumple con los requisitos NTC 3631.</div>
+            `;
+        } else {
+            gBox.style.background = '#fee2e2';
+            gBox.style.borderColor = '#ef4444';
+            gBox.style.color = '#991b1b';
+            gBox.innerHTML = `
+                <div style="font-size: 2.5rem; font-weight: 900; letter-spacing: 1px; line-height: 1;">NO APROBADO</div>
+                <div style="margin-top: 10px; font-size: 0.9rem;">No cumple condiciones mínimas. ${isConfined ? 'Falta ventilación o checklist.' : ''}</div>
+            `;
+        }
+
+        // Final summary Update
+        document.getElementById('finalReqArea').textContent = reqArea.toFixed(0);
+        const instAreaEl = document.getElementById('finalInstArea');
+        instAreaEl.textContent = instArea.toFixed(0);
+        instAreaEl.style.color = ventsOK ? 'var(--success)' : 'var(--danger)';
+    }
+
+    // --- TECHNICIAN CALC UI ---
+    window.updateCalc = function(injectedReq) {
+        // If called from event listener, calculate Req from state. If from calcAll, use injected
+        let req = injectedReq;
+        if(typeof req !== 'number') {
+            const totalKW = state.appliances.reduce((acc, app) => acc + app.kw, 0);
+             if (state.ventMethod === '4.1.2') req = Math.max(645, totalKW * 22);
+            else if (state.ventMethod === '4.2.1a') req = totalKW * 6;
+            else if (state.ventMethod === '4.2.1b') req = totalKW * 11;
+        }
+
+        const factor = parseFloat(document.getElementById('calcGrilleFactor').value);
+        const width = parseFloat(document.getElementById('calcWidth').value) || 20;
+        
+        const height = (req / factor / width);
+        document.getElementById('calcResultHeight').textContent = isFinite(height) ? height.toFixed(1) : '0.0';
+    }
+
+    // --- UTILS ---
+    window.toggleInfo = function() {
+        const modal = document.getElementById('modalInfo');
+        modal.classList.toggle('open');
+    }
+
+    window.resetApp = function() {
+        if(confirm('¿Borrar todos los datos y reiniciar?')) {
+            localStorage.removeItem(STORAGE_KEY);
+            location.reload();
+        }
+    }
+
+    // Start
+    init();
+
+</script>
 </body>
 </html>
