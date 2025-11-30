@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SofI.A. | Git de Ingeniería</title>
-    <!-- Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Fuente Roboto -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <style>
-        /* --- ESTILOS GENERALES Y PALETA DE COLORES --- */
+        /* --- ESTILOS (Mismos que la versión anterior) --- */
         :root {
-            --primary-blue: #0071eb; /* Azul Eléctrico */
-            --bg-black: #141414; /* Fondo Streaming Dark */
+            --primary-blue: #0071eb; 
+            --bg-black: #141414;
             --card-bg: #2f2f2f;
             --text-white: #ffffff;
             --text-gray: #b3b3b3;
@@ -290,8 +288,10 @@
 </head>
 <body>
 
+    <!-- ELEMENTO DE AUDIO PARA FONDO -->
     <audio id="bg-music" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        <source src="" type="audio/mpeg"> <!-- Se llena dinámicamente -->
+        Tu navegador no soporta el elemento de audio.
     </audio>
 
     <!-- 1. LOGIN PRINCIPAL -->
@@ -317,7 +317,8 @@
             <div style="display:flex; align-items:center; gap:40px;">
                 <div class="nav-logo" onclick="location.reload()">SofI.A.</div>
                 <div class="nav-links">
-                    <a href="interfazDeOpcionInicio.html" class="nav-item">Inicio</a>
+                    <!-- ENLACE A INICIO con guardado de estado de audio -->
+                    <a href="#" class="nav-item" onclick="navegarA('interfazDeOpcionInicio.html')">Inicio</a>
                     <a href="#" class="nav-item active" onclick="location.reload()">Herramientas</a>
                     <span class="nav-item">Mi Lista</span>
                 </div>
@@ -522,13 +523,14 @@
             { u: "julianvalencia@inse.net.co", p: "1211", n: "Julian", apellido: "Valencia", f: "29/11/2025", img: "", profesion: "", area: "", telefono: "", ubicacion: "" },
             { u: "alexander221977@gmail.com", p: "2505", n: "Alexander", apellido: "", f: "29/11/2025", img: "", profesion: "", area: "", telefono: "", ubicacion: "" }
         ];
-        
-        // RECUPERAR USUARIOS GUARDADOS EN NAVEGADOR
-        // IMPORTANTE: En Github Pages esto estará vacío al principio, por eso usamos DATOS_INICIALES
-        let dbUsuarios = JSON.parse(localStorage.getItem('sofia_users'));
-        if (!dbUsuarios || dbUsuarios.length === 0) {
-            dbUsuarios = DATOS_INICIALES;
-        }
+        let dbUsuarios = JSON.parse(localStorage.getItem('sofia_users')) || DATOS_INICIALES;
+
+        // MUSICA EPICA ALEATORIA
+        const EPIC_TRACKS = [
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
+        ];
 
         const HERRAMIENTAS = [
             { id: 1, nombre: "Calculadora de ventilación", url: "Calculadora de ventilacion 3631 V_Libre.html", imagen: "Imagen001.png", descripcion: "Cálculo de ventilación según dimensiones.", categoria: "Ventilación" },
@@ -545,12 +547,57 @@
         let favoritos = JSON.parse(localStorage.getItem('favs')) || [];
         const fallbackImg = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070";
 
-        // --- INICIALIZACIÓN DE SESIÓN (PERSISTENCIA AGRESIVA) ---
+        // --- SISTEMA DE AUDIO INTELIGENTE ---
+        const audioPlayer = document.getElementById('bg-music');
+
+        function gestionarMusica() {
+            // Recuperar estado previo
+            const savedTime = localStorage.getItem('audio_time');
+            const savedTrack = localStorage.getItem('audio_track');
+            
+            if (savedTrack && savedTime) {
+                // Si ya venimos de otra página, seguimos la misma canción
+                audioPlayer.src = savedTrack;
+                audioPlayer.currentTime = parseFloat(savedTime);
+            } else {
+                // Si es primera vez o reset, elegimos una nueva al azar
+                const randomTrack = EPIC_TRACKS[Math.floor(Math.random() * EPIC_TRACKS.length)];
+                audioPlayer.src = randomTrack;
+                localStorage.setItem('audio_track', randomTrack);
+            }
+
+            // Intentar reproducir (requiere interacción previa en algunos navegadores)
+            const playPromise = audioPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Autoplay prevenido por el navegador. Se iniciará al primer clic.");
+                    // Agregar listener global para iniciar audio al primer clic
+                    document.body.addEventListener('click', () => {
+                        audioPlayer.play();
+                    }, { once: true });
+                });
+            }
+        }
+
+        // Guardar progreso cada segundo para continuidad
+        audioPlayer.addEventListener('timeupdate', () => {
+            localStorage.setItem('audio_time', audioPlayer.currentTime);
+        });
+
+        // --- NAVEGACIÓN ENTRE PÁGINAS ---
+        function navegarA(url) {
+            // Guardamos el estado del audio antes de salir
+            localStorage.setItem('audio_time', audioPlayer.currentTime);
+            window.location.href = url;
+        }
+
+        // --- INICIALIZACIÓN DE SESIÓN ---
         window.addEventListener('load', () => {
+            gestionarMusica(); // Iniciar sistema de música
+
             const sessionUser = JSON.parse(localStorage.getItem('sofia_session'));
             
             if (sessionUser) {
-                // Verificar si los datos han cambiado
                 const updatedUser = dbUsuarios.find(u => u.u === sessionUser.u);
                 usuarioActivo = updatedUser || sessionUser; 
                 
@@ -602,6 +649,8 @@
 
         function cerrarSesion() {
             localStorage.removeItem('sofia_session');
+            localStorage.removeItem('audio_time'); // Resetear música al salir
+            localStorage.removeItem('audio_track');
             window.location.href = "index.html"; 
         }
 
@@ -715,11 +764,7 @@
             }
             actualizarAvatarUI();
             document.getElementById('edit-profile-modal').style.display = 'none';
-            // Feedback visual sutil en lugar de alert
-            const btn = document.querySelector('#edit-profile-modal .login-btn-primary');
-            const originalText = btn.innerText;
-            btn.innerText = "¡GUARDADO!";
-            setTimeout(() => btn.innerText = originalText, 2000);
+            alert("Información actualizada.");
         }
 
         function actualizarAvatarUI() {
