@@ -4,856 +4,668 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SofI.A. | Hub de Ingeniería</title>
-    <!-- Iconos para botones -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* --- VARIABLES Y RESET --- */
+        /* --- FUSIÓN DE ESTILOS (Netflux UI + SofIA Logic) --- */
         :root {
-            --bg-color: #141414;
+            --primary-red: #E50914;
+            --bg-black: #141414;
             --card-bg: #2f2f2f;
-            --text-color: #ffffff;
-            --primary-color: #e50914; /* Rojo tipo Netflix */
-            --secondary-color: #46d369; /* Verde para coincidencias/éxito */
-            --hover-z: 100;
+            --text-white: #ffffff;
+            --text-gray: #e5e5e5;
+            --secondary-green: #46d369; /* Verde Éxito */
+            --corp-blue: #3b82f6; 
+            --edu-yellow: #f59e0b; 
         }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
         body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg-black);
+            color: var(--text-white);
             overflow-x: hidden;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
         }
 
-        /* --- PANTALLA DE LOGIN --- */
+        /* --- UTILIDADES --- */
+        .hidden { display: none !important; }
+        .btn { cursor: pointer; border: none; outline: none; font-weight: bold; border-radius: 4px; transition: transform 0.2s; }
+        .btn:hover { transform: scale(1.05); }
+
+        /* --- PANTALLA DE LOGIN (Style V1 mejorado) --- */
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            /* Imagen de fondo alusiva a IA */
             background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=2000&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
             display: flex; justify-content: center; align-items: center; z-index: 3000;
+            transition: opacity 0.8s ease;
         }
 
-        .login-box {
+        .login-box-static {
             background-color: rgba(0, 0, 0, 0.85); padding: 60px; border-radius: 8px; width: 100%; max-width: 400px; text-align: center;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            border: 1px solid #333;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5); border: 1px solid #333;
         }
-        .login-box h1 { color: var(--primary-color); margin-bottom: 10px; font-size: 3rem; letter-spacing: 2px; margin-top: 0; }
+        .login-title { color: var(--primary-red); margin-bottom: 10px; font-size: 3rem; letter-spacing: 2px; }
         .login-subtitle { color: #ccc; margin-bottom: 30px; font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
         
-        .login-input { width: 100%; padding: 16px; margin-bottom: 20px; background: #333; border: 1px solid #444; border-radius: 4px; color: white; box-sizing: border-box; font-size: 1rem; }
-        .login-input:focus { outline: none; border-color: var(--primary-color); background: #444; }
+        .login-input { width: 100%; padding: 16px; margin-bottom: 20px; background: #333; border: 1px solid #444; border-radius: 4px; color: white; font-size: 1rem; }
+        .login-input:focus { outline: none; border-color: var(--primary-red); background: #444; }
         
-        .login-btn { width: 100%; padding: 16px; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.3s; margin-bottom: 10px; }
-        .login-btn:hover { background-color: #f40612; }
-        
-        /* Botón secundario para el Video */
-        .login-btn-secondary {
-            background-color: transparent;
-            border: 1px solid #888;
-            color: #ccc;
-        }
-        .login-btn-secondary:hover {
-            background-color: rgba(255,255,255,0.1);
-            border-color: white;
-            color: white;
-        }
-
+        .login-btn-primary { width: 100%; padding: 16px; background-color: var(--primary-red); color: white; margin-bottom: 10px; font-size: 1rem; }
+        .login-btn-secondary { width: 100%; padding: 16px; background: transparent; border: 1px solid #888; color: #ccc; font-size: 0.9rem; }
+        .login-btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: white; color: white; }
         .login-error { color: #e5a1a1; font-size: 0.9rem; margin-top: 15px; display: none; }
 
-        /* --- MODAL DE VIDEO DE PRESENTACIÓN --- */
-        #video-modal {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 3500; /* Mayor que el login */
-            justify-content: center; align-items: center;
-            flex-direction: column;
-        }
-        .video-container {
-            width: 90%; max-width: 900px;
-            position: relative;
-            background: #000;
-            box-shadow: 0 0 40px rgba(229, 9, 20, 0.3);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .video-close-btn {
-            position: absolute; top: -40px; right: 0;
-            background: none; border: none; color: white;
-            font-size: 2rem; cursor: pointer;
-            transition: color 0.3s;
-        }
-        .video-close-btn:hover { color: var(--primary-color); }
-        /* Estilo para el reproductor nativo */
-        video { display: block; width: 100%; height: auto; outline: none; }
-
-
-        /* --- INTERFAZ PRINCIPAL --- */
-        #main-interface { 
-            display: none; 
-            flex-direction: column;
-            flex: 1; 
-            opacity: 0;
-            transition: opacity 1s ease-in;
-        }
-
-        header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 15px 40px; position: fixed; width: 100%; top: 0; z-index: 1000;
+        /* --- NAVBAR (Style V2) --- */
+        .navbar {
+            position: fixed; top: 0; width: 100%; padding: 20px 4%;
+            display: flex; justify-content: space-between; align-items: center;
             background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
-            transition: background-color 0.4s; box-sizing: border-box;
+            z-index: 1000; transition: background-color 0.3s;
         }
-        header.scrolled { background-color: #141414; }
-        .logo { color: var(--primary-color); font-size: 1.8rem; font-weight: 800; cursor: pointer; text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .nav-menu { display: flex; gap: 20px; font-size: 0.9rem; font-weight: bold; }
-        .nav-item { cursor: pointer; color: #e5e5e5; transition: color 0.3s; }
-        .nav-item:hover { color: #fff; }
+        .navbar.scrolled { background-color: var(--bg-black); }
+        
+        .nav-logo { color: var(--primary-red); font-size: 1.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; }
+        .nav-links { display: flex; gap: 20px; font-size: 0.9rem; font-weight: bold; color: #e5e5e5; }
+        .nav-item { cursor: pointer; transition: color 0.3s; } .nav-item:hover { color: white; }
+        
+        .user-menu { display: flex; align-items: center; gap: 20px; font-size: 1rem; }
+        .profile-badge { border: 1px solid white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; transition: all 0.3s; }
+        .nav-avatar { width: 32px; height: 32px; border-radius: 4px; cursor: pointer; background-color: #333; display: flex; justify-content: center; align-items: center; font-size: 1rem; }
 
-        /* --- HERO DINÁMICO --- */
+        /* --- HERO SECTION (Style V2) --- */
         .hero {
-            height: 85vh; position: relative;
-            background-color: #000;
-            background-position: center top;
-            background-size: cover;
-            background-repeat: no-repeat;
-            display: flex; align-items: center; padding-left: 60px;
+            height: 85vh; width: 100%; position: relative;
+            background-color: #000; background-position: center top; background-size: cover;
+            display: flex; align-items: center; padding-left: 4%;
             transition: background-image 0.8s ease-in-out;
         }
+        .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to right, #141414 20%, transparent 100%); z-index: 1; }
+        .hero-overlay-btm { position: absolute; bottom: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to top, #141414, transparent); z-index: 1; }
         
-        .hero-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to right, #141414 20%, rgba(20,20,20,0.5) 60%, transparent 100%); z-index: 1; }
-        .hero-overlay-btm { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, #141414 0%, transparent 20%); z-index: 1; }
-        
-        .hero-content { 
-            position: relative; z-index: 10; max-width: 600px; 
-            opacity: 1; transition: opacity 0.5s ease-in-out; 
-            padding-top: 80px;
-        }
-        
+        .hero-content { position: relative; z-index: 10; max-width: 600px; padding-top: 60px; transition: opacity 0.5s; }
         .hero-content.fade-out { opacity: 0; }
-
-        .hero-badge {
-            background-color: rgba(255,255,255,0.2); backdrop-filter: blur(5px);
-            padding: 5px 10px; font-weight: bold; font-size: 0.8rem; border-left: 3px solid var(--primary-color);
-            margin-bottom: 15px; display: inline-block; text-transform: uppercase; letter-spacing: 1px;
-        }
-
-        .hero-title { font-size: 4rem; margin-bottom: 15px; font-weight: 800; line-height: 1; text-transform: uppercase; color: white; text-shadow: 2px 2px 20px rgba(0,0,0,0.8); }
-        .hero-desc { font-size: 1.3rem; margin-bottom: 30px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); line-height: 1.4; color: #e5e5e5; min-height: 60px; max-width: 500px; }
         
-        .btn-row { display: flex; gap: 15px; }
-        .hero-btn { 
-            padding: 12px 35px; font-size: 1.2rem; border-radius: 4px; border: none; 
-            cursor: pointer; font-weight: bold; transition: transform 0.2s, background 0.2s; 
-            display: inline-flex; align-items: center; gap: 10px; 
-        }
-        .hero-btn:hover { transform: scale(1.05); }
+        .hero-title { font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; text-transform: uppercase; line-height: 1.1; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .hero-desc { font-size: 1.2rem; margin-bottom: 2rem; color: #e5e5e5; text-shadow: 1px 1px 2px black; max-width: 500px; }
         
-        .btn-play { background: white; color: black; }
-        .btn-play:hover { background: rgba(255,255,255,0.8); }
-        
-        .btn-info { background: rgba(109, 109, 110, 0.7); color: white; }
-        .btn-info:hover { background: rgba(109, 109, 110, 0.4); }
+        .hero-buttons { display: flex; gap: 1rem; }
+        .btn-play { background-color: white; color: black; padding: 0.8rem 2rem; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .btn-info { background-color: rgba(109, 109, 110, 0.7); color: white; padding: 0.8rem 2rem; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
 
-        /* --- LISTAS DE CONTENIDO --- */
-        .content-container { position: relative; top: -80px; z-index: 20; padding-bottom: 50px; }
-        .category-row { margin-bottom: 40px; padding-left: 60px; overflow: visible; }
-        .category-header { display: flex; align-items: center; margin-bottom: 15px; }
-        .category-title { font-size: 1.5rem; font-weight: 600; color: #e5e5e5; margin-right: 15px; }
-        .category-line { height: 2px; background: #333; flex: 1; margin-right: 60px; }
+        /* --- CONTENT ROWS / TILES (Style V2 Mejorado) --- */
+        .content-container { position: relative; z-index: 20; margin-top: -80px; padding-bottom: 50px; }
+        .row { margin-bottom: 3rem; padding-left: 4%; }
+        .row-title { font-size: 1.4rem; font-weight: 600; color: #e5e5e5; margin-bottom: 1rem; }
         
-        .row-slider {
-            display: flex; gap: 15px; overflow-x: auto; 
-            padding: 50px 0; /* Aumentado padding superior/inferior para el hover */
-            margin: -50px 0; /* Compensación del margin */
-            scroll-behavior: smooth;
-            scrollbar-width: none;
-            padding-right: 60px; 
-            align-items: flex-start; /* Alinear arriba */
-        }
-        .row-slider::-webkit-scrollbar { display: none; }
+        .row-scroller { display: flex; gap: 10px; overflow-x: auto; padding: 20px 0; scrollbar-width: none; }
+        .row-scroller::-webkit-scrollbar { display: none; }
 
-        /* --- TARJETAS (NUEVO DISEÑO) --- */
-        .card {
-            flex: 0 0 280px; 
-            /* Quitamos aspect-ratio fijo del contenedor principal para permitir crecimiento vertical */
-            background-color: transparent;
-            cursor: pointer;
-            transition: transform 0.3s ease, z-index 0s; 
-            display: flex;
-            flex-direction: column;
-            position: relative;
+        .tile {
+            min-width: 260px; height: 146px; /* Aspect ratio estándar */
+            background-color: #333; border-radius: 4px;
+            transition: transform 0.3s, z-index 0s;
+            cursor: pointer; position: relative; overflow: hidden;
+            flex-shrink: 0;
         }
         
-        /* Efecto hover: expande TODO el contenedor */
-        .card:hover { 
-            transform: scale(1.3); 
-            z-index: 100; 
-            transition-delay: 0.1s;
-        }
-
-        /* Contenedor de la Imagen y Overlay (16:9) */
-        .card-media-wrapper {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16/9;
-            border-radius: 4px;
-            overflow: hidden;
-            background-color: var(--card-bg);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: box-shadow 0.3s;
-        }
-
-        .card:hover .card-media-wrapper {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            outline: 2px solid #444;
-        }
-
-        .card-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.3s; }
-        .card:hover .card-img { opacity: 0.3; } /* Oscurecer imagen al hover */
+        .tile:hover { transform: scale(1.3); z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.7); transition-delay: 0.1s; }
         
-        /* Overlay de información SOBRE la imagen */
-        .card-info-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            padding: 15px;
+        .tile-img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .tile-content {
+            position: absolute; inset: 0; opacity: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
             display: flex; flex-direction: column; justify-content: flex-end;
-            opacity: 0; transition: opacity 0.3s;
-            background: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0.1) 80%);
-            z-index: 3;
+            padding: 10px; transition: opacity 0.3s;
         }
-        .card:hover .card-info-overlay { opacity: 1; }
-
-        /* Título Externo (Debajo de la imagen) */
-        .card-title-outside {
-            margin-top: 10px;
-            font-size: 1rem;
-            color: #ccc;
-            font-weight: 500;
-            text-align: left;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding-left: 2px;
-            transition: color 0.3s;
-        }
+        .tile:hover .tile-content { opacity: 1; }
         
-        .card:hover .card-title-outside {
-            color: white; /* Resalta al hacer hover */
-        }
-
-        /* Elementos internos del overlay */
-        .card-actions { display: flex; gap: 10px; margin-bottom: 10px; }
-        .action-circle {
-            width: 35px; height: 35px; border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.5);
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.5); color: white; font-size: 0.8rem;
-            transition: all 0.2s;
-        }
-        .action-circle:hover { border-color: white; background: white; color: black; transform: scale(1.1); }
-        .action-primary { background: white; color: black; border-color: white; }
-        .action-primary:hover { background: #ccc; border-color: #ccc; }
-
-        .card-meta { display: flex; align-items: center; gap: 10px; font-size: 0.6rem; color: #46d369; font-weight: bold; margin-bottom: 5px; }
-        .card-rating { border: 1px solid rgba(255,255,255,0.4); padding: 0 4px; color: white; font-weight: normal; }
+        .tile-actions { display: flex; gap: 10px; margin-bottom: 8px; }
+        .tile-icon { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; background: rgba(0,0,0,0.5); color: white; transition: 0.2s; }
+        .tile-icon:hover { background: white; color: black; border-color: white; transform: scale(1.1); }
+        .icon-play { background: white; color: black; border-color: white; }
         
-        /* Título interno (opcional, si quieres que se repita o para subtitulos) */
-        .card-subtitle { font-size: 0.65rem; color: #ddd; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 1px 1px 2px black;}
+        .tile-title { font-size: 0.9rem; font-weight: bold; color: white; margin-bottom: 4px; }
+        .tile-meta { font-size: 0.7rem; color: var(--secondary-green); font-weight: bold; }
 
-        /* --- FOOTER --- */
-        footer {
-            margin-top: auto; 
-            padding: 40px 20px;
-            text-align: center;
-            color: #737373;
-            font-size: 0.9rem;
-            border-top: 1px solid #333; 
-            background-color: #0a0a0a;
-            position: relative;
-            z-index: 30;
-        }
-        .social-icons i { margin: 0 10px; font-size: 1.5rem; cursor: pointer; transition: color 0.2s; }
-        .social-icons i:hover { color: white; }
-
-        /* --- MODALES --- */
-        /* Visor de Apps (iframe) */
-        #viewer {
+        /* --- PROFILE GATE (Estilo Netflux "Quién está viendo") --- */
+        #profile-gate {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: black; z-index: 5000; flex-direction: column;
+            background: rgba(0,0,0,0.95); z-index: 4000;
+            flex-direction: column; align-items: center; justify-content: center;
+            animation: fadeIn 0.4s ease;
         }
-        #viewer-header { padding: 10px 30px; background-color: #141414; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
-        .close-btn { background: var(--primary-color); border: none; color: white; padding: 8px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 0.9rem; }
-        .close-btn:hover { background: #f40612; }
+        .gate-title { font-size: 3.5rem; font-weight: 400; margin-bottom: 2rem; color: white; text-align: center; }
+        .gate-profiles { display: flex; gap: 2vw; flex-wrap: wrap; justify-content: center; }
+        
+        .profile-card { display: flex; flex-direction: column; align-items: center; cursor: pointer; group: hover; transition: transform 0.3s; width: 150px; }
+        .profile-card:hover { transform: translateY(-10px); }
+        
+        .profile-avatar {
+            width: 150px; height: 150px; border-radius: 4px; margin-bottom: 1rem;
+            border: 3px solid transparent; display: flex; justify-content: center; align-items: center;
+            font-size: 4rem; color: rgba(255,255,255,0.7); transition: 0.3s;
+            background-size: cover; background-position: center;
+        }
+        .profile-card:hover .profile-avatar { border-color: white; color: white; }
+        
+        .profile-name { color: gray; font-size: 1.3rem; transition: color 0.3s; }
+        .profile-card:hover .profile-name { color: white; }
+
+        /* Colores de Perfiles */
+        .av-gen { background: linear-gradient(135deg, #333, #666); }
+        .av-corp { background: linear-gradient(135deg, #1e3a8a, var(--corp-blue)); }
+        .av-edu { background: linear-gradient(135deg, #78350f, var(--edu-yellow)); }
+
+        .gate-close { margin-top: 50px; background: transparent; border: 1px solid gray; color: gray; padding: 8px 25px; letter-spacing: 2px; text-transform: uppercase; }
+        .gate-close:hover { border-color: white; color: white; }
+
+        /* --- MODAL LOGIN SECUNDARIO --- */
+        #dynamic-login-modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            z-index: 4500; justify-content: center; align-items: center; animation: fadeIn 0.3s;
+        }
+        .modal-login-content { background: #181818; padding: 50px; width: 100%; max-width: 450px; border-radius: 8px; position: relative; border-top: 4px solid transparent; }
+        
+        /* --- OTROS MODALES --- */
+        #membership-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 5000; justify-content: center; align-items: center; }
+        #video-modal { display: none; position: fixed; inset: 0; background: black; z-index: 5000; justify-content: center; align-items: center; flex-direction: column; }
+        #viewer { display: none; position: fixed; inset: 0; background: black; z-index: 5500; flex-direction: column; }
+        #details-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 4200; justify-content: center; align-items: center; }
+
+        /* Utility iframe/video */
         iframe { width: 100%; height: 100%; border: none; background: white; }
-
-        /* Modal de Detalles (Info) */
-        #details-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); z-index: 4000;
-            justify-content: center; align-items: center;
-            backdrop-filter: blur(5px);
-            opacity: 0; transition: opacity 0.3s;
-        }
-        #details-modal.show { opacity: 1; }
+        video { width: 90%; max-width: 1000px; outline: none; }
         
-        .details-content {
-            background: #181818; width: 90%; max-width: 800px; border-radius: 10px;
-            overflow: hidden; position: relative; box-shadow: 0 0 50px rgba(0,0,0,0.8);
-            transform: translateY(50px); transition: transform 0.3s;
-        }
-        #details-modal.show .details-content { transform: translateY(0); }
-
-        .details-banner {
-            height: 350px; background-size: cover; background-position: center; position: relative;
-        }
-        .details-gradient {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to top, #181818 0%, transparent 60%);
-        }
-        .details-close {
-            position: absolute; top: 15px; right: 15px; width: 40px; height: 40px;
-            background: #181818; color: white; border-radius: 50%; border: none; font-size: 1.5rem; cursor: pointer; z-index: 10;
-        }
-        .details-info-block { padding: 30px 40px; color: #fff; }
-        .details-title { font-size: 2.5rem; font-weight: bold; margin-bottom: 15px; }
-        .details-meta { display: flex; gap: 15px; margin-bottom: 20px; color: #bcbcbc; font-size: 1rem; }
-        .details-desc { font-size: 1.1rem; line-height: 1.6; color: #fff; margin-bottom: 30px; }
-        .details-tags { display: flex; gap: 10px; flex-wrap: wrap; }
-        .tag { background: #333; padding: 5px 10px; border-radius: 2px; font-size: 0.8rem; color: #ccc; }
-
-        /* Media Queries básicas */
-        @media (max-width: 768px) {
-            .hero-title { font-size: 2.5rem; }
-            .hero-content { padding-left: 0; }
-            .hero { padding-left: 20px; }
-            .category-row { padding-left: 20px; }
-            .login-box { width: 90%; padding: 40px 20px; }
-            .video-container { width: 95%; }
-        }
-
+        @keyframes fadeIn { from { opacity: 0; transform: scale(1.05); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Footer */
+        footer { margin-top: 50px; padding: 30px; text-align: center; color: #777; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-    <!-- Audio de fondo (Musica épica) -->
-    <!-- Se inicia tras el login. Loop activado. -->
+    <!-- AUDIO FONDO -->
     <audio id="bg-music" loop>
         <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-        Tu navegador no soporta el elemento de audio.
     </audio>
 
+    <!-- 1. LOGIN PRINCIPAL (GATEKEEPER) -->
     <div id="login-screen">
-        <div class="login-box">
-            <h1>SofI.A.</h1>
-            <div class="login-subtitle">Software De Inteligencia Artificial</div>
-            <form onsubmit="intentarLogin(event)">
-                <input type="text" id="username" class="login-input" placeholder="Usuario (admin)" required>
-                <input type="password" id="password" class="login-input" placeholder="Contraseña (1234)" required>
-                
-                <button type="submit" class="login-btn">INICIAR SESIÓN</button>
-                
-                <!-- NUEVO BOTÓN PARA VER VIDEO -->
-                <button type="button" class="login-btn login-btn-secondary" onclick="mostrarVideoPresentacion()">
+        <div class="login-box-static">
+            <h1 class="login-title">SofI.A.</h1>
+            <div class="login-subtitle">Hub de Ingeniería</div>
+            <form onsubmit="intentarLogin(event, 'General')">
+                <input type="text" id="user-static" class="login-input" placeholder="Usuario" required>
+                <input type="password" id="pass-static" class="login-input" placeholder="Contraseña" required>
+                <button type="submit" class="btn login-btn-primary">INICIAR SESIÓN</button>
+                <button type="button" class="btn login-btn-secondary" onclick="mostrarVideoPresentacion()">
                     <i class="fas fa-play-circle"></i> SABER MÁS
                 </button>
-
-                <p id="error-msg" class="login-error">Credenciales incorrectas.</p>
+                <p id="error-static" class="login-error">Credenciales incorrectas.</p>
             </form>
         </div>
     </div>
 
-    <!-- NUEVO MODAL DE VIDEO -->
-    <div id="video-modal" onclick="cerrarVideoPresentacion()">
-        <div class="video-container" onclick="event.stopPropagation()">
-            <button class="video-close-btn" onclick="cerrarVideoPresentacion()">×</button>
-            <video id="promo-video" controls>
-                <source src="VideoSaberMas.mp4" type="video/mp4">
-                Tu navegador no soporta la etiqueta de video o el formato no es compatible.
-            </video>
+    <!-- 2. SELECTOR DE PERFILES (Estilo "Quién está viendo") -->
+    <div id="profile-gate">
+        <h1 class="gate-title">¿Quién está viendo ahora?</h1>
+        <div class="gate-profiles">
+            
+            <!-- Perfil General -->
+            <div class="profile-card" onclick="validarCambioPerfil('General')">
+                <div class="profile-avatar av-gen"><i class="fas fa-tools"></i></div>
+                <span class="profile-name">General</span>
+            </div>
+
+            <!-- Perfil Corporativo -->
+            <div class="profile-card" onclick="validarCambioPerfil('Corporativo')">
+                <div class="profile-avatar av-corp"><i class="fas fa-building"></i></div>
+                <span class="profile-name">Corporativo</span>
+            </div>
+
+            <!-- Perfil Académico -->
+            <div class="profile-card" onclick="validarCambioPerfil('Académico')">
+                <div class="profile-avatar av-edu"><i class="fas fa-graduation-cap"></i></div>
+                <span class="profile-name">Académico</span>
+            </div>
+
+        </div>
+        <button class="btn gate-close" onclick="cerrarGate()">VOLVER AL HUB</button>
+    </div>
+
+    <!-- 3. LOGIN SECUNDARIO (Para perfiles restringidos) -->
+    <div id="dynamic-login-modal">
+        <div class="modal-login-content" id="modal-content-style">
+            <button onclick="cerrarLoginSecundario()" style="position:absolute; top:15px; right:20px; background:none; border:none; color:gray; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 id="dyn-title" style="margin-bottom:10px; font-size:2rem; color:white;">Perfil</h2>
+            <p id="dyn-subtitle" style="color:#aaa; margin-bottom:30px;">Verifique sus credenciales</p>
+            
+            <form onsubmit="intentarLogin(event, 'Dynamic')">
+                <input type="text" id="user-dyn" class="login-input" placeholder="Usuario" required>
+                <input type="password" id="pass-dyn" class="login-input" placeholder="Contraseña" required>
+                <button type="submit" id="btn-dyn" class="btn login-btn-primary">ACCEDER</button>
+                <p id="error-dyn" class="login-error">Datos incorrectos</p>
+            </form>
         </div>
     </div>
 
-    <div id="main-interface">
-        <header id="navbar">
+    <!-- 4. MENSAJE DE MEMBRESÍA -->
+    <div id="membership-modal">
+        <div style="background:#1f1f1f; padding:40px; border-radius:8px; text-align:center; max-width:500px; border:1px solid #444;">
+            <i class="fas fa-check-circle" style="font-size:4rem; color:var(--secondary-green); margin-bottom:20px;"></i>
+            <h2 id="mem-greeting" style="margin-bottom:15px;">Hola</h2>
+            <div id="mem-details" style="color:#ccc; margin-bottom:30px; line-height:1.6;"></div>
+            <button class="btn login-btn-primary" onclick="finalizarCarga()">ACEPTAR</button>
+        </div>
+    </div>
+
+    <!-- 5. INTERFAZ PRINCIPAL -->
+    <div id="main-interface" class="hidden">
+        <!-- Navbar -->
+        <nav id="navbar" class="navbar">
             <div style="display:flex; align-items:center; gap:30px;">
-                <div class="logo" onclick="location.reload()">SofI.A.</div>
-                <div class="nav-menu">
-                    <div class="nav-item">Inicio</div>
-                    <div class="nav-item">Herramientas</div>
-                    <div class="nav-item">Documentación</div>
-                    <div class="nav-item">Mi Lista</div>
+                <div class="nav-logo" onclick="location.reload()">SofI.A.</div>
+                <div class="nav-links">
+                    <span class="nav-item">Inicio</span>
+                    <span class="nav-item">Herramientas</span>
+                    <span class="nav-item">Mi Lista</span>
                 </div>
             </div>
-            <div style="font-size: 0.9rem; font-weight: bold;">
-                <i class="fas fa-search" style="margin-right:20px; cursor:pointer;"></i>
-                <i class="fas fa-bell" style="margin-right:20px; cursor:pointer;"></i>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png" alt="User" style="width:30px; vertical-align:middle; border-radius:4px;">
+            
+            <div class="user-menu">
+                <span id="profile-indicator" class="profile-badge">GENERAL</span>
+                <i class="fas fa-search" style="cursor:pointer"></i>
+                <i class="fas fa-users-cog" style="cursor:pointer" onclick="abrirGate()" title="Cambiar Perfil"></i>
+                <!-- Avatar Navbar Dinámico -->
+                <div id="nav-avatar-icon" class="nav-avatar av-gen">
+                    <i class="fas fa-user"></i>
+                </div>
             </div>
-        </header>
+        </nav>
 
+        <!-- Hero -->
         <div class="hero" id="hero-section">
             <div class="hero-overlay"></div>
             <div class="hero-overlay-btm"></div>
-            
             <div class="hero-content" id="hero-content">
-                <div class="hero-badge" id="hero-badge">DESTACADO</div>
-                <div class="hero-title" id="hero-title">CARGANDO...</div>
-                <div class="hero-desc" id="hero-desc">Preparando herramientas de ingeniería avanzada...</div>
-                
-                <div class="btn-row">
-                    <button class="hero-btn btn-play" id="hero-btn-play">
-                        <i class="fas fa-play"></i> ABRIR
-                    </button>
-                    
-                    <button class="hero-btn btn-info" id="hero-btn-details">
-                        <i class="fas fa-info-circle"></i> DETALLES
-                    </button>
+                <h1 class="hero-title" id="hero-title">Cargando...</h1>
+                <p class="hero-desc" id="hero-desc">...</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-play" id="hero-btn-play"><i class="fas fa-play"></i> Abrir</button>
+                    <button class="btn btn-info" id="hero-btn-details"><i class="fas fa-info-circle"></i> Más Información</button>
                 </div>
             </div>
         </div>
 
-        <div class="content-container" id="content-rows">
-            <!-- Filas generadas dinámicamente -->
-        </div>
+        <!-- Filas de Contenido -->
+        <div class="content-container" id="content-rows"></div>
 
         <footer>
-            <div class="social-icons" style="margin-bottom:20px;">
-                <i class="fab fa-facebook-f"></i>
-                <i class="fab fa-instagram"></i>
-                <i class="fab fa-twitter"></i>
-                <i class="fab fa-youtube"></i>
-            </div>
-            <div>&reg; SofI.A. - Software de Inteligencia Artificial - 2025</div>
-            <div style="margin-top:10px; font-size:0.8rem; color:#555;">Diseñado para Ingeniería de Alta Precisión</div>
+            <div style="margin-bottom:15px;"><i class="fab fa-facebook-f" style="margin:0 10px;"></i> <i class="fab fa-instagram" style="margin:0 10px;"></i></div>
+            <p>&copy; 2025 SofI.A. Engineering Hub</p>
         </footer>
     </div>
 
-    <!-- Modal de Detalles -->
-    <div id="details-modal" onclick="cerrarModalDetalles(event)">
-        <div class="details-content" onclick="event.stopPropagation()"> <!-- Evita cerrar al hacer click dentro -->
-            <button class="details-close" onclick="cerrarModalDetalles(null)">×</button>
-            <div class="details-banner" id="modal-banner">
-                <div class="details-gradient"></div>
+    <!-- --- COMPONENTES MODALES (VIDEO, DETALLES, APP) --- -->
+    <div id="video-modal" onclick="this.style.display='none'; document.getElementById('promo-video').pause();">
+        <button style="position:absolute; top:30px; right:30px; background:none; border:none; color:white; font-size:2rem; cursor:pointer;">&times;</button>
+        <video id="promo-video" controls src="VideoSaberMas.mp4"></video>
+    </div>
+
+    <div id="details-modal" onclick="cerrarDetalles(event)">
+        <div style="background:#181818; width:90%; max-width:800px; border-radius:10px; overflow:hidden;" onclick="event.stopPropagation()">
+            <div id="modal-banner" style="height:350px; background-size:cover; position:relative;">
+                <div style="position:absolute; inset:0; background:linear-gradient(to top, #181818, transparent);"></div>
+                <button onclick="cerrarDetalles(null)" style="position:absolute; top:15px; right:15px; width:35px; height:35px; border-radius:50%; border:none; background:#181818; color:white; font-size:1.2rem; cursor:pointer;">&times;</button>
             </div>
-            <div class="details-info-block">
-                <div class="details-title" id="modal-title">Título</div>
-                <div class="details-meta">
-                    <span style="color:#46d369;">98% Coincidencia</span>
-                    <span id="modal-cat">Categoría</span>
-                    <span style="border:1px solid #777; padding:0 5px; font-size:0.8rem;">HD</span>
+            <div style="padding:30px 40px;">
+                <h1 id="modal-title" style="margin-bottom:10px;">Titulo</h1>
+                <div style="display:flex; gap:15px; margin-bottom:20px; font-size:0.9rem;">
+                    <span style="color:var(--secondary-green); font-weight:bold;">98% Coincidencia</span>
+                    <span id="modal-cat">Cat</span>
                 </div>
-                <div class="details-desc" id="modal-desc">Descripción larga...</div>
-                <div class="details-tags">
-                    <div class="tag">Ingeniería</div>
-                    <div class="tag">Cálculo</div>
-                    <div class="tag">Normativa</div>
-                </div>
-                <div style="margin-top:30px;">
-                    <button class="hero-btn btn-play" id="modal-btn-open">
-                        <i class="fas fa-play"></i> ABRIR APLICACIÓN
-                    </button>
-                </div>
+                <p id="modal-desc" style="color:#ccc; line-height:1.6; margin-bottom:30px;">Desc</p>
+                <button class="btn btn-play" id="modal-btn-open"><i class="fas fa-play"></i> Abrir Herramienta</button>
             </div>
         </div>
     </div>
 
-    <!-- Visor de Aplicaciones (Iframe) -->
     <div id="viewer">
-        <div id="viewer-header">
-            <span id="viewer-title" style="color:white; font-size: 1.2rem; font-weight: bold;">Herramienta</span>
-            <button class="close-btn" onclick="cerrarHerramienta()">CERRAR APLICACIÓN</button>
+        <div style="padding:10px 30px; background:#141414; display:flex; justify-content:space-between; align-items:center;">
+            <span id="viewer-title" style="font-weight:bold;">App</span>
+            <button class="btn" style="background:var(--primary-red); color:white; padding:5px 15px;" onclick="document.getElementById('viewer').style.display='none'; document.getElementById('app-frame').src='';">CERRAR</button>
         </div>
-        <iframe id="app-frame" src=""></iframe>
+        <iframe id="app-frame"></iframe>
     </div>
 
     <script>
-        // --- DATOS Y CONFIGURACIÓN ---
-        const USER = "admin";
-        const PASS = "1234";
-
-        // Imágenes de fallback si no cargan las específicas
-        const FALLBACK_IMG = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop";
-
-        const herramientas = [
-            { 
-                id: 1,
-                nombre: "Calculadora de ventilación", 
-                url: "Calculadora de ventilacion 3631 V_Libre.html", 
-                imagen: "Imagen001.png", 
-                descripcion: "Determina la capacidad de ventilación de un recinto ingresando solo las dimensiones espaciales y la potencia instalada.", 
-                categoria: "Cálculos de Ventilación",
-                subtitulo: "Optimización de flujo de aire"
-            },
-            { 
-                id: 2,
-                nombre: "Convertidor Universal GLP", 
-                url: "Aplicacion Convertidor Universal GLP",
-                imagen: "Imagen004convertidorGLP.png", 
-                descripcion: "Herramienta esencial para conversiones másicas precisas: de Kg a m3, de Galones a Kg, y otras unidades fundamentales.", 
-                categoria: "Utilidades y Conversión",
-                subtitulo: "Conversión másica precisa"
-            },
-            { 
-                id: 3,
-                nombre: "EnginnerIA", 
-                url: "Chat Bot",
-                imagen: "LogoIngenieroIA.png", 
-                descripcion: "Chatea con la I.A. experta sobre temas relacionados con las redes de gas y sistemas de combustión.", 
-                categoria: "Inteligencia Artificial",
-                subtitulo: "Asistente Virtual Experto"
-            },
-            { 
-                id: 4,
-                nombre: "Diseño Media Presión", 
-                url: "Modelador Mueller V_Pro (1211)",
-                imagen: "Imagen003DiseñoMueller.png", 
-                descripcion: "Algoritmo Mueller: Estima las pérdidas de presión y calcula la velocidad en sistemas > 0,33 psi.", 
-                categoria: "Diseño y Modelado",
-                subtitulo: "Modelo Mueller (> 0.33 psi)"
-            },
-             { 
-                id: 5,
-                nombre: "Diseño Baja Presión", 
-                url: "Modelador Renoaurd-V_Pro",
-                imagen: "Imagen002DiseñoRenouard.png", 
-                descripcion: "Algoritmo Renouard: Estima las pérdidas de presión en sistemas que operan a presiones <= 0,33 psi.", 
-                categoria: "Diseño y Modelado",
-                subtitulo: "Modelo Renouard (<= 0.33 psi)"
-            },
-             { 
-                id: 6,
-                nombre: "Inspector De Ventilacion", 
-                url: "Calculadora de ventilacion 3631 V_Pro.html",
-                imagen: "ImagenAppInspectorVentil.png", 
-                descripcion: "Evalua la capacidad de ventilacion de un recinto en relacion a la NTC 3631 2da. Act.", 
-                categoria: "Cálculos de Ventilación",
-                subtitulo: "Auditoría NTC 3631"
-            },
-             { 
-                id: 7,
-                nombre: "Inspector De Vacios Internos", 
-                url: "./inventario.html",
-                imagen: "SinContenido.png", 
-                descripcion: "Evalua y califica un vacio interno de acuerdo con la NTC 3631 2da. Act.", 
-                categoria: "Próximamente",
-                subtitulo: "Normativa de espacios confinados"
-             },
-            { 
-                id: 8,
-                nombre: "Seleccion adecuada de reguladores", 
-                url: "./inventario.html",
-                imagen: "ImagenReguladores.png", 
-                descripcion: "Ingresa la presion de entrada (de trabajo), elije la presion de salida y precisa el consumo para obtener la sugerencia del sistema", 
-                categoria: "Próximamente",
-                subtitulo: "Selección automática de equipos"
-             },
-            { 
-                id: 9,
-                nombre: "Gestor Normativo",
-                url: "./inventario.html",
-                imagen: "ImagenGestorNormativo.png", 
-                descripcion: "Un repositorio de documentos de ingenieria, normas y marco regulatorio", 
-                categoria: "Próximamente",
-                subtitulo: "Biblioteca Legal Técnica"
-             },
-            { 
-                id: 10,
-                nombre: "Instalacion de tanques GLP", 
-                url: "./inventario.html",
-                imagen: "Imagendistanciamientodetanque.png", 
-                descripcion: "De acuerdo la normas tecnicas, centramos atencion especial a las distancias de los tanques de GLP", 
-                categoria: "Próximamente",
-                subtitulo: "Normas de seguridad GLP"
-             },
-            { 
-                id: 11,
-                nombre: "Convertidor Universal De Unidades", 
-                url: "Convertidor de unidades Todas las unidades.html",
-                imagen: "ImagenConvertidorUniversalDeUnidades.png", 
-                descripcion: "Realiza conversiones de todo magnitud y variable ya sea fisica o digital", 
-                categoria: "Utilidades y Conversión",
-                subtitulo: "Herramienta Multi-propósito"
-             },
-            { 
-                id: 12,
-                nombre: "Cuadro de errores y fallas CPD y CA", 
-                url: "Error de códigos de aplicación, calentadores.txt",
-                imagen: "ImgErroresCPD_CA.png", 
-                descripcion: "Realiza un diagnostico segun el error declarado por el equipo e identifica la solucion", 
-                categoria: "Utilidades y Conversión",
-                subtitulo: "Herramienta Multi-propósito"
-             }
+        // --- BASE DE DATOS ---
+        const CREDENCIALES = [
+            { u: "josetangarife14@gmail.com", p: "14568734", n: "Jose Tangarife", f: "29/11/2025" },
+            { u: "julianvalencia@inse.net.co", p: "1211", n: "Julian Valencia", f: "29/11/2025" },
+            { u: "alexander221977@gmail.com", p: "2505", n: "Alexander", f: "29/11/2025" }
         ];
 
-        // --- FUNCION AUXILIAR PARA IMAGENES ---
-        function obtenerUrlImagen(nombreArchivo) {
-            if (!nombreArchivo) return FALLBACK_IMG;
-            // Si ya tiene extensión, usarla tal cual
-            if (nombreArchivo.includes('.')) return nombreArchivo;
-            // Si no tiene extensión, asumir .jpg
-            return nombreArchivo + '.jpg';
+        const HERRAMIENTAS = [
+            { id: 1, nombre: "Calculadora de ventilación", url: "Calculadora de ventilacion 3631 V_Libre.html", imagen: "Imagen001.png", descripcion: "Cálculo de ventilación según dimensiones.", categoria: "Ventilación" },
+            { id: 2, nombre: "Convertidor GLP", url: "Aplicacion Convertidor Universal GLP", imagen: "Imagen004convertidorGLP.png", descripcion: "Conversión másica de gas licuado.", categoria: "Utilidades" },
+            { id: 3, nombre: "EnginnerIA", url: "Chat Bot", imagen: "LogoIngenieroIA.png", descripcion: "Asistente virtual experto en gas.", categoria: "IA" },
+            { id: 4, nombre: "Diseño Media Presión", url: "Modelador Mueller V_Pro (1211)", imagen: "Imagen003DiseñoMueller.png", descripcion: "Modelo Mueller > 0.33 psi.", categoria: "Diseño" },
+            { id: 5, nombre: "Diseño Baja Presión", url: "Modelador Renoaurd-V_Pro", imagen: "Imagen002DiseñoRenouard.png", descripcion: "Modelo Renouard <= 0.33 psi.", categoria: "Diseño" },
+            { id: 6, nombre: "Inspector De Ventilacion", url: "Calculadora de ventilacion 3631 V_Pro.html", imagen: "ImagenAppInspectorVentil.png", descripcion: "Auditoría NTC 3631.", categoria: "Ventilación" },
+            { id: 7, nombre: "Convertidor Unidades", url: "Convertidor de unidades Todas las unidades.html", imagen: "ImagenConvertidorUniversalDeUnidades.png", descripcion: "Conversor multipropósito.", categoria: "Utilidades" }
+        ];
+
+        let perfilActual = "General";
+        const fallbackImg = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070";
+
+        // --- GESTIÓN DE PERFILES Y NAVEGACIÓN ---
+
+        function abrirGate() {
+            document.getElementById('profile-gate').style.display = 'flex';
         }
 
-        // --- SISTEMA DE AUDIO ---
-        const audioPlayer = document.getElementById('bg-music');
-        audioPlayer.volume = 0.3; // Volumen inicial bajo para no molestar
-
-        // --- SISTEMA DE CARRUSEL (HERO) ---
-        let heroIndex = 0;
-        let heroInterval;
-        let currentHeroTool = null;
-
-        function iniciarCarrusel() {
-            mostrarSlideHero(); 
-            heroInterval = setInterval(() => {
-                heroIndex = (heroIndex + 1) % herramientas.length;
-                mostrarSlideHero();
-            }, 7000); // 7 segundos por slide
+        function cerrarGate() {
+            document.getElementById('profile-gate').style.display = 'none';
         }
 
-        function mostrarSlideHero() {
-            const tool = herramientas[heroIndex];
-            currentHeroTool = tool;
-            
-            const bgSection = document.getElementById('hero-section');
-            const contentDiv = document.getElementById('hero-content');
-            
-            // Efecto de desvanecimiento
-            contentDiv.classList.add('fade-out');
-
-            setTimeout(() => {
-                // Actualizar Textos
-                document.getElementById('hero-title').textContent = tool.nombre;
-                document.getElementById('hero-desc').textContent = tool.descripcion;
-                document.getElementById('hero-badge').textContent = tool.categoria;
-                
-                // Actualizar Botones del Hero (Funcionales)
-                const btnPlay = document.getElementById('hero-btn-play');
-                const btnDetails = document.getElementById('hero-btn-details');
-                
-                // Limpiar listeners anteriores clonando
-                const newBtnPlay = btnPlay.cloneNode(true);
-                const newBtnDetails = btnDetails.cloneNode(true);
-                btnPlay.parentNode.replaceChild(newBtnPlay, btnPlay);
-                btnDetails.parentNode.replaceChild(newBtnDetails, btnDetails);
-
-                newBtnPlay.onclick = () => abrirHerramienta(tool.nombre, tool.url);
-                newBtnDetails.onclick = () => abrirModalDetalles(tool);
-
-                // Actualizar Fondo (Sincronizado con lógica de imágenes)
-                const imgUrl = obtenerUrlImagen(tool.imagen);
-                bgSection.style.backgroundImage = `url('${imgUrl}')`;
-
-                contentDiv.classList.remove('fade-out');
-            }, 500);
-        }
-
-        // --- GESTIÓN DE MI LISTA ---
-        let miLista = JSON.parse(localStorage.getItem('sofi_favorites')) || [];
-
-        function toggleMiLista(nombreHerramienta, event) {
-            if(event) event.stopPropagation();
-            const index = miLista.indexOf(nombreHerramienta);
-            
-            if (index > -1) {
-                miLista.splice(index, 1);
-            } else {
-                miLista.push(nombreHerramienta);
+        function validarCambioPerfil(perfil) {
+            // Lógica Inteligente: Si es General y ya estamos logueados, pase directo
+            if (perfil === 'General') {
+                cambiarPerfilVisual('General');
+                cerrarGate();
+                return;
             }
-            localStorage.setItem('sofi_favorites', JSON.stringify(miLista));
-            renderizarTodo(); 
+
+            // Si es perfil Premium, abrir login secundario
+            abrirLoginSecundario(perfil);
         }
 
-        // --- RENDERIZADO DE FILAS ---
-        function renderizarTodo() {
+        function cambiarPerfilVisual(perfil) {
+            perfilActual = perfil;
+            
+            // Actualizar Badge y Colores
+            const badge = document.getElementById('profile-indicator');
+            const avatar = document.getElementById('nav-avatar-icon');
+            
+            badge.textContent = perfil.toUpperCase();
+            avatar.className = 'nav-avatar'; // Reset
+            
+            if (perfil === 'General') {
+                badge.style.borderColor = 'white'; badge.style.color = 'white';
+                avatar.classList.add('av-gen');
+                avatar.innerHTML = '<i class="fas fa-tools"></i>';
+            } else if (perfil === 'Corporativo') {
+                badge.style.borderColor = 'var(--corp-blue)'; badge.style.color = 'var(--corp-blue)';
+                avatar.classList.add('av-corp');
+                avatar.innerHTML = '<i class="fas fa-building"></i>';
+            } else if (perfil === 'Académico') {
+                badge.style.borderColor = 'var(--edu-yellow)'; badge.style.color = 'var(--edu-yellow)';
+                avatar.classList.add('av-edu');
+                avatar.innerHTML = '<i class="fas fa-graduation-cap"></i>';
+            }
+        }
+
+        // --- SISTEMA DE LOGIN ---
+
+        function abrirLoginSecundario(perfil) {
+            const modal = document.getElementById('dynamic-login-modal');
+            const content = document.getElementById('modal-content-style');
+            const title = document.getElementById('dyn-title');
+            const btn = document.getElementById('btn-dyn');
+
+            // Estilizar según perfil
+            let color = (perfil === 'Corporativo') ? 'var(--corp-blue)' : 'var(--edu-yellow)';
+            
+            content.style.borderTopColor = color;
+            title.textContent = perfil;
+            title.style.color = color;
+            btn.style.backgroundColor = color;
+
+            // Reset forms
+            document.getElementById('user-dyn').value = '';
+            document.getElementById('pass-dyn').value = '';
+            document.getElementById('error-dyn').style.display = 'none';
+
+            // Guardar intento
+            modal.dataset.targetProfile = perfil;
+            modal.style.display = 'flex';
+        }
+
+        function cerrarLoginSecundario() {
+            document.getElementById('dynamic-login-modal').style.display = 'none';
+        }
+
+        function intentarLogin(e, source) {
+            e.preventDefault();
+            let u, p, errorEl;
+
+            if (source === 'General') {
+                u = document.getElementById('user-static').value.trim();
+                p = document.getElementById('pass-static').value.trim();
+                errorEl = document.getElementById('error-static');
+            } else {
+                u = document.getElementById('user-dyn').value.trim();
+                p = document.getElementById('pass-dyn').value.trim();
+                errorEl = document.getElementById('error-dyn');
+            }
+
+            const usuario = CREDENCIALES.find(c => c.u === u && c.p === p);
+
+            if (usuario) {
+                errorEl.style.display = 'none';
+                
+                // Determinar perfil destino
+                let targetProfile = "General";
+                if (source === 'Dynamic') {
+                    cerrarLoginSecundario();
+                    cerrarGate();
+                    targetProfile = document.getElementById('dynamic-login-modal').dataset.targetProfile;
+                }
+
+                // Mostrar Membresía
+                mostrarModalMembresia(usuario, targetProfile);
+            } else {
+                errorEl.style.display = 'block';
+                errorEl.parentElement.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 300 });
+            }
+        }
+
+        function mostrarModalMembresia(usuario, perfilDestino) {
+            const modal = document.getElementById('membership-modal');
+            document.getElementById('mem-greeting').textContent = `Hola, ${usuario.n}`;
+            const details = document.getElementById('mem-details');
+
+            if (perfilDestino === 'General') {
+                details.innerHTML = `Bienvenido al <strong>Hub de Herramientas</strong>.<br>Tu acceso estándar está activo.<br><span style="font-size:0.8rem; color:#777;">Cuenta: ${usuario.f}</span>`;
+            } else {
+                details.innerHTML = `Membresía <strong>${perfilDestino}</strong> Validada.<br>Tienes acceso completo a funciones premium.<br><strong style="color:var(--secondary-green); display:block; margin-top:10px;">Vigente hasta 28-11-2025</strong>`;
+            }
+
+            // Guardar estado para aplicar al cerrar
+            modal.dataset.pendingProfile = perfilDestino;
+            modal.style.display = 'flex';
+        }
+
+        function finalizarCarga() {
+            const modal = document.getElementById('membership-modal');
+            const nuevoPerfil = modal.dataset.pendingProfile;
+            modal.style.display = 'none';
+
+            // Si venimos del login inicial
+            const loginScreen = document.getElementById('login-screen');
+            if (loginScreen.style.display !== 'none') {
+                loginScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    document.getElementById('main-interface').classList.remove('hidden');
+                    document.getElementById('main-interface').style.opacity = '1';
+                    
+                    // Iniciar todo
+                    renderizarFilas();
+                    iniciarCarrusel();
+                    document.getElementById('bg-music').play().catch(e => console.log("Audio autoplay blocked"));
+                }, 800);
+            }
+
+            cambiarPerfilVisual(nuevoPerfil);
+        }
+
+        // --- RENDERIZADO DE CONTENIDO (Estilo Tile V2) ---
+        let favoritos = JSON.parse(localStorage.getItem('favs')) || [];
+
+        function renderizarFilas() {
             const container = document.getElementById('content-rows');
             container.innerHTML = "";
 
-            if (miLista.length > 0) {
-                const favs = herramientas.filter(h => miLista.includes(h.nombre));
-                if (favs.length > 0) crearFila(container, "Mi Lista", favs);
+            // Favoritos
+            if (favoritos.length > 0) {
+                const favs = HERRAMIENTAS.filter(h => favoritos.includes(h.nombre));
+                if(favs.length > 0) crearFilaHTML(container, "Mi Lista", favs);
             }
 
-            const categorias = [...new Set(herramientas.map(h => h.categoria))];
+            // Por Categoría
+            const categorias = [...new Set(HERRAMIENTAS.map(h => h.categoria))];
             categorias.forEach(cat => {
-                const apps = herramientas.filter(h => h.categoria === cat);
-                if(apps.length > 0) crearFila(container, cat, apps);
+                const items = HERRAMIENTAS.filter(h => h.categoria === cat);
+                crearFilaHTML(container, cat, items);
             });
         }
 
-        function crearFila(container, titulo, items) {
+        function crearFilaHTML(container, titulo, items) {
             const row = document.createElement('div');
-            row.className = 'category-row';
+            row.className = 'row';
             
-            const header = document.createElement('div');
-            header.className = 'category-header';
-            header.innerHTML = `<div class="category-title">${titulo}</div><div class="category-line"></div>`;
-            row.appendChild(header);
-
-            const slider = document.createElement('div');
-            slider.className = 'row-slider';
+            const titleEl = document.createElement('h3');
+            titleEl.className = 'row-title';
+            titleEl.textContent = titulo;
+            
+            const scroller = document.createElement('div');
+            scroller.className = 'row-scroller';
 
             items.forEach(tool => {
-                const enLista = miLista.includes(tool.nombre);
-                const iconoLista = enLista ? "fa-check" : "fa-plus";
-                const imgUrl = obtenerUrlImagen(tool.imagen);
-
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.onclick = () => abrirModalDetalles(tool); 
+                const img = tool.imagen.includes('.') ? tool.imagen : tool.imagen + '.jpg';
+                const isFav = favoritos.includes(tool.nombre);
                 
-                card.innerHTML = `
-                    <div class="card-media-wrapper">
-                        <img src="${imgUrl}" class="card-img" onerror="this.src='${FALLBACK_IMG}'">
-                        <div class="card-info-overlay">
-                            <div class="card-actions">
-                                <div class="action-circle action-primary" onclick="event.stopPropagation(); abrirHerramienta('${tool.nombre}', '${tool.url}')" title="Abrir">
-                                    <i class="fas fa-play"></i>
-                                </div>
-                                <div class="action-circle" onclick="toggleMiLista('${tool.nombre}', event)" title="Mi Lista">
-                                    <i class="fas ${iconoLista}"></i>
-                                </div>
-                                <div class="action-circle" onclick="event.stopPropagation(); abrirModalDetallesById(${tool.id})" title="Detalles">
-                                    <i class="fas fa-chevron-down"></i>
-                                </div>
-                            </div>
-                            <div class="card-meta">
-                                <span style="color:#46d369">95% Coincidencia</span>
-                                <span class="card-rating">A+</span>
-                            </div>
-                            <div class="card-subtitle">${tool.subtitulo || tool.descripcion}</div>
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.onclick = () => verDetalles(tool.id);
+                
+                tile.innerHTML = `
+                    <img src="${img}" class="tile-img" onerror="this.src='${fallbackImg}'">
+                    <div class="tile-content">
+                        <div class="tile-actions">
+                            <div class="tile-icon icon-play" onclick="abrirApp('${tool.nombre}', '${tool.url}'); event.stopPropagation();"><i class="fas fa-play"></i></div>
+                            <div class="tile-icon" onclick="toggleFav('${tool.nombre}'); event.stopPropagation();"><i class="fas ${isFav ? 'fa-check' : 'fa-plus'}"></i></div>
+                            <div class="tile-icon" onclick="verDetalles(${tool.id}); event.stopPropagation();"><i class="fas fa-chevron-down"></i></div>
                         </div>
-                    </div>
-                    <div class="card-title-outside">
-                        ${tool.nombre}
+                        <div class="tile-title">${tool.nombre}</div>
+                        <div class="tile-meta">98% para ti</div>
                     </div>
                 `;
-                slider.appendChild(card);
+                scroller.appendChild(tile);
             });
 
-            row.appendChild(slider);
+            row.appendChild(titleEl);
+            row.appendChild(scroller);
             container.appendChild(row);
         }
 
-        // --- FUNCIONES DE INTERFAZ Y VIDEO ---
-        
-        // Funciones para el Video de Presentación
-        function mostrarVideoPresentacion() {
-            const modal = document.getElementById('video-modal');
-            const video = document.getElementById('promo-video');
-            modal.style.display = 'flex';
-            
-            // Intentar reproducir automáticamente
-            video.play().catch(e => {
-                console.log("El navegador bloqueó el autoplay del video:", e);
-            });
+        function toggleFav(nombre) {
+            const idx = favoritos.indexOf(nombre);
+            if (idx > -1) favoritos.splice(idx, 1); else favoritos.push(nombre);
+            localStorage.setItem('favs', JSON.stringify(favoritos));
+            renderizarFilas();
         }
 
-        function cerrarVideoPresentacion() {
-            const modal = document.getElementById('video-modal');
-            const video = document.getElementById('promo-video');
-            
-            modal.style.display = 'none';
-            video.pause();
-            video.currentTime = 0; // Reiniciar video
+        // --- CARRUSEL HERO ---
+        let heroIdx = 0;
+        let heroInterval;
+        function iniciarCarrusel() {
+            if(heroInterval) return;
+            actualizarHero();
+            heroInterval = setInterval(() => {
+                heroIdx = (heroIdx + 1) % HERRAMIENTAS.length;
+                actualizarHero();
+            }, 8000);
         }
 
-        function intentarLogin(e) {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-
-            if(u === USER && p === PASS) {
-                // Transición Login -> Interfaz
-                const loginScreen = document.getElementById('login-screen');
-                loginScreen.style.opacity = '0';
-                loginScreen.style.transition = 'opacity 1s ease';
+        function actualizarHero() {
+            const t = HERRAMIENTAS[heroIdx];
+            const content = document.getElementById('hero-content');
+            const section = document.getElementById('hero-section');
+            
+            content.classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('hero-title').textContent = t.nombre;
+                document.getElementById('hero-desc').textContent = t.descripcion;
                 
-                setTimeout(() => {
-                    loginScreen.style.display = 'none';
-                    const main = document.getElementById('main-interface');
-                    main.style.display = 'flex';
-                    // Pequeño timeout para permitir que el display:flex renderice antes de la opacidad
-                    setTimeout(() => main.style.opacity = '1', 50);
-                    
-                    renderizarTodo();
-                    iniciarCarrusel();
-                    
-                    // Reproducir Música Épica
-                    audioPlayer.play().catch(error => {
-                        console.log("Autoplay bloqueado por navegador, requiere interacción.");
-                    });
-                }, 1000);
+                const btnPlay = document.getElementById('hero-btn-play');
+                const btnInfo = document.getElementById('hero-btn-details');
+                
+                // Clonar para limpiar eventos anteriores
+                const newPlay = btnPlay.cloneNode(true);
+                const newInfo = btnInfo.cloneNode(true);
+                btnPlay.parentNode.replaceChild(newPlay, btnPlay);
+                btnInfo.parentNode.replaceChild(newInfo, btnInfo);
+                
+                newPlay.onclick = () => abrirApp(t.nombre, t.url);
+                newInfo.onclick = () => verDetalles(t.id);
 
-            } else {
-                const error = document.getElementById('error-msg');
-                error.style.display = 'block';
-                error.style.animation = 'shake 0.5s';
+                const img = t.imagen.includes('.') ? t.imagen : t.imagen + '.jpg';
+                section.style.backgroundImage = `url('${img}')`;
+                
+                content.classList.remove('fade-out');
+            }, 500);
+        }
+
+        // --- FUNCIONES AUXILIARES ---
+        function mostrarVideoPresentacion() {
+            const v = document.getElementById('promo-video');
+            document.getElementById('video-modal').style.display = 'flex';
+            v.play().catch(e => console.log(e));
+        }
+
+        function verDetalles(id) {
+            const t = HERRAMIENTAS.find(h => h.id === id);
+            if(!t) return;
+            const m = document.getElementById('details-modal');
+            document.getElementById('modal-title').textContent = t.nombre;
+            document.getElementById('modal-cat').textContent = t.categoria;
+            document.getElementById('modal-desc').textContent = t.descripcion;
+            document.getElementById('modal-btn-open').onclick = () => abrirApp(t.nombre, t.url);
+            
+            const img = t.imagen.includes('.') ? t.imagen : t.imagen + '.jpg';
+            document.getElementById('modal-banner').style.backgroundImage = `url('${img}')`;
+            
+            m.style.display = 'flex';
+        }
+
+        function cerrarDetalles(e) {
+            if(!e || e.target.id === 'details-modal') {
+                document.getElementById('details-modal').style.display = 'none';
             }
         }
 
-        function abrirHerramienta(t, u) {
-            document.getElementById('details-modal').classList.remove('show');
-            setTimeout(() => document.getElementById('details-modal').style.display = 'none', 300);
-
-            document.getElementById('viewer-title').textContent = t;
-            document.getElementById('app-frame').src = u;
+        function abrirApp(titulo, url) {
+            document.getElementById('details-modal').style.display = 'none';
             document.getElementById('viewer').style.display = 'flex';
+            document.getElementById('app-frame').src = url;
         }
 
-        function cerrarHerramienta() {
-            document.getElementById('app-frame').src = "";
-            document.getElementById('viewer').style.display = 'none';
-        }
-
-        // --- MODAL DETALLES ---
-        function abrirModalDetallesById(id) {
-            const tool = herramientas.find(h => h.id === id);
-            if(tool) abrirModalDetalles(tool);
-        }
-
-        function abrirModalDetalles(tool) {
-            const modal = document.getElementById('details-modal');
-            const banner = document.getElementById('modal-banner');
-            
-            document.getElementById('modal-title').textContent = tool.nombre;
-            document.getElementById('modal-desc').textContent = tool.descripcion;
-            document.getElementById('modal-cat').textContent = tool.categoria;
-            
-            // Configurar botón Abrir del modal
-            const btnOpen = document.getElementById('modal-btn-open');
-            btnOpen.onclick = () => abrirHerramienta(tool.nombre, tool.url);
-
-            const imgUrl = obtenerUrlImagen(tool.imagen);
-            banner.style.backgroundImage = `url('${imgUrl}')`;
-
-            modal.style.display = 'flex';
-            setTimeout(() => modal.classList.add('show'), 10);
-        }
-
-        function cerrarModalDetalles(e) {
-            // Si e es null, forzamos cierre. Si es evento, verificamos target.
-            if (e === null || e.target.id === 'details-modal') {
-                const modal = document.getElementById('details-modal');
-                modal.classList.remove('show');
-                setTimeout(() => modal.style.display = 'none', 300);
-            }
-        }
-
-        // --- EFECTOS NAVBAR ---
+        // Efecto scroll navbar
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('navbar');
-            window.scrollY > 50 ? nav.classList.add('scrolled') : nav.classList.remove('scrolled');
+            if (window.scrollY > 50) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
         });
 
     </script>
 </body>
 </html>
-
-
-
