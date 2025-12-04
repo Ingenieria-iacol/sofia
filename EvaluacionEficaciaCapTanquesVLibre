@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación: Seguridad en Tanques Estacionarios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF Library for generating the certificate -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-blue': '#0056D2',
+                        'brand-orange': '#FF6B00',
+                        'brand-dark': '#1F2937',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden relative">
+        
+        <!-- Header -->
+        <div class="bg-brand-blue p-6 text-white text-center">
+            <h1 class="text-2xl font-bold">Evaluación de Conocimientos</h1>
+            <p class="opacity-90 text-sm mt-1">Capacitación en Manejo Seguro de Tanques Estacionarios GLP</p>
+        </div>
+
+        <!-- Content Area -->
+        <div id="app-content" class="p-8">
+            
+            <!-- STEP 1: LOGIN -->
+            <div id="step-login" class="fade-in text-center space-y-6">
+                <div class="mb-6">
+                    <div class="w-20 h-20 bg-brand-orange text-white rounded-full flex items-center justify-center text-3xl mx-auto mb-4 font-bold">
+                        📝
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">Bienvenido a la Evaluación</h2>
+                    <p class="text-gray-600">Por favor ingresa tus datos para generar la constancia al finalizar.</p>
+                </div>
+                
+                <div class="space-y-4 max-w-sm mx-auto">
+                    <div>
+                        <label class="block text-left text-sm font-bold text-gray-700 mb-1">Nombre Completo</label>
+                        <input type="text" id="user-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:outline-none" placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div>
+                        <label class="block text-left text-sm font-bold text-gray-700 mb-1">Empresa</label>
+                        <input type="text" id="user-company" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:outline-none" placeholder="Nombre de tu empresa">
+                    </div>
+                    <button onclick="startQuiz()" class="w-full bg-brand-orange hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition transform hover:scale-105">
+                        Iniciar Prueba
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: QUIZ -->
+            <div id="step-quiz" class="hidden fade-in">
+                <div class="flex justify-between text-sm text-gray-500 mb-4">
+                    <span id="question-counter">Pregunta 1 de 5</span>
+                    <span class="font-bold text-brand-blue">Selección Múltiple</span>
+                </div>
+
+                <!-- Question Container -->
+                <div class="mb-8">
+                    <h3 id="question-text" class="text-lg font-bold text-gray-800 mb-6 leading-relaxed">
+                        <!-- Question goes here -->
+                    </h3>
+                    <div id="options-container" class="space-y-3">
+                        <!-- Options go here -->
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="flex justify-end">
+                    <button id="next-btn" onclick="nextQuestion()" class="bg-brand-blue hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Siguiente
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 3: RESULTS -->
+            <div id="step-result" class="hidden fade-in text-center">
+                <div id="result-icon" class="text-6xl mb-4"></div>
+                <h2 id="result-title" class="text-2xl font-bold text-gray-800 mb-2"></h2>
+                <p id="result-message" class="text-gray-600 mb-6"></p>
+                
+                <div class="bg-gray-50 rounded-lg p-6 mb-8 border border-gray-200 inline-block w-full max-w-sm">
+                    <div class="text-sm text-gray-500 uppercase tracking-wide">Calificación Final</div>
+                    <div id="score-display" class="text-4xl font-bold text-brand-blue my-2">0 / 5</div>
+                    <div id="percentage-display" class="text-sm font-semibold text-gray-600">0%</div>
+                </div>
+
+                <div class="space-y-3">
+                    <button id="download-btn" onclick="generatePDF()" class="hidden w-full max-w-sm mx-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition shadow-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Descargar Constancia PDF
+                    </button>
+                    <button onclick="location.reload()" class="text-brand-blue hover:underline text-sm block w-full">Volver a intentar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Logic -->
+    <script>
+        // --- DATA FROM PDF ---
+        const questions = [
+            {
+                q: "1. El GLP se obtiene mediante:",
+                options: [
+                    "a. Separación fraccionada de gas natural",
+                    "b. Extracción directa de pozos de petróleo",
+                    "c. Refinación del petróleo",
+                    "d. Las respuestas a y c"
+                ],
+                correct: 3 // Index of correct answer (d)
+            },
+            {
+                q: "2. Los principales factores que varían la presión interna del tanque son:",
+                options: [
+                    "a. Temperatura ambiente",
+                    "b. Presión atmosférica",
+                    "c. Proporciones de propano y butano",
+                    "d. Las respuestas a y c"
+                ],
+                correct: 3 // Index of correct answer (d/e in pdf)
+            },
+            {
+                q: "3. Para detectar escapes de forma adecuada y segura se debe utilizar:",
+                options: [
+                    "a. Agua jabonosa",
+                    "b. Detector de gases",
+                    "c. Encendedor de llama abierta",
+                    "d. La respuesta a y b"
+                ],
+                correct: 3 // Index of correct answer (d - a y b from pdf)
+            },
+            {
+                q: "4. ¿Cuál es el rango de llenado máximo seguro de un recipiente de GLP?",
+                options: [
+                    "a. 80% - 85%",
+                    "b. 80% - 90%",
+                    "c. 95% - 100%",
+                    "d. 90% - 95%"
+                ],
+                correct: 1 // Index of correct answer (b)
+            },
+            {
+                q: "5. Para restablecer el servicio después de una corrección se debe:",
+                options: [
+                    "a. Cerrar válvulas de equipos de consumo",
+                    "b. Cerrar válvulas de red y abrir tanque",
+                    "c. Abrir tanque y luego cerrar equipos",
+                    "d. La respuesta a y b"
+                ],
+                correct: 3 // Index of correct answer (d - a y b from pdf)
+            }
+        ];
+
+        // --- STATE ---
+        let currentQuestion = 0;
+        let score = 0;
+        let userData = { name: '', company: '' };
+
+        // --- FUNCTIONS ---
+
+        function startQuiz() {
+            const nameInput = document.getElementById('user-name');
+            const companyInput = document.getElementById('user-company');
+            
+            if (nameInput.value.trim() === '') {
+                alert("Por favor ingresa tu nombre.");
+                return;
+            }
+            
+            userData.name = nameInput.value;
+            userData.company = companyInput.value || "Empresa No Registrada";
+
+            document.getElementById('step-login').classList.add('hidden');
+            document.getElementById('step-quiz').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const q = questions[currentQuestion];
+            document.getElementById('question-counter').innerText = `Pregunta ${currentQuestion + 1} de ${questions.length}`;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-brand-blue transition flex items-center group focus:outline-none focus:ring-2 focus:ring-brand-blue";
+                btn.onclick = () => selectOption(index, btn);
+                btn.innerHTML = `
+                    <span class="w-6 h-6 rounded-full border-2 border-gray-300 mr-3 flex items-center justify-center group-hover:border-brand-blue">
+                        <div class="w-3 h-3 rounded-full bg-brand-blue hidden select-dot"></div>
+                    </span>
+                    <span class="text-gray-700 font-medium">${opt}</span>
+                `;
+                optsContainer.appendChild(btn);
+            });
+
+            document.getElementById('next-btn').disabled = true;
+        }
+
+        let selectedIndex = null;
+
+        function selectOption(index, btnElement) {
+            selectedIndex = index;
+            
+            // Visual update
+            const buttons = document.getElementById('options-container').children;
+            for (let btn of buttons) {
+                btn.classList.remove('bg-blue-100', 'border-brand-blue');
+                btn.querySelector('.select-dot').classList.add('hidden');
+            }
+            
+            btnElement.classList.add('bg-blue-100', 'border-brand-blue');
+            btnElement.querySelector('.select-dot').classList.remove('hidden');
+            
+            document.getElementById('next-btn').disabled = false;
+        }
+
+        function nextQuestion() {
+            if (selectedIndex === questions[currentQuestion].correct) {
+                score++;
+            }
+            
+            currentQuestion++;
+            selectedIndex = null;
+
+            if (currentQuestion < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('step-quiz').classList.add('hidden');
+            document.getElementById('step-result').classList.remove('hidden');
+            
+            const percentage = (score / questions.length) * 100;
+            const passed = percentage >= 60; // 60% Passing grade
+
+            document.getElementById('score-display').innerText = `${score} / ${questions.length}`;
+            document.getElementById('percentage-display').innerText = `${percentage}%`;
+
+            const title = document.getElementById('result-title');
+            const msg = document.getElementById('result-message');
+            const icon = document.getElementById('result-icon');
+            const dlBtn = document.getElementById('download-btn');
+
+            if (passed) {
+                icon.innerText = "🎉";
+                title.innerText = "¡Felicitaciones, Aprobado!";
+                title.classList.add("text-green-600");
+                msg.innerText = `Has demostrado un conocimiento sólido en el manejo seguro de GLP.`;
+                dlBtn.classList.remove('hidden');
+            } else {
+                icon.innerText = "⚠️";
+                title.innerText = "No Aprobado";
+                title.classList.add("text-red-600");
+                msg.innerText = "Te recomendamos repasar el manual e intentar nuevamente.";
+                dlBtn.classList.add('hidden');
+            }
+        }
+
+        // --- PDF GENERATION ---
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Config
+            const width = doc.internal.pageSize.getWidth();
+            const height = doc.internal.pageSize.getHeight();
+            
+            // Border
+            doc.setLineWidth(2);
+            doc.setDrawColor(0, 86, 210); // Brand Blue
+            doc.rect(10, 10, width - 20, height - 20);
+            
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(255, 107, 0); // Brand Orange
+            doc.rect(12, 12, width - 24, height - 24);
+
+            // Header Logos (Simulated with text for simplicity/speed)
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(24);
+            doc.setTextColor(0, 86, 210);
+            doc.text("COLGAS", 20, 30);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text("SOLUCIONES PARA LA VIDA", 20, 35);
+
+            // Title
+            doc.setFontSize(30);
+            doc.setTextColor(40);
+            doc.text("CONSTANCIA DE APROBACIÓN", width / 2, 60, { align: 'center' });
+
+            // Body
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "normal");
+            doc.text("Se hace constar que:", width / 2, 80, { align: 'center' });
+
+            doc.setFontSize(24);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(0, 0, 0);
+            doc.text(userData.name.toUpperCase(), width / 2, 95, { align: 'center' });
+
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(80);
+            doc.text(`Empresa: ${userData.company}`, width / 2, 105, { align: 'center' });
+
+            doc.setFontSize(16);
+            doc.setTextColor(40);
+            const text = "Ha completado y aprobado satisfactoriamente la evaluación de conocimientos sobre:";
+            doc.text(text, width / 2, 125, { align: 'center' });
+            
+            doc.setFontSize(20);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(255, 107, 0); // Orange
+            doc.text("USO SEGURO DE TANQUES ESTACIONARIOS DE GLP", width / 2, 138, { align: 'center' });
+
+            // Score & Date
+            const today = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+            
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(`Fecha de emisión: ${today}`, 30, 170);
+            doc.text(`Calificación: ${score}/5`, width - 30, 170, { align: 'right' });
+
+            // Footer
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(200);
+            doc.line(width / 2 - 40, 175, width / 2 + 40, 175);
+            doc.setFontSize(10);
+            doc.text("Firma del Participante", width / 2, 182, { align: 'center' });
+
+            // Save
+            doc.save(`Certificado_GLP_${userData.name.replace(/\s+/g, '_')}.pdf`);
+        }
+    </script>
+</body>
+</html>
