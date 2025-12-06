@@ -15,10 +15,8 @@
     <!-- Babel para JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- jsPDF para exportar PDF -->
+    <!-- jsPDF & SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- SheetJS para exportar Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
@@ -34,9 +32,7 @@
         .context-menu { position: fixed; background: #1f2937; border: 1px solid #4b5563; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); padding: 4px 0; z-index: 100; min-width: 180px; }
         .context-menu-item { padding: 8px 16px; cursor: pointer; color: #d1d5db; font-size: 14px; display: flex; align-items: center; gap: 8px; }
         .context-menu-item:hover { background-color: #374151; color: white; }
-        /* Inputs compactos */
         .prop-input { background-color: #374151; border: 1px solid #4b5563; color: white; font-size: 0.75rem; padding: 2px 4px; border-radius: 4px; width: 100%; }
-        .prop-label { display: block; color: #9ca3af; font-size: 0.7rem; margin-bottom: 1px; }
     </style>
 </head>
 <body>
@@ -84,8 +80,6 @@
             Edit2: <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />,
             BookOpen: <React.Fragment><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></React.Fragment>,
             FileText: <React.Fragment><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></React.Fragment>,
-            
-            // Nuevos Iconos para Librería
             Valve: <path d="M4 10h16v4H4z M4 10l8 8 8-8" />,
             Regulator: <React.Fragment><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="5" /></React.Fragment>,
             TeeIcon: <path d="M12 2v20M2 12h20" />, 
@@ -132,6 +126,35 @@
         const LENGTH_UNITS = ['m', 'cm', 'mm'];
         const LINE_WIDTHS = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6];
 
+        // --- UTILS FOR ISOMETRIC TEE CALCULATION ---
+        const getClosestIsoAngle = (rad) => {
+            const deg = (rad * 180) / Math.PI;
+            const isoAngles = [0, 30, 90, 150, 180, 210, 270, 330];
+            let closest = 0;
+            let minDiff = Infinity;
+            isoAngles.forEach(a => {
+                let diff = Math.abs(deg - a);
+                if (diff > 180) diff = 360 - diff;
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = a;
+                }
+            });
+            return (closest * Math.PI) / 180;
+        };
+
+        const getValidBranchAngles = (runAngleRad) => {
+            const runDeg = Math.round((runAngleRad * 180) / Math.PI) % 360;
+            const runNorm = runDeg < 0 ? runDeg + 360 : runDeg;
+            // Isometric Axes
+            const allIso = [90, 270, 30, 210, 150, 330];
+            // Filter out parallel angles
+            return allIso.filter(a => {
+                const diff = Math.abs(a - runNorm);
+                return Math.abs(diff - 0) > 5 && Math.abs(diff - 180) > 5 && Math.abs(diff - 360) > 5;
+            }).map(d => (d * Math.PI) / 180);
+        };
+
         const DownloadModal = ({ visible, type, onClose, onConfirm }) => {
             const [formData, setFormData] = useState({ draftsman: '', project: '', location: '', client: '', date: '', id: '' });
             useEffect(() => {
@@ -162,7 +185,6 @@
         const TagModal = ({ visible, type, x, y, onClose, onAdd, initialData }) => {
             const [tramoData, setTramoData] = useState({ id: '', length: '', lengthUnit: 'm', diameter: DIAMETERS[0], material: MATERIALS[0], load: '', loadUnit: 'm³/h' });
             const [pointVal, setPointVal] = useState('');
-
             useEffect(() => {
                 if (initialData) {
                     if (type === TAG_TYPES.PUNTO) setPointVal(initialData.tagMetadata.value);
@@ -172,21 +194,12 @@
                     setPointVal('');
                 }
             }, [visible, type, initialData]);
-
             if (!visible) return null;
-
             const handleSubmit = () => {
-                let newData;
-                if (type === TAG_TYPES.PUNTO) { 
-                    if (pointVal) newData = { type: TOOLS.TEXT, text: `Punto: ${pointVal}`, color: '#22d3ee', scale: 0.8, tagMetadata: { type: 'Punto', value: pointVal } }; 
-                } else { 
-                    if (tramoData.id) newData = { type: TOOLS.TRAMO_DATA, text: `T-${tramoData.id}`, color: '#fbbf24', scale: 0.6, tagMetadata: { type: 'Tramo', ...tramoData } }; 
-                }
-                
-                if (newData) onAdd(newData);
+                if (type === TAG_TYPES.PUNTO) { if (pointVal) onAdd({ type: TOOLS.TEXT, text: `Punto: ${pointVal}`, color: '#22d3ee', scale: 0.8, tagMetadata: { type: 'Punto', value: pointVal } }); }
+                else { if (tramoData.id) onAdd({ type: TOOLS.TRAMO_DATA, text: `T-${tramoData.id}`, color: '#fbbf24', scale: 0.6, tagMetadata: { type: 'Tramo', ...tramoData } }); }
                 onClose();
             };
-
             return (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-[150] fade-in" onClick={onClose}>
                     <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-600 w-96" onClick={e => e.stopPropagation()}>
@@ -237,7 +250,7 @@
             const [isDraggingSelected, setIsDraggingSelected] = useState(false);
             const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
             
-            // Rotation for current placement (Flip state)
+            // Rotation for current placement (Flip state) - Stepped by 90 deg equivalent index
             const [flipRotation, setFlipRotation] = useState(0);
 
             useEffect(() => {
@@ -256,9 +269,8 @@
                         if (currentElement && tool === TOOLS.LINE && drawingLength.length > 0) { e.preventDefault(); setDrawingLength(prev => prev.slice(0, -1)); return; }
                         if (selectedIds.length > 0) { setElements(prev => prev.filter(el => !selectedIds.includes(el.id))); setSelectedIds([]); }
                     }
-                    if ((e.key === 'r' || e.key === 'R') && !currentElement) {
-                        // Rotate pending symbol
-                        setFlipRotation(prev => (prev + Math.PI / 2) % (2 * Math.PI));
+                    if ((e.key === 'r' || e.key === 'R') && !currentElement && [TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(tool)) {
+                        setFlipRotation(prev => (prev + 1) % 4); // Cycle 4 directions
                     }
                     if (currentElement && tool === TOOLS.LINE) {
                         if ((e.key >= '0' && e.key <= '9') || e.key === '.') { setDrawingLength(prev => prev + e.key); } 
@@ -276,7 +288,7 @@
                     }
                 };
                 window.addEventListener('keydown', handleKeyDown); return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [selectedIds, currentElement, tool, drawingLength, mouseWorldPos]);
+            }, [selectedIds, currentElement, tool, drawingLength, mouseWorldPos, flipRotation]);
 
             useEffect(() => {
                 const canvas = canvasRef.current; const ctx = canvas.getContext('2d'); const { width, height } = canvasSize;
@@ -307,14 +319,8 @@
                     }
                 }
                 else if ([TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(tool)) {
-                    // Combined rotation: Snap Angle + User Flip
-                    const combinedRot = snapRotation + flipRotation;
-                    drawElement(ctx, { type: tool, x1: mouseWorldPos.x, y1: mouseWorldPos.y, color: color + '80', lineWidth, rotation: combinedRot, anchor }, false);
-                    
-                    // Hint
-                    ctx.save(); ctx.fillStyle = '#9ca3af'; ctx.font = `${10/scale}px sans-serif`; 
-                    ctx.fillText("[R] Rotar", mouseWorldPos.x + 20/scale, mouseWorldPos.y + 20/scale);
-                    ctx.restore();
+                    drawElement(ctx, { type: tool, x1: mouseWorldPos.x, y1: mouseWorldPos.y, color: color + '80', lineWidth, rotation: snapRotation, extraData: { flipIndex: flipRotation }, anchor }, false);
+                    ctx.save(); ctx.fillStyle = '#9ca3af'; ctx.font = `${10/scale}px sans-serif`; ctx.fillText("[R] Rotar", mouseWorldPos.x + 20/scale, mouseWorldPos.y + 20/scale); ctx.restore();
                 }
                 ctx.restore();
             }, [elements, currentElement, scale, offset, canvasSize, unit, mouseWorldPos, snapRotation, flipRotation, color, lineWidth, tool, anchor, layers, guideLine, snapPoint, selectedIds, drawingLength]);
@@ -345,27 +351,24 @@
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 if (isSelected) { ctx.shadowBlur = 10; ctx.shadowColor = "#06b6d4"; } 
 
-                const { type, x1, y1, x2, y2, rotation = 0, anchor = ANCHORS.CENTER.id } = element;
+                const { type, x1, y1, x2, y2, rotation = 0, anchor = ANCHORS.CENTER.id, extraData } = element;
                 const baseSize = GRID_SIZE * 0.6; 
                 const isSymbol = [TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(type);
                 
-                if (isSymbol) {
+                if (isSymbol && type !== TOOLS.TEE && type !== TOOLS.VALVE && type !== TOOLS.REGULATOR) {
+                    // Standard logic for simple symbols (Terminal, Reducer)
                     ctx.translate(x1, y1); ctx.rotate(rotation);
-                    let ox = 0, oy = 0;
-                    
-                    // Ajuste de Centrado Perfecto sobre la línea
-                    // Solo desplazamos en X (longitudinal) si es Inicio/Fin. Y (lateral) siempre es 0 para simetría.
-                    const halfWidth = baseSize * 0.8; // Base width aprox of symbols
-
-                    if (type === TOOLS.VALVE || type === TOOLS.REGULATOR) ox = halfWidth;
-                    else if (type === TOOLS.REDUCER) ox = halfWidth * 0.8;
-                    else if (type === TOOLS.TEE) ox = 0; // Tee is center anchored by default geometry
-                    else if (type === TOOLS.TERMINAL) ox = baseSize * 0.4;
-
-                    if (anchor === ANCHORS.TOP.id) ctx.translate(ox, 0); 
-                    else if (anchor === ANCHORS.BOTTOM.id) ctx.translate(-ox, 0);
+                    // Flip not implemented for them yet or just 180?
+                    if (anchor === ANCHORS.TOP.id) ctx.translate(baseSize*0.5, 0); 
+                    else if (anchor === ANCHORS.BOTTOM.id) ctx.translate(-baseSize*0.5, 0);
                 }
                 
+                if (isSymbol) {
+                    ctx.save();
+                    ctx.fillStyle = isSelected ? 'rgba(6, 182, 212, 0.2)' : '#1f2937'; 
+                    if (!isSelected) { ctx.shadowBlur = 5; ctx.shadowColor = element.color; }
+                }
+
                 ctx.beginPath();
                 switch (type) {
                     case TOOLS.LINE: ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); break;
@@ -381,31 +384,77 @@
                         ctx.fillStyle = isSelected ? '#06b6d4' : '#9ca3af'; ctx.fillText(`L:${meta.length}${meta.lengthUnit} | Q:${meta.load}${meta.loadUnit}`, x1, y1 + lh * 2);
                         ctx.strokeStyle = '#374151'; ctx.lineWidth = 1 / scale; ctx.fillStyle = 'rgba(31, 41, 55, 0.4)'; ctx.fillRect(x1 - 5, y1 - lh, 130, lh * 3.5); ctx.strokeRect(x1 - 5, y1 - lh, 130, lh * 3.5);
                         break;
+                    
                     case TOOLS.VALVE: 
-                        const v = baseSize * 0.8; ctx.moveTo(-v, -v/2); ctx.lineTo(-v, v/2); ctx.lineTo(0, 0); ctx.lineTo(v, v/2); ctx.lineTo(v, -v/2); ctx.lineTo(0, 0); ctx.closePath(); ctx.stroke(); break;
+                        // Custom logic for Valve similar to Tee
+                        const vS = baseSize * 0.8;
+                        // Handle rotation logic
+                        const vBranches = getValidBranchAngles(rotation);
+                        const vFlip = extraData && extraData.flipIndex ? extraData.flipIndex : 0;
+                        const vHandleAngle = vBranches[vFlip % vBranches.length];
+                        
+                        const vRunX = Math.cos(rotation) * vS;
+                        const vRunY = Math.sin(rotation) * vS;
+                        // Perpendicular vector for height
+                        const vpX = -Math.sin(rotation) * (vS * 0.5);
+                        const vpY = Math.cos(rotation) * (vS * 0.5);
+                        
+                        // Hourglass shape
+                        ctx.moveTo(x1 - vRunX + vpX, y1 - vRunY + vpY);
+                        ctx.lineTo(x1 - vRunX - vpX, y1 - vRunY - vpY);
+                        ctx.lineTo(x1, y1); 
+                        ctx.lineTo(x1 + vRunX - vpX, y1 + vRunY - vpY);
+                        ctx.lineTo(x1 + vRunX + vpX, y1 + vRunY + vpY);
+                        ctx.lineTo(x1, y1);
+                        ctx.fill(); ctx.stroke();
+                        
+                        // Handle
+                        const vHx = Math.cos(vHandleAngle) * (vS * 0.6);
+                        const vHy = Math.sin(vHandleAngle) * (vS * 0.6);
+                        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + vHx, y1 + vHy);
+                        // T-Bar handle
+                        const hbX = -Math.sin(vHandleAngle) * (vS * 0.3);
+                        const hbY = Math.cos(vHandleAngle) * (vS * 0.3);
+                        ctx.moveTo(x1 + vHx + hbX, y1 + vHy + hbY);
+                        ctx.lineTo(x1 + vHx - hbX, y1 + vHy - hbY);
+                        ctx.stroke();
+                        break;
+
                     case TOOLS.REGULATOR:
                         const regR = baseSize * 0.8; 
-                        ctx.arc(0, 0, regR, 0, 2 * Math.PI); ctx.stroke();
+                        ctx.translate(x1, y1); ctx.rotate(rotation); // Base rotation ok for body
+                        ctx.arc(0, 0, regR, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
                         ctx.beginPath(); ctx.arc(0, 0, regR * 0.5, 0, 2 * Math.PI); ctx.stroke(); 
-                        // Lineas de conexión si se desea, pero círculo concéntrico es lo pedido
-                        ctx.beginPath(); ctx.moveTo(-regR, 0); ctx.lineTo(-regR*0.5, 0); ctx.stroke();
-                        ctx.beginPath(); ctx.moveTo(regR, 0); ctx.lineTo(regR*0.5, 0); ctx.stroke();
+                        // Reset for dynamic dome
+                        ctx.rotate(-rotation); ctx.translate(-x1, -y1);
+                        
+                        // Dome
+                        const rBranches = getValidBranchAngles(rotation);
+                        const rFlip = extraData && extraData.flipIndex ? extraData.flipIndex : 0;
+                        const rDomeAngle = rBranches[rFlip % rBranches.length];
+                        
+                        const rDx = Math.cos(rDomeAngle) * regR;
+                        const rDy = Math.sin(rDomeAngle) * regR;
+                        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + rDx, y1 + rDy); ctx.stroke();
                         break;
+
                     case TOOLS.REDUCER:
-                        const redH = baseSize * 0.6; const redL = baseSize * 1.2;
-                        // Triángulo isósceles centrado verticalmente
-                        ctx.moveTo(-redL/2, -redH); ctx.lineTo(-redL/2, redH); ctx.lineTo(redL/2, redH/2); ctx.lineTo(redL/2, -redH/2); ctx.closePath(); ctx.stroke(); break;
+                        const redH = baseSize * 0.6; const redL = baseSize * 1.2; ctx.moveTo(-redL/2, -redH); ctx.lineTo(-redL/2, redH); ctx.lineTo(redL/2, redH/2); ctx.lineTo(redL/2, -redH/2); ctx.closePath(); ctx.fill(); ctx.stroke(); break;
                     case TOOLS.TERMINAL:
-                        const termR = baseSize * 0.4; ctx.arc(0, 0, termR, 0, Math.PI*2); ctx.stroke(); 
-                        // Línea cruzada para indicar final
-                        ctx.beginPath(); ctx.moveTo(-termR, -termR); ctx.lineTo(termR, termR); ctx.moveTo(-termR, termR); ctx.lineTo(termR, -termR); ctx.stroke(); break;
+                        const termR = baseSize * 0.4; ctx.arc(0, 0, termR, 0, Math.PI*2); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-termR, -termR); ctx.lineTo(termR, termR); ctx.moveTo(-termR, termR); ctx.lineTo(termR, -termR); ctx.stroke(); break;
+                    
                     case TOOLS.TEE:
                         const teeS = baseSize * 0.8;
-                        // T invertida (la barra está en X para alinearse con la línea)
-                        // (0,0) es la intersección
-                        ctx.moveTo(-teeS, 0); ctx.lineTo(teeS, 0); // Main run
-                        ctx.moveTo(0, 0); ctx.lineTo(0, teeS); // Branch (Hacia abajo localmente, rotación controla dirección real)
-                        ctx.stroke(); break;
+                        const validBranches = getValidBranchAngles(rotation);
+                        const flipIndex = extraData && extraData.flipIndex ? extraData.flipIndex : 0;
+                        const branchAngle = validBranches[flipIndex % validBranches.length];
+                        const rx = Math.cos(rotation) * teeS; const ry = Math.sin(rotation) * teeS;
+                        const bx = Math.cos(branchAngle) * teeS; const by = Math.sin(branchAngle) * teeS;
+                        ctx.moveTo(x1 - rx, y1 - ry); ctx.lineTo(x1 + rx, y1 + ry); // Run
+                        ctx.moveTo(x1, y1); ctx.lineTo(x1 + bx, y1 + by); // Branch
+                        ctx.stroke();
+                        break;
+
                     case TOOLS.DIMENSION:
                         const dx = x2 - x1, dy = y2 - y1; const distPx = Math.sqrt(dx**2 + dy**2); const angle = Math.atan2(dy, dx);
                         ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
@@ -419,17 +468,69 @@
                         ctx.fillText(text, midX + perpX, midY + perpY);
                         break;
                 }
-                ctx.restore();
+                if (isSymbol) ctx.restore(); 
+                ctx.restore(); 
             };
 
-            // ... (getNearestEndpoint, getNearestLine, checkHit, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, handleContextMenu, addText remain SAME)
+            // --- SNAP Y DIBUJO DE SÍMBOLOS ---
+            const getSymbolSnapPoints = (el) => {
+                 const baseSize = GRID_SIZE * 0.6; 
+                 const points = [];
+                 
+                 if (el.type === TOOLS.TEE) {
+                    const s = baseSize * 0.8;
+                    const rotation = el.rotation || 0;
+                    const validBranches = getValidBranchAngles(rotation);
+                    const flipIndex = el.extraData && el.extraData.flipIndex ? el.extraData.flipIndex : 0;
+                    const branchAngle = validBranches[flipIndex % validBranches.length];
+                    const rx = Math.cos(rotation) * s;
+                    const ry = Math.sin(rotation) * s;
+                    const bx = Math.cos(branchAngle) * s;
+                    const by = Math.sin(branchAngle) * s;
+                    points.push({x: el.x1 - rx, y: el.y1 - ry});
+                    points.push({x: el.x1 + rx, y: el.y1 + ry});
+                    points.push({x: el.x1 + bx, y: el.y1 + by});
+                    points.push({x: el.x1, y: el.y1});
+                 } else if (el.type === TOOLS.VALVE) {
+                     const s = baseSize * 0.8;
+                     const rotation = el.rotation || 0;
+                     const rx = Math.cos(rotation) * s;
+                     const ry = Math.sin(rotation) * s;
+                     points.push({x: el.x1 - rx, y: el.y1 - ry});
+                     points.push({x: el.x1 + rx, y: el.y1 + ry});
+                     points.push({x: el.x1, y: el.y1});
+                 } else {
+                     const angle = el.rotation || 0;
+                     const cos = Math.cos(angle); const sin = Math.sin(angle);
+                     const trans = (lx, ly) => ({ x: lx * cos - ly * sin + el.x1, y: lx * sin + ly * cos + el.y1 });
+                     if (el.type === TOOLS.REGULATOR) {
+                         const s = baseSize * 0.8; points.push(trans(-s, 0)); points.push(trans(s, 0));
+                     } else if (el.type === TOOLS.REDUCER) {
+                         const l = baseSize * 1.2; points.push(trans(-l/2, 0)); points.push(trans(l/2, 0));
+                     } else if (el.type === TOOLS.TERMINAL) {
+                         points.push({x: el.x1, y: el.y1});
+                     }
+                 }
+                 return points;
+            };
+
+            // ... (Rest of functions getNearestEndpoint, getNearestLine, checkHit, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel, handleContextMenu, addText remain SAME)
             const getNearestEndpoint = (pos) => {
                 let nearest = null; let minDist = 15 / scale; 
                 const visibleLayersIds = new Set(layers.filter(l => l.visible).map(l => l.id));
                 const visibleElements = elements.filter(el => !el.layerId || visibleLayersIds.has(el.layerId));
                 visibleElements.forEach(el => {
-                    if (el.x1 !== undefined && el.y1 !== undefined) { const d1 = Math.sqrt((pos.x - el.x1)**2 + (pos.y - el.y1)**2); if (d1 < minDist) { minDist = d1; nearest = { x: el.x1, y: el.y1 }; } }
-                    if (el.x2 !== undefined && el.y2 !== undefined) { const d2 = Math.sqrt((pos.x - el.x2)**2 + (pos.y - el.y2)**2); if (d2 < minDist) { minDist = d2; nearest = { x: el.x2, y: el.y2 }; } }
+                    if (el.x2 !== undefined) {
+                        const d1 = Math.sqrt((pos.x - el.x1)**2 + (pos.y - el.y1)**2); if (d1 < minDist) { minDist = d1; nearest = { x: el.x1, y: el.y1 }; }
+                        const d2 = Math.sqrt((pos.x - el.x2)**2 + (pos.y - el.y2)**2); if (d2 < minDist) { minDist = d2; nearest = { x: el.x2, y: el.y2 }; }
+                    }
+                    if ([TOOLS.TEE, TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL].includes(el.type)) {
+                        const snaps = getSymbolSnapPoints(el);
+                        snaps.forEach(pt => {
+                            const d = Math.sqrt((pos.x - pt.x)**2 + (pos.y - pt.y)**2);
+                            if (d < minDist) { minDist = d; nearest = pt; }
+                        });
+                    }
                 });
                 return nearest;
             };
@@ -451,15 +552,11 @@
             const checkHit = (pos, el) => {
                 const tol = 10 / scale;
                 if (el.type === TOOLS.LINE || el.type === TOOLS.DIMENSION) {
-                    const {x1, y1, x2, y2} = el;
-                    const A = pos.x - x1; const B = pos.y - y1; const C = x2 - x1; const D = y2 - y1;
-                    const dot = A * C + B * D; const lenSq = C * C + D * D;
-                    let param = -1; if (lenSq !== 0) param = dot / lenSq;
-                    let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; }
+                    const {x1, y1, x2, y2} = el; const A = pos.x - x1; const B = pos.y - y1; const C = x2 - x1; const D = y2 - y1; const dot = A * C + B * D; const lenSq = C * C + D * D;
+                    let param = -1; if (lenSq !== 0) param = dot / lenSq; let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; }
                     return Math.sqrt((pos.x - xx)**2 + (pos.y - yy)**2) < tol;
                 } else if (el.type === TOOLS.RECTANGLE) {
-                    return (Math.abs(pos.x - el.x1) < tol || Math.abs(pos.x - el.x2) < tol) && (pos.y > Math.min(el.y1, el.y2) && pos.y < Math.max(el.y1, el.y2)) ||
-                           (Math.abs(pos.y - el.y1) < tol || Math.abs(pos.y - el.y2) < tol) && (pos.x > Math.min(el.x1, el.x2) && pos.x < Math.max(el.x1, el.x2));
+                    return (Math.abs(pos.x - el.x1) < tol || Math.abs(pos.x - el.x2) < tol) && (pos.y > Math.min(el.y1, el.y2) && pos.y < Math.max(el.y1, el.y2)) || (Math.abs(pos.y - el.y1) < tol || Math.abs(pos.y - el.y2) < tol) && (pos.x > Math.min(el.x1, el.x2) && pos.x < Math.max(el.x1, el.x2));
                 } else if (el.type === TOOLS.CIRCLE || [TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(el.type)) {
                     const d = Math.sqrt((pos.x - el.x1)**2 + (pos.y - el.y1)**2); return d < (GRID_SIZE); 
                 } else if (el.type === TOOLS.TEXT || el.type === TOOLS.TRAMO_DATA) {
@@ -482,46 +579,19 @@
                         return checkHit(worldPos, el);
                     });
                     if (clickedElement) {
-                        if (e.shiftKey) {
-                            if (selectedIds.includes(clickedElement.id)) {
-                                setSelectedIds(prev => prev.filter(id => id !== clickedElement.id));
-                            } else {
-                                setSelectedIds(prev => [...prev, clickedElement.id]);
-                            }
-                        } else {
-                            if (!selectedIds.includes(clickedElement.id)) {
-                                setSelectedIds([clickedElement.id]);
-                            }
-                            setIsDraggingSelected(true);
-                            setDragStartPos(worldPos);
-                        }
-                    } else {
-                        if (!e.shiftKey) setSelectedIds([]);
-                    }
+                        if (e.shiftKey) { if (selectedIds.includes(clickedElement.id)) { setSelectedIds(prev => prev.filter(id => id !== clickedElement.id)); } else { setSelectedIds(prev => [...prev, clickedElement.id]); } } 
+                        else { if (!selectedIds.includes(clickedElement.id)) { setSelectedIds([clickedElement.id]); } setIsDraggingSelected(true); setDragStartPos(worldPos); }
+                    } else { if (!e.shiftKey) setSelectedIds([]); }
                     return;
                 }
 
                 if (snapPoint) worldPos = snapPoint; 
 
                 if (tool === TOOLS.TAG) { setContextMenu({ visible: false }); setContextMenu({ visible: true, x: e.clientX, y: e.clientY, worldX: worldPos.x, worldY: worldPos.y }); return; }
-                if (tool === TOOLS.DIMENSION) {
-                    if (dimensionStep === 0) { setCurrentElement({ id: Date.now(), type: TOOLS.DIMENSION, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, color: '#fbbf24', lineWidth: 1, layerId: activeLayer }); setDimensionStep(1); }
-                    else { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setDimensionStep(0); }
-                    return;
-                }
+                if (tool === TOOLS.DIMENSION) { if (dimensionStep === 0) { setCurrentElement({ id: Date.now(), type: TOOLS.DIMENSION, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, color: '#fbbf24', lineWidth: 1, layerId: activeLayer }); setDimensionStep(1); } else { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setDimensionStep(0); } return; }
                 if (tool === TOOLS.TEXT) { setTextPos(worldPos); setShowTextModal(true); return; }
-                if (tool === TOOLS.BEZIER) {
-                    if (bezierStep === 0) { setCurrentElement({ id: Date.now(), type: TOOLS.BEZIER, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, cx: worldPos.x, cy: worldPos.y, color, lineWidth, layerId: activeLayer }); setBezierStep(1); }
-                    else { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setBezierStep(0); }
-                    return;
-                }
-                if ([TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(tool)) {
-                    // Reset flip when placing new
-                    const combinedRot = snapRotation + flipRotation;
-                    setElements(prev => [...prev, { id: Date.now(), type: tool, x1: mouseWorldPos.x, y1: mouseWorldPos.y, x2: mouseWorldPos.x, y2: mouseWorldPos.y, color, lineWidth, rotation: combinedRot, anchor, layerId: activeLayer }]); 
-                    return;
-                }
-                // LINE / RECT / CIRCLE start
+                if (tool === TOOLS.BEZIER) { if (bezierStep === 0) { setCurrentElement({ id: Date.now(), type: TOOLS.BEZIER, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, cx: worldPos.x, cy: worldPos.y, color, lineWidth, layerId: activeLayer }); setBezierStep(1); } else { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setBezierStep(0); } return; }
+                if ([TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(tool)) { setElements(prev => [...prev, { id: Date.now(), type: tool, x1: mouseWorldPos.x, y1: mouseWorldPos.y, x2: mouseWorldPos.x, y2: mouseWorldPos.y, color, lineWidth, rotation: snapRotation, extraData: { flipIndex: flipRotation }, anchor, layerId: activeLayer }]); return; }
                 setCurrentElement({ id: Date.now(), type: tool, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, color, lineWidth, layerId: activeLayer });
                 if (tool === TOOLS.LINE) setDrawingLength(''); 
             };
@@ -530,7 +600,6 @@
                 const screenPos = { x: e.clientX - canvasRef.current.getBoundingClientRect().left, y: e.clientY - canvasRef.current.getBoundingClientRect().top };
                 const worldPos = screenToWorld(screenPos.x, screenPos.y);
                 if (isPanning) { setOffset(prev => ({ x: prev.x + (screenPos.x - lastMousePos.x), y: prev.y + (screenPos.y - lastMousePos.y) })); setLastMousePos(screenPos); setMouseWorldPos(worldPos); return; }
-                
                 if (isDraggingSelected) {
                     const dx = worldPos.x - dragStartPos.x; const dy = worldPos.y - dragStartPos.y;
                     setElements(prev => prev.map(el => {
@@ -548,12 +617,10 @@
 
                 let finalPos = { ...worldPos };
                 let foundSnap = null; let foundGuide = null;
-
                 if ([TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.DIMENSION, TOOLS.BEZIER].includes(tool)) {
                     const endpoint = getNearestEndpoint(worldPos);
                     if (endpoint) { foundSnap = endpoint; finalPos = endpoint; }
                 }
-
                 if (!foundSnap && tool === TOOLS.LINE && currentElement) {
                     const startX = currentElement.x1; const startY = currentElement.y1;
                     const dx = worldPos.x - startX; const dy = worldPos.y - startY;
@@ -573,7 +640,6 @@
                     }
                 }
                 setSnapPoint(foundSnap); setGuideLine(foundGuide); setMouseWorldPos(finalPos);
-
                 if ([TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(tool)) {
                     const snapInfo = getNearestLine(worldPos);
                     if (snapInfo) { setMouseWorldPos({ x: snapInfo.x, y: snapInfo.y }); setSnapRotation(snapInfo.angle); } else { setMouseWorldPos(worldPos); setSnapRotation(0); }
@@ -583,11 +649,7 @@
                 if (currentElement && [TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.CIRCLE].includes(tool)) { setCurrentElement(prev => ({ ...prev, x2: finalPos.x, y2: finalPos.y })); }
             };
 
-            const handleMouseUp = () => { 
-                if (isPanning) setIsPanning(false); 
-                else if (isDraggingSelected) setIsDraggingSelected(false); 
-                else if (![TOOLS.BEZIER, TOOLS.DIMENSION].includes(tool) && currentElement) { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setGuideLine(null); setSnapPoint(null); } 
-            };
+            const handleMouseUp = () => { if (isPanning) setIsPanning(false); else if (isDraggingSelected) setIsDraggingSelected(false); else if (![TOOLS.BEZIER, TOOLS.DIMENSION].includes(tool) && currentElement) { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setGuideLine(null); setSnapPoint(null); } };
             const handleWheel = (e) => { e.preventDefault(); const f = 1 + (0.1 * (e.deltaY < 0 ? 1 : -1)); let ns = Math.max(0.1, Math.min(scale * f, 10)); const r = canvasRef.current.getBoundingClientRect(); const mx = e.clientX - r.left; const my = e.clientY - r.top; setOffset({ x: mx - (mx - offset.x) * (ns / scale), y: my - (my - offset.y) * (ns / scale) }); setScale(ns); };
             const handleContextMenu = (e) => { e.preventDefault(); const r = canvasRef.current.getBoundingClientRect(); setContextMenu({ visible: true, x: e.clientX, y: e.clientY, worldX: screenToWorld(e.clientX - r.left, e.clientY - r.top).x, worldY: screenToWorld(e.clientX - r.left, e.clientY - r.top).y }); };
             const addText = () => { if (!textInput.trim()) { setShowTextModal(false); return; } setElements(prev => [...prev, { id: Date.now(), type: TOOLS.TEXT, x1: textPos.x, y1: textPos.y, text: textInput, color, lineWidth, layerId: activeLayer }]); setTextInput(''); setShowTextModal(false); };
@@ -599,100 +661,30 @@
                     const visibleLayersIds = new Set(layers.filter(l => l.visible).map(l => l.id));
                     const visibleElements = elements.filter(el => !el.layerId || visibleLayersIds.has(el.layerId));
                     if (visibleElements.length === 0) return alert("No hay elementos visibles.");
-                    
                     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                    visibleElements.forEach(el => { 
-                        const r = GRID_SIZE; 
-                        [el.x1, el.x2].forEach(p => { if(p!=null) { minX = Math.min(minX, p-r); maxX = Math.max(maxX, p+r); }}); 
-                        [el.y1, el.y2].forEach(p => { if(p!=null) { minY = Math.min(minY, p-r); maxY = Math.max(maxY, p+r); }}); 
-                        if(el.cx!=null) { minX = Math.min(minX, el.cx-r); maxX = Math.max(maxX, el.cx+r); } 
-                        if(el.cy!=null) { minY = Math.min(minY, el.cy-r); maxY = Math.max(maxY, el.cy+r); }
-                    });
-                    
+                    visibleElements.forEach(el => { const r = GRID_SIZE; [el.x1, el.x2].forEach(p => { if(p!=null) { minX = Math.min(minX, p-r); maxX = Math.max(maxX, p+r); }}); [el.y1, el.y2].forEach(p => { if(p!=null) { minY = Math.min(minY, p-r); maxY = Math.max(maxY, p+r); }}); if(el.cx!=null) { minX = Math.min(minX, el.cx-r); maxX = Math.max(maxX, el.cx+r); } if(el.cy!=null) { minY = Math.min(minY, el.cy-r); maxY = Math.max(maxY, el.cy+r); }});
                     if (!isFinite(minX) || !isFinite(maxX)) { minX = 0; maxX = 800; minY = 0; maxY = 600; }
-                    const width = Math.max(100, maxX - minX + 100); 
-                    const height = Math.max(100, maxY - minY + 100);
-
-                    const tempCanvas = document.createElement('canvas');
-                    const MAX_DIM = 4000;
-                    const scaleFactor = Math.min(1, MAX_DIM / width, MAX_DIM / height);
-                    tempCanvas.width = width * scaleFactor;
-                    tempCanvas.height = height * scaleFactor;
-                    const ctx = tempCanvas.getContext('2d');
-                    
-                    ctx.scale(scaleFactor, scaleFactor);
-                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
-                    
-                    ctx.save();
-                    ctx.translate(-minX + 50, -minY + 50); 
-                    visibleElements.forEach(el => drawElement(ctx, el, false));
-                    ctx.restore();
-
-                    const { jsPDF } = window.jspdf; 
-                    const doc = new jsPDF('l', 'mm', 'a4');
-                    const pageW = 297, pageH = 210, margin = 10, headerH = 35;
-                    
-                    const imgData = tempCanvas.toDataURL('image/png');
-                    const availW = pageW - margin*2;
-                    const availH = pageH - margin*2 - headerH;
-                    const imgProps = doc.getImageProperties(imgData);
-                    const imgRatio = imgProps.width / imgProps.height;
-                    const pageRatio = availW / availH;
-                    let finalW, finalH;
-                    if (imgRatio > pageRatio) { finalW = availW; finalH = availW / imgRatio; } 
-                    else { finalH = availH; finalW = availH * imgRatio; }
-                    
-                    const ix = margin + (availW - finalW)/2;
-                    const iy = margin + (availH - finalH)/2;
+                    const padding = 40; minX -= padding; minY -= padding; maxX += padding; maxY += padding;
+                    const width = Math.max(100, maxX - minX + 100); const height = Math.max(100, maxY - minY + 100);
+                    const tempCanvas = document.createElement('canvas'); const MAX_DIM = 4000; const scaleFactor = Math.min(1, MAX_DIM / width, MAX_DIM / height);
+                    tempCanvas.width = width * scaleFactor; tempCanvas.height = height * scaleFactor; const ctx = tempCanvas.getContext('2d');
+                    ctx.scale(scaleFactor, scaleFactor); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+                    ctx.save(); ctx.translate(-minX + 50, -minY + 50); visibleElements.forEach(el => drawElement(ctx, el, false)); ctx.restore();
+                    const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'mm', 'a4'); const pageW = 297, pageH = 210, margin = 10, headerH = 35;
+                    const imgData = tempCanvas.toDataURL('image/png'); const availW = pageW - margin*2; const availH = pageH - margin*2 - headerH;
+                    const imgProps = doc.getImageProperties(imgData); const imgRatio = imgProps.width / imgProps.height; const pageRatio = availW / availH;
+                    let finalW, finalH; if (imgRatio > pageRatio) { finalW = availW; finalH = availW / imgRatio; } else { finalH = availH; finalW = availH * imgRatio; }
+                    const ix = margin + (availW - finalW)/2; const iy = margin + (availH - finalH)/2;
                     doc.addImage(imgData, 'PNG', ix, iy, finalW, finalH);
-
-                    const hy = pageH - margin - headerH;
-                    doc.setLineWidth(0.5); doc.setDrawColor(0); doc.setFillColor(245, 245, 245); doc.rect(margin, hy, availW, headerH, 'FD');
-                    doc.line(margin + availW/2, hy, margin + availW/2, hy+headerH);
-
-                    doc.setFontSize(10);
-                    doc.setFont("helvetica", "bold"); doc.text("PROYECTO:", margin+5, hy+8);
-                    doc.setFont("helvetica", "normal"); doc.text(metadata.project || "-", margin+30, hy+8);
-
-                    doc.setFont("helvetica", "bold"); doc.text("CLIENTE:", margin+5, hy+12);
-                    doc.setFont("helvetica", "normal"); doc.text(metadata.client || "-", margin+30, hy+12);
-
-                    doc.setFont("helvetica", "bold"); doc.text("UBICACIÓN:", margin+5, hy+16);
-                    doc.setFont("helvetica", "normal"); doc.text(metadata.location || "-", margin+30, hy+16);
-
-                    const col2 = margin + availW/2 + 5;
-                    doc.setFont("helvetica", "bold"); doc.text("DIBUJANTE:", col2, hy+8);
-                    doc.setFont("helvetica", "normal"); doc.text(metadata.draftsman || "-", col2+25, hy+8);
-
-                    doc.setFont("helvetica", "bold"); doc.text("FECHA:", col2, hy+12);
-                    doc.setFont("helvetica", "normal"); doc.text(metadata.date || "-", col2+25, hy+12);
-
-                    doc.setFont("helvetica", "bold"); doc.text("ID:", col2, hy+16);
-                    doc.setFont("helvetica", "normal"); doc.text(metadata.id || "-", col2+25, hy+16);
-
+                    const hy = pageH - margin - headerH; doc.setLineWidth(0.5); doc.setDrawColor(0); doc.setFillColor(245, 245, 245); doc.rect(margin, hy, availW, headerH, 'FD'); doc.line(margin + availW/2, hy, margin + availW/2, hy+headerH);
+                    doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.text("PROYECTO:", margin+5, hy+8); doc.setFont("helvetica", "normal"); doc.text(metadata.project || "-", margin+30, hy+8);
+                    doc.setFont("helvetica", "bold"); doc.text("CLIENTE:", margin+5, hy+12); doc.setFont("helvetica", "normal"); doc.text(metadata.client || "-", margin+30, hy+12);
+                    doc.setFont("helvetica", "bold"); doc.text("UBICACIÓN:", margin+5, hy+16); doc.setFont("helvetica", "normal"); doc.text(metadata.location || "-", margin+30, hy+16);
+                    const col2 = margin + availW/2 + 5; doc.setFont("helvetica", "bold"); doc.text("DIBUJANTE:", col2, hy+8); doc.setFont("helvetica", "normal"); doc.text(metadata.draftsman || "-", col2+25, hy+8);
+                    doc.setFont("helvetica", "bold"); doc.text("FECHA:", col2, hy+12); doc.setFont("helvetica", "normal"); doc.text(metadata.date || "-", col2+25, hy+12);
+                    doc.setFont("helvetica", "bold"); doc.text("ID:", col2, hy+16); doc.setFont("helvetica", "normal"); doc.text(metadata.id || "-", col2+25, hy+16);
                     const tramos = visibleElements.filter(el => el.type === TOOLS.TRAMO_DATA && el.tagMetadata);
-                    if (tramos.length > 0) {
-                        doc.addPage();
-                        doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("TABLA DE TRAMOS", margin, margin+10);
-                        let ty = margin+20;
-                        const cols = ["ID", "Longitud", "Diámetro", "Real (mm)", "Material", "Carga", "Capa"];
-                        const colW = [20, 35, 30, 30, 40, 40, 40];
-                        doc.setFontSize(10); doc.setFillColor(220);
-                        let tx = margin;
-                        cols.forEach((c, i) => { doc.rect(tx, ty, colW[i], 8, 'FD'); doc.text(c, tx+2, ty+5); tx += colW[i]; });
-                        ty += 8;
-                        doc.setFont("helvetica", "normal");
-                        tramos.forEach(t => {
-                            const m = t.tagMetadata;
-                            const layer = layers.find(l => l.id === t.layerId);
-                            const real = getRealDiameter(m.diameter, m.material);
-                            const row = [m.id, `${m.length} ${m.lengthUnit}`, m.diameter, real, m.material, `${m.load} ${m.loadUnit}`, (layer ? layer.name : 'Def')];
-                            tx = margin;
-                            row.forEach((val, i) => { doc.rect(tx, ty, colW[i], 8); doc.text(String(val), tx+2, ty+5); tx += colW[i]; });
-                            ty += 8;
-                        });
-                    }
-
+                    if (tramos.length > 0) { doc.addPage(); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("TABLA DE TRAMOS", margin, margin+10); let ty = margin+20; const cols = [{n:'ID',w:20}, {n:'Longitud',w:30}, {n:'Diámetro',w:30}, {n:'Real(mm)',w:30}, {n:'Material',w:40}, {n:'Carga',w:40}, {n:'Capa',w:40}]; doc.setFontSize(10); doc.setFillColor(220, 220, 220); let tx = margin; cols.forEach(c => { doc.rect(tx, ty, c.w, 8, 'FD'); doc.text(c.n, tx+2, ty+5); tx += c.w; }); ty += 8; doc.setFont("helvetica", "normal"); tramos.forEach(t => { const m = t.tagMetadata; const layer = layers.find(l => l.id === t.layerId); const real = getRealDiameter(m.diameter, m.material); const row = [m.id, `${m.length} ${m.lengthUnit}`, m.diameter, real, m.material, `${m.load} ${m.loadUnit}`, (layer ? layer.name : 'Def')]; tx = margin; cols.forEach((c, i) => { doc.rect(tx, ty, c.w, 8); doc.text(String(row[i]), tx+2, ty+5); tx += c.w; }); ty += 8; }); }
                     doc.save(`Plano_${metadata.id}.pdf`);
                 } catch (e) { alert("Error PDF: " + e.message); }
             };
@@ -700,25 +692,11 @@
             const exportExcel = (metadata) => {
                 setDownloadModal({ visible: false, type: null });
                 if (!window.XLSX || elements.length === 0) return alert("Nada que exportar.");
-                
-                const metaRows = [
-                    ['DATOS DEL PROYECTO'], ['Proyecto:', metadata.project], ['Cliente:', metadata.client], ['Ubicación:', metadata.location], ['Dibujante:', metadata.draftsman], ['Fecha:', metadata.date], ['ID Plano:', metadata.id], []
-                ];
-
+                const metaRows = [ ['DATOS DEL PROYECTO'], ['Proyecto:', metadata.project], ['Cliente:', metadata.client], ['Ubicación:', metadata.location], ['Dibujante:', metadata.draftsman], ['Fecha:', metadata.date], ['ID Plano:', metadata.id], [] ];
                 const headers = ['ID Tramo', 'Longitud', 'Unidad Longitud', 'Diámetro Nominal', 'Diámetro Real (mm)', 'Material', 'Carga / Caudal', 'Unidad Carga', 'Capa'];
                 const data = [...metaRows, headers];
-                
                 let tramoFound = false;
-                elements.forEach((el) => {
-                    if (el.type === TOOLS.TRAMO_DATA && el.tagMetadata) {
-                        const layer = layers.find(l => l.id === el.layerId); if (layer && !layer.visible) return;
-                        const m = el.tagMetadata;
-                        const realDia = getRealDiameter(m.diameter, m.material);
-                        data.push([m.id, m.length, m.lengthUnit, m.diameter, realDia, m.material, m.load, m.loadUnit, layer ? layer.name : 'Default']);
-                        tramoFound = true;
-                    }
-                });
-                
+                elements.forEach((el) => { if (el.type === TOOLS.TRAMO_DATA && el.tagMetadata) { const layer = layers.find(l => l.id === el.layerId); if (layer && !layer.visible) return; const m = el.tagMetadata; const realDia = getRealDiameter(m.diameter, m.material); data.push([m.id, m.length, m.lengthUnit, m.diameter, realDia, m.material, m.load, m.loadUnit, layer ? layer.name : 'Default']); tramoFound = true; } });
                 if (!tramoFound) alert("Nota: El Excel solo contiene datos del proyecto (sin tramos).");
                 const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos"); XLSX.writeFile(wb, `Datos_${metadata.id}.xlsx`);
             };
@@ -727,11 +705,8 @@
             const clearCanvas = () => window.confirm('¿Borrar todo?') && setElements([]);
             const openTagModal = (type) => { setTagModal({ visible: true, type, x: contextMenu.worldX, y: contextMenu.worldY }); setContextMenu({ ...contextMenu, visible: false }); };
             const handleAddTag = (tagData) => { 
-                if (tagModal.editData) {
-                     setElements(prev => prev.map(el => el.id === tagModal.editData.id ? { ...el, ...tagData } : el));
-                } else {
-                    setElements(prev => [...prev, { id: Date.now(), type: tagData.type || TOOLS.TEXT, x1: tagModal.x, y1: tagModal.y, text: tagData.text, color: tagData.color, fontSize: tagData.scale * GRID_SIZE, lineWidth: 1, layerId: activeLayer, tagMetadata: tagData.tagMetadata }]); 
-                }
+                if (tagModal.editData) { setElements(prev => prev.map(el => el.id === tagModal.editData.id ? { ...el, ...tagData } : el)); } 
+                else { setElements(prev => [...prev, { id: Date.now(), type: tagData.type || TOOLS.TEXT, x1: tagModal.x, y1: tagModal.y, text: tagData.text, color: tagData.color, fontSize: tagData.scale * GRID_SIZE, lineWidth: 1, layerId: activeLayer, tagMetadata: tagData.tagMetadata }]); }
                 setTagModal({ ...tagModal, visible: false, editData: null }); 
             };
             const addLayer = () => { const newId = `layer-${Date.now()}`; setLayers(p => [...p, { id: newId, name: `Capa ${p.length}`, visible: true }]); setActiveLayer(newId); };
@@ -936,6 +911,7 @@
                                     <button onClick={() => setShowHelp(false)} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-full transition">✕</button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-8 space-y-8 text-gray-300">
+                                    {/* --- SECCIÓN 1: INTRODUCCIÓN --- */}
                                     <section>
                                         <h3 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2 pb-2 border-b border-gray-700">
                                             <Icon path={ICONS.BookOpen} size={20}/> 1. Introducción
@@ -944,9 +920,26 @@
                                             Bienvenido a <strong>IngenieroCAD</strong>, una herramienta web especializada para el diseño rápido de diagramas de tuberías e instrumentación (P&ID) y planos isométricos básicos.
                                         </p>
                                     </section>
+                                    {/* --- SECCIÓN 2: INTERFAZ Y NAVEGACIÓN --- */}
+                                    <section>
+                                        <h3 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2 pb-2 border-b border-gray-700">
+                                            <Icon path={ICONS.Move} size={20}/> 2. Interfaz y Navegación
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                                                <h4 className="font-bold text-white mb-2 flex items-center gap-2"><Icon path={ICONS.Mouse} /> Zoom</h4>
+                                                <p className="text-sm">Usa la <strong className="text-blue-300">Rueda del Ratón</strong> para acercar o alejar el plano. El zoom es inteligente y se centra en la posición del cursor.</p>
+                                            </div>
+                                            <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                                                <h4 className="font-bold text-white mb-2 flex items-center gap-2"><Icon path={ICONS.Move} /> Paneo (Mover)</h4>
+                                                <p className="text-sm">Para moverte por el lienzo infinito, mantén presionada la <strong className="text-blue-300">Rueda del Ratón (Click Central)</strong> o selecciona la herramienta <span className="manual-icon"><Icon path={ICONS.Move} size={14}/></span> y arrastra.</p>
+                                            </div>
+                                        </div>
+                                    </section>
+                                    {/* --- SECCIÓN 3: DIBUJO Y PRECISIÓN --- */}
                                     <section>
                                         <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2 pb-2 border-b border-gray-700">
-                                            <Icon path={ICONS.Ruler} size={20}/> 2. Dibujo y Precisión
+                                            <Icon path={ICONS.Ruler} size={20}/> 3. Dibujo y Precisión
                                         </h3>
                                         <div className="space-y-4 text-sm">
                                             <div className="bg-gray-700/30 p-3 rounded border-l-4 border-yellow-500">
@@ -976,6 +969,9 @@
                                             <p>
                                                 Al exportar a <strong>Excel</strong>, el sistema genera una tabla estructurada ideal para memorias de cálculo. Además, calcula automáticamente el <strong>Diámetro Real Interno</strong> en mm según el material seleccionado (Acero, Cobre, PEAD, etc.).
                                             </p>
+                                            <div className="bg-gray-700/30 p-3 rounded">
+                                                <strong>Ejemplo:</strong> Si seleccionas 2" en Acero, el Excel reportará 52.5mm (aprox Sch 40). Si es Cobre Rígido, reportará 50.42mm.
+                                            </div>
                                         </div>
                                     </section>
                                 </div>
