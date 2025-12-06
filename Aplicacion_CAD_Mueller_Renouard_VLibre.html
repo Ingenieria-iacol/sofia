@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IngenieroCAD - P&ID Web (Datos Técnicos)</title>
+    <title>IngenieroCAD - P&ID Web (Despiece & BOM)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -131,19 +131,14 @@
         const LENGTH_UNITS = ['m', 'cm', 'mm'];
         const LINE_WIDTHS = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6];
 
-        // --- UTILS FOR ISOMETRIC TEE CALCULATION ---
+        // --- CALCULATION LOGIC ---
         const getClosestIsoAngle = (rad) => {
             const deg = (rad * 180) / Math.PI;
             const isoAngles = [0, 30, 90, 150, 180, 210, 270, 330];
-            let closest = 0;
-            let minDiff = Infinity;
+            let closest = 0; let minDiff = Infinity;
             isoAngles.forEach(a => {
-                let diff = Math.abs(deg - a);
-                if (diff > 180) diff = 360 - diff;
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    closest = a;
-                }
+                let diff = Math.abs(deg - a); if (diff > 180) diff = 360 - diff;
+                if (diff < minDiff) { minDiff = diff; closest = a; }
             });
             return (closest * Math.PI) / 180;
         };
@@ -151,13 +146,93 @@
         const getValidBranchAngles = (runAngleRad) => {
             const runDeg = Math.round((runAngleRad * 180) / Math.PI) % 360;
             const runNorm = runDeg < 0 ? runDeg + 360 : runDeg;
-            // Isometric Axes
             const allIso = [90, 270, 30, 210, 150, 330];
-            // Filter out parallel angles
             return allIso.filter(a => {
                 const diff = Math.abs(a - runNorm);
                 return Math.abs(diff - 0) > 5 && Math.abs(diff - 180) > 5 && Math.abs(diff - 360) > 5;
             }).map(d => (d * Math.PI) / 180);
+        };
+
+        const calculateDespiece = (elements) => {
+            const bom = [];
+            const pipes = elements.filter(e => e.type === TOOLS.TRAMO_DATA && e.tagMetadata);
+            
+            // 1. Tuberías (Sumar longitud)
+            const pipeMap = {};
+            pipes.forEach(p => {
+                const m = p.tagMetadata;
+                const key = `Tubería ${m.material} Ø${m.diameter}`;
+                if (!pipeMap[key]) pipeMap[key] = { desc: `Tubería ${m.material}`, spec: `Ø${m.diameter}`, qty: 0, unit: 'm' };
+                pipeMap[key].qty += parseFloat(m.length) || 0;
+            });
+            Object.values(pipeMap).forEach(i => bom.push(i));
+
+            // 2. Codos (Heurística de conexión)
+            // Solo para Ag, Ac, Cu Rig
+            const elbowMat = ['Ag', 'Ac', 'Cu Rig'];
+            const points = {};
+            
+            const addPt = (x, y, el) => {
+                const k = `${Math.round(x/5)*5},${Math.round(y/5)*5}`; // Snap soft
+                if (!points[k]) points[k] = [];
+                points[k].push(el);
+            };
+
+            pipes.forEach(p => {
+                if (elbowMat.includes(p.tagMetadata.material)) {
+                    addPt(p.x1, p.y1, p);
+                    addPt(p.x2, p.y2, p);
+                }
+            });
+
+            const elbows = {};
+            Object.values(points).forEach(conns => {
+                if (conns.length === 2) {
+                    const [p1, p2] = conns;
+                    const m1 = p1.tagMetadata;
+                    const m2 = p2.tagMetadata;
+                    if (m1.material === m2.material && m1.diameter === m2.diameter) {
+                        // Check angle
+                        const angle1 = Math.atan2(p1.y2 - p1.y1, p1.x2 - p1.x1);
+                        const angle2 = Math.atan2(p2.y2 - p2.y1, p2.x2 - p2.x1);
+                        // Normalize vectors relative to junction? Simplified:
+                        // If slope is different, it's a turn.
+                        // We use the raw segment angles. If abs(diff) is not 0 or 180 deg (PI), it is a turn.
+                        let diff = Math.abs(angle1 - angle2);
+                        // Normalize to 0-PI
+                        if (diff > Math.PI) diff = 2*Math.PI - diff;
+                        
+                        // If not straight (tolerance 0.1 rad)
+                        if (Math.abs(diff) > 0.1 && Math.abs(diff - Math.PI) > 0.1) {
+                            const key = `Codo 90° ${m1.material} Ø${m1.diameter}`; // Assume 90 for BOM simplicity or generic Codo
+                            if (!elbows[key]) elbows[key] = { desc: `Codo`, spec: `${m1.material} Ø${m1.diameter}`, qty: 0, unit: 'und' };
+                            elbows[key].qty++;
+                        }
+                    }
+                }
+            });
+            Object.values(elbows).forEach(i => bom.push(i));
+
+            // 3. Accesorios
+            const accMap = {};
+            elements.forEach(el => {
+                if ([TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.REDUCER, TOOLS.TERMINAL, TOOLS.TEE].includes(el.type)) {
+                    let desc = '', spec = '';
+                    const c = el.customData || {};
+                    if (el.type === TOOLS.VALVE) { desc = 'Válvula de Paso'; spec = 'Universal'; }
+                    if (el.type === TOOLS.TEE) { desc = 'Tee'; spec = 'Universal'; }
+                    if (el.type === TOOLS.REGULATOR) { desc = 'Regulador'; spec = `Q:${c.flow || '-'} Pin:${c.pIn || '-'}`; }
+                    if (el.type === TOOLS.REDUCER) { desc = `Reducción (${c.reductionType || 'Copa'})`; spec = `${c.diaMajor || '?'} x ${c.diaMinor || '?'}`; }
+                    if (el.type === TOOLS.TERMINAL) { desc = `Terminal ${c.terminalType || ''}`; spec = `${c.dimension || ''}`; }
+                    
+                    const key = `${desc}-${spec}`;
+                    if (!accMap[key]) accMap[key] = { desc, spec, qty: 0, unit: 'und' };
+                    accMap[key].qty++;
+                }
+            });
+            Object.values(accMap).forEach(i => bom.push(i));
+
+            return bom;
         };
 
         const DownloadModal = ({ visible, type, onClose, onConfirm }) => {
@@ -226,7 +301,7 @@
             const [activeLayer, setActiveLayer] = useState('default');
             const [currentElement, setCurrentElement] = useState(null);
             const [tool, setTool] = useState(TOOLS.LINE);
-            const [color, setColor] = useState('#ffffff');
+            const [color, setColor] = useState('#eab308');
             const [lineWidth, setLineWidth] = useState(2);
             const [anchor, setAnchor] = useState(ANCHORS.CENTER.id);
             const [textInput, setTextInput] = useState('');
@@ -702,8 +777,39 @@
                     const col2 = margin + availW/2 + 5; doc.setFont("helvetica", "bold"); doc.text("DIBUJANTE:", col2, hy+8); doc.setFont("helvetica", "normal"); doc.text(metadata.draftsman || "-", col2+25, hy+8);
                     doc.setFont("helvetica", "bold"); doc.text("FECHA:", col2, hy+12); doc.setFont("helvetica", "normal"); doc.text(metadata.date || "-", col2+25, hy+12);
                     doc.setFont("helvetica", "bold"); doc.text("ID:", col2, hy+16); doc.setFont("helvetica", "normal"); doc.text(metadata.id || "-", col2+25, hy+16);
+                    
                     const tramos = visibleElements.filter(el => el.type === TOOLS.TRAMO_DATA && el.tagMetadata);
-                    if (tramos.length > 0) { doc.addPage(); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("TABLA DE TRAMOS", margin, margin+10); let ty = margin+20; const cols = [{n:'ID',w:20}, {n:'Longitud',w:30}, {n:'Diámetro',w:30}, {n:'Real(mm)',w:30}, {n:'Material',w:40}, {n:'Carga',w:40}, {n:'Capa',w:40}]; doc.setFontSize(10); doc.setFillColor(220, 220, 220); let tx = margin; cols.forEach(c => { doc.rect(tx, ty, c.w, 8, 'FD'); doc.text(c.n, tx+2, ty+5); tx += c.w; }); ty += 8; doc.setFont("helvetica", "normal"); tramos.forEach(t => { const m = t.tagMetadata; const layer = layers.find(l => l.id === t.layerId); const real = getRealDiameter(m.diameter, m.material); const row = [m.id, `${m.length} ${m.lengthUnit}`, m.diameter, real, m.material, `${m.load} ${m.loadUnit}`, (layer ? layer.name : 'Def')]; tx = margin; cols.forEach((c, i) => { doc.rect(tx, ty, c.w, 8); doc.text(String(row[i]), tx+2, ty+5); tx += c.w; }); ty += 8; }); }
+                    if (tramos.length > 0) { 
+                        doc.addPage(); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("TABLA DE TRAMOS", margin, margin+10); 
+                        let ty = margin+20; const cols = [{n:'ID',w:20}, {n:'Longitud',w:30}, {n:'Diámetro',w:30}, {n:'Real(mm)',w:30}, {n:'Material',w:40}, {n:'Carga',w:40}, {n:'Capa',w:40}]; 
+                        // Header Style: Dark Blue Background, White Text
+                        doc.setFontSize(10); doc.setFillColor(41, 128, 185); doc.setTextColor(255, 255, 255); 
+                        let tx = margin; cols.forEach(c => { doc.rect(tx, ty, c.w, 8, 'F'); doc.text(c.n, tx+2, ty+5); tx += c.w; }); 
+                        ty += 8; doc.setTextColor(0, 0, 0); doc.setFont("helvetica", "normal"); 
+                        tramos.forEach(t => { 
+                            const m = t.tagMetadata; const layer = layers.find(l => l.id === t.layerId); const real = getRealDiameter(m.diameter, m.material); 
+                            const row = [m.id, `${m.length} ${m.lengthUnit}`, m.diameter, real, m.material, `${m.load} ${m.loadUnit}`, (layer ? layer.name : 'Def')]; 
+                            tx = margin; cols.forEach((c, i) => { doc.rect(tx, ty, c.w, 8); doc.text(String(row[i]), tx+2, ty+5); tx += c.w; }); ty += 8; 
+                        }); 
+                    }
+
+                    // --- DESPIECE (BOM) ---
+                    const bom = calculateDespiece(visibleElements);
+                    if (bom.length > 0) {
+                        doc.addPage(); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("LISTA DE MATERIALES (DESPIECE)", margin, margin+10);
+                        let ty = margin+20;
+                        const colsB = [{n:'Ítem', w:15}, {n:'Descripción', w:80}, {n:'Especificación', w:60}, {n:'Cantidad', w:30}, {n:'Unidad', w:30}];
+                        // Header Style
+                        doc.setFontSize(10); doc.setFillColor(41, 128, 185); doc.setTextColor(255, 255, 255);
+                        let tx = margin; colsB.forEach(c => { doc.rect(tx, ty, c.w, 8, 'F'); doc.text(c.n, tx+2, ty+5); tx += c.w; });
+                        ty += 8; doc.setTextColor(0, 0, 0); doc.setFont("helvetica", "normal");
+                        bom.forEach((item, idx) => {
+                            const row = [idx+1, item.desc, item.spec, item.qty % 1 === 0 ? item.qty : item.qty.toFixed(2), item.unit];
+                            tx = margin; colsB.forEach((c, i) => { doc.rect(tx, ty, c.w, 8); doc.text(String(row[i]), tx+2, ty+5); tx += c.w; });
+                            ty += 8;
+                        });
+                    }
+
                     doc.save(`Plano_${metadata.id}.pdf`);
                 } catch (e) { alert("Error PDF: " + e.message); }
             };
@@ -711,13 +817,32 @@
             const exportExcel = (metadata) => {
                 setDownloadModal({ visible: false, type: null });
                 if (!window.XLSX || elements.length === 0) return alert("Nada que exportar.");
+                
+                // 1. Datos Proyecto
                 const metaRows = [ ['DATOS DEL PROYECTO'], ['Proyecto:', metadata.project], ['Cliente:', metadata.client], ['Ubicación:', metadata.location], ['Dibujante:', metadata.draftsman], ['Fecha:', metadata.date], ['ID Plano:', metadata.id], [] ];
+                
+                // 2. Tabla Tramos
                 const headers = ['ID Tramo', 'Longitud', 'Unidad Longitud', 'Diámetro Nominal', 'Diámetro Real (mm)', 'Material', 'Carga / Caudal', 'Unidad Carga', 'Capa'];
                 const data = [...metaRows, headers];
-                let tramoFound = false;
-                elements.forEach((el) => { if (el.type === TOOLS.TRAMO_DATA && el.tagMetadata) { const layer = layers.find(l => l.id === el.layerId); if (layer && !layer.visible) return; const m = el.tagMetadata; const realDia = getRealDiameter(m.diameter, m.material); data.push([m.id, m.length, m.lengthUnit, m.diameter, realDia, m.material, m.load, m.loadUnit, layer ? layer.name : 'Default']); tramoFound = true; } });
-                if (!tramoFound) alert("Nota: El Excel solo contiene datos del proyecto (sin tramos).");
-                const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos"); XLSX.writeFile(wb, `Datos_${metadata.id}.xlsx`);
+                elements.forEach((el) => { if (el.type === TOOLS.TRAMO_DATA && el.tagMetadata) { const layer = layers.find(l => l.id === el.layerId); if (layer && !layer.visible) return; const m = el.tagMetadata; const realDia = getRealDiameter(m.diameter, m.material); data.push([m.id, m.length, m.lengthUnit, m.diameter, realDia, m.material, m.load, m.loadUnit, layer ? layer.name : 'Default']); } });
+                
+                // 3. Despiece
+                const bom = calculateDespiece(elements);
+                const bomHeaders = ['Ítem', 'Descripción', 'Especificación', 'Cantidad', 'Unidad'];
+                const bomData = [bomHeaders];
+                bom.forEach((item, idx) => bomData.push([idx+1, item.desc, item.spec, item.qty, item.unit]));
+
+                const wb = XLSX.utils.book_new(); 
+                
+                // Hoja 1: Tramos
+                const ws = XLSX.utils.aoa_to_sheet(data); 
+                XLSX.utils.book_append_sheet(wb, ws, "Tramos"); 
+                
+                // Hoja 2: Despiece
+                const wsBom = XLSX.utils.aoa_to_sheet(bomData);
+                XLSX.utils.book_append_sheet(wb, wsBom, "Despiece");
+
+                XLSX.writeFile(wb, `Datos_${metadata.id}.xlsx`);
             };
             
             const undo = () => setElements(prev => prev.slice(0, -1));
