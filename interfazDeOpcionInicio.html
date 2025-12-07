@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Git de Ingeniería | El Futuro del Diseño</title>
+    <title>Herramientas de Ingeniería | El Futuro del Diseño y el aprendizaje</title>
     <style>
         :root {
             --netflix-black: #141414;
@@ -12,7 +12,6 @@
             --brand-blue-hover: #005bb5;
             --text-white: #ffffff;
             --text-gray: #b3b3b3;
-            --success-green: #46d369;
         }
 
         * {
@@ -51,6 +50,7 @@
             text-shadow: 0 0 10px rgba(0, 113, 235, 0.5);
         }
 
+        /* Botón convertido a enlace con estilo de botón */
         .btn-login {
             background-color: var(--brand-blue);
             color: white;
@@ -60,7 +60,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: 0.3s;
-            text-decoration: none;
+            text-decoration: none; /* Quita el subrayado del enlace */
             display: inline-block;
             font-size: 1rem;
         }
@@ -284,60 +284,6 @@
             text-decoration: underline;
         }
 
-        /* --- Audio Control UI --- */
-        .audio-control {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 2000;
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid #333;
-            padding: 10px 15px;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            backdrop-filter: blur(5px);
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        
-        .audio-control:hover {
-            border-color: var(--brand-blue);
-            background: rgba(0, 0, 0, 0.95);
-        }
-
-        .audio-bars {
-            display: flex;
-            gap: 3px;
-            align-items: flex-end;
-            height: 15px;
-        }
-
-        .bar {
-            width: 3px;
-            background-color: var(--brand-blue);
-            animation: equalize 1s infinite;
-        }
-        
-        /* Animación de barras de audio */
-        @keyframes equalize {
-            0% { height: 3px; }
-            50% { height: 15px; }
-            100% { height: 3px; }
-        }
-        
-        .bar:nth-child(1) { animation-delay: 0.1s; }
-        .bar:nth-child(2) { animation-delay: 0.3s; }
-        .bar:nth-child(3) { animation-delay: 0.6s; }
-        
-        .audio-text {
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
         @media (max-width: 768px) {
             .hero h1 { font-size: 2rem; }
             .feature-split { flex-direction: column; text-align: center; }
@@ -351,17 +297,19 @@
 <body>
 
     <header>
-        <div class="logo">GIT<span style="color: white; font-size: 0.8em;">DE</span>INGENIERÍA</div>
+        <div class="logo">HERRAMIENTAS<span style="color: white; font-size: 0.8em;">DE</span>INGENIERÍA</div>
+        
         <a href="index.html" class="btn-login">Ir a Herramientas</a>
+        
     </header>
 
     <div class="hero">
         <div class="hero-content">
-            <h1>Control de versiones para el mundo físico.</h1>
-            <p>Gestiona planos, colabora en modelos CAD 3D y despliega proyectos de ingeniería a cualquier escala.</p>
+            <h1>Soluciones de ingenieria.</h1>
+            <p>Software De Inteligencia Artificial. SofI.A.</p>
             
             <div class="email-form">
-                <input type="email" class="email-input" placeholder="Ingeniero@empresa.com">
+                <input type="email" class="email-input" placeholder="Ingenieriaiacol@gmail.com">
                 <button class="btn-cta">
                     Comenzar &nbsp; &#10095;
                 </button>
@@ -370,30 +318,30 @@
     </div>
 
     <div class="section-container">
-        <div class="section-title">Tecnologías Emergentes</div>
+        <div class="section-title">Tecnologías Basicas</div>
         <div class="card-grid">
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1531297461136-82lw8b225850?auto=format&fit=crop&w=500" alt="Chip Design">
+                <img src="https://images.unsplash.com/photo-1531297461136-82lw8b225850?auto=format&fit=crop&w=500" alt="Plataformas">
                 <div class="card-overlay">
-                    <div class="card-title">Material pedagogico para docentes</div>
+                    <div class="card-title">Modeladores</div>
                 </div>
             </div>
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1565043589221-1a6fd495191e?auto=format&fit=crop&w=500" alt="Civil">
+                <img src="https://images.unsplash.com/photo-1565043589221-1a6fd495191e?auto=format&fit=crop&w=500" alt="Calculadoras">
                 <div class="card-overlay">
-                    <div class="card-title">Ingeniería Aplicada</div>
+                    <div class="card-title">Calculadoras especializadas</div>
                 </div>
             </div>
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=500" alt="Robotics">
+                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=500" alt="Consultorias">
                 <div class="card-overlay">
-                    <div class="card-title">Mecanica Industrial</div>
+                    <div class="card-title">Inteligencia Artificial y consultorias</div>
                 </div>
             </div>
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1581092921461-eab62496096b?auto=format&fit=crop&w=500" alt="Mechanical">
+                <img src="https://images.unsplash.com/photo-1581092921461-eab62496096b?auto=format&fit=crop&w=500" alt="Utlidades">
                 <div class="card-overlay">
-                    <div class="card-title">Diseño De redes</div>
+                    <div class="card-title">Convertidores y otras herramientas</div>
                 </div>
             </div>
         </div>
@@ -401,15 +349,15 @@
         <div class="section-title">Herramientas de Colaboración</div>
         <div class="card-grid">
              <div class="card">
-                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=500" alt="Security">
+                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=500" alt="Patrocinadores">
                 <div class="card-overlay">
-                    <div class="card-title">Procesmiento de datos</div>
+                    <div class="card-title">Un equipo de empresas aliadas</div>
                 </div>
             </div>
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=500" alt="Data">
+                <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=500" alt="Perfiles">
                 <div class="card-overlay">
-                    <div class="card-title">Big Data Industrial</div>
+                    <div class="card-title">Academicos y clientes coorporativos</div>
                 </div>
             </div>
         </div>
@@ -417,8 +365,8 @@
 
     <div class="feature-split">
         <div class="feature-text">
-            <h2>Colabora en Tiempo Real.</h2>
-            <p>Deja de enviar archivos ZIP. Trabaja sobre el mismo modelo, rastrea cambios y resuelve conflictos de diseño al instante.</p>
+            <h2>Trabaja en Tiempo Real.</h2>
+            <p>Una serie de herramientas dispuestas a personal tecnico con perfiles especializados y grados de formacion avanzados.</p>
         </div>
         <div class="feature-visual">
             <div class="tech-box">
@@ -433,8 +381,8 @@
 
     <div class="feature-split" style="flex-direction: row-reverse;">
         <div class="feature-text">
-            <h2>Renderizado en la Nube.</h2>
-            <p>Visualiza ensamblajes masivos sin quemar tu GPU. Accede a tus proyectos desde cualquier dispositivo.</p>
+            <h2>Gestion desde la nube.</h2>
+            <p>Utiliza todas las herramientas para asegurar un buen trabajo.</p>
         </div>
         <div class="feature-visual">
             <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=600" style="width: 100%; border-radius: 10px; border: 2px solid #333;" alt="Tablet Engineering">
@@ -455,65 +403,5 @@
         <p style="font-size: 0.8rem;">© 2024 Git de Ingeniería, Inc.</p>
     </footer>
 
-    <div class="audio-control" onclick="toggleAudio()">
-        <div class="audio-bars">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </div>
-        <span class="audio-text">Focus Mode: ON</span>
-    </div>
-
-    <div id="video-container" style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0;">
-        <iframe id="background-music" 
-            width="560" height="315" 
-            src="https://www.youtube.com/embed/SM2aUBL2o2I?enablejsapi=1&autoplay=1&loop=1&playlist=SM2aUBL2o2I&controls=0&showinfo=0" 
-            title="Epic Music" 
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowfullscreen>
-        </iframe>
-    </div>
-
-    <script>
-        // Script simple para controlar el audio si el usuario hace clic en el botón flotante
-        var isPlaying = true;
-        var iframe = document.getElementById('background-music');
-
-        function toggleAudio() {
-            var player = iframe.contentWindow;
-            var text = document.querySelector('.audio-text');
-            var bars = document.querySelectorAll('.bar');
-
-            if (isPlaying) {
-                // Pausar (en realidad, muteamos o detenemos el video mediante postMessage)
-                player.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                text.innerText = "Focus Mode: OFF";
-                text.style.color = "#777";
-                bars.forEach(b => b.style.animation = 'none');
-                bars.forEach(b => b.style.height = '3px');
-                bars.forEach(b => b.style.backgroundColor = '#555');
-                isPlaying = false;
-            } else {
-                // Reproducir
-                player.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-                text.innerText = "Focus Mode: ON";
-                text.style.color = "white";
-                bars.forEach(b => b.style.animation = 'equalize 1s infinite');
-                bars.forEach(b => b.style.backgroundColor = 'var(--brand-blue)');
-                isPlaying = true;
-            }
-        }
-
-        // Intento de desbloqueo automático al primer clic en cualquier lugar (Chrome policy fix)
-        document.body.addEventListener('click', function() {
-            if(isPlaying) {
-                var player = iframe.contentWindow;
-                player.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-            }
-        }, {once:true});
-    </script>
-
 </body>
 </html>
-
