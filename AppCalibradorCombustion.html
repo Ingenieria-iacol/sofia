@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Calentador de Paso - ThermoTrainer Pro</title>
+    
+    <!-- React y ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- MathJax para Fórmulas Matemáticas -->
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .pipe-pattern {
+            background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 50%, #1e293b 50%, #1e293b 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+        }
+
+        /* --- SISTEMA DE LLAMA VOLUMÉTRICA --- */
+        .flame-container {
+            mix-blend-mode: screen; 
+        }
+        
+        @keyframes flicker-base {
+            0%, 100% { transform: scale(1) skewX(0deg); opacity: 0.9; }
+            25% { transform: scale(1.02) skewX(1deg); opacity: 0.8; }
+            50% { transform: scale(0.98) skewX(-1deg); opacity: 1; }
+            75% { transform: scale(1.01) skewX(0.5deg); opacity: 0.85; }
+        }
+        
+        @keyframes flicker-fast {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.8; }
+            25% { transform: translateY(-2px) scale(1.05); opacity: 0.6; }
+            50% { transform: translateY(1px) scale(0.95); opacity: 0.9; }
+            75% { transform: translateY(-1px) scale(1.02); opacity: 0.7; }
+        }
+
+        .animate-flame-core { animation: flicker-fast 0.1s infinite alternate; }
+        .animate-flame-main { animation: flicker-base 0.2s infinite alternate; }
+        .animate-flame-outer { animation: flicker-base 0.4s infinite alternate-reverse; }
+
+        .flame-unstable { animation-duration: 0.08s !important; filter: blur(4px); }
+        
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(4px);
+        }
+
+        /* --- ANIMACIÓN DE FLUJO DE AGUA --- */
+        @keyframes water-flow {
+            0% { stroke-dashoffset: 20; }
+            100% { stroke-dashoffset: 0; }
+        }
+        
+        .water-path {
+            stroke-dasharray: 5 5;
+            animation: water-flow 1s linear infinite;
+        }
+        
+        @keyframes spinner {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spinner 3s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- AUDIO ENGINE (Web Audio API) ---
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.burnerNode = null;
+                this.burnerGain = null;
+                this.waterNode = null;
+                this.waterGain = null;
+                this.alarmOsc = null;
+                this.alarmGain = null;
+                this.alarmInterval = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.setupBurnerSound();
+                    this.setupWaterSound(); 
+                } else if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            createNoiseBuffer() {
+                if (!this.ctx) return null;
+                const bufferSize = this.ctx.sampleRate * 2; 
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                return buffer;
+            }
+
+            setupBurnerSound() {
+                if (!this.ctx) return;
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = this.createNoiseBuffer();
+                noise.loop = true;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 400; 
+                this.burnerGain = this.ctx.createGain();
+                this.burnerGain.gain.value = 0;
+                noise.connect(filter);
+                filter.connect(this.burnerGain);
+                this.burnerGain.connect(this.ctx.destination);
+                noise.start();
+                this.burnerNode = { noise, filter };
+            }
+
+            setupWaterSound() {
+                if (!this.ctx) return;
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = this.createNoiseBuffer();
+                noise.loop = true;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1200; 
+                filter.Q.value = 1;
+                this.waterGain = this.ctx.createGain();
+                this.waterGain.gain.value = 0;
+                noise.connect(filter);
+                filter.connect(this.waterGain);
+                this.waterGain.connect(this.ctx.destination);
+                noise.start();
+                this.waterNode = { noise, filter };
+            }
+
+            setBurnerIntensity(intensity, isIgnited) {
+                if (!this.ctx || !this.burnerGain) return;
+                const now = this.ctx.currentTime;
+                if (!isIgnited) {
+                    this.burnerGain.gain.setTargetAtTime(0, now, 0.2);
+                    return;
+                }
+                const volume = Math.min(0.8, intensity * 0.8);
+                this.burnerGain.gain.setTargetAtTime(volume, now, 0.1);
+                this.burnerNode.filter.frequency.setTargetAtTime(200 + (intensity * 600), now, 0.1);
+            }
+
+            setWaterIntensity(flowLmin) {
+                if (!this.ctx || !this.waterGain) return;
+                const now = this.ctx.currentTime;
+                const normalizedFlow = Math.min(1, flowLmin / 20);
+                const volume = normalizedFlow * 0.4; 
+                this.waterGain.gain.setTargetAtTime(volume, now, 0.2);
+                if (this.waterNode) {
+                    this.waterNode.filter.frequency.setTargetAtTime(800 + (normalizedFlow * 800), now, 0.2);
+                }
+            }
+
+            triggerIgnition() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.6);
+            }
+
+            setAlarm(active) {
+                if (!this.ctx) return;
+                if (active && !this.alarmInterval) {
+                    const playBeep = () => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(3000, this.ctx.currentTime); 
+                        osc.frequency.linearRampToValueAtTime(2500, this.ctx.currentTime + 0.1); 
+                        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start();
+                        osc.stop(this.ctx.currentTime + 0.2);
+                    };
+                    playBeep();
+                    this.alarmInterval = setInterval(playBeep, 500); 
+                } else if (!active && this.alarmInterval) {
+                    clearInterval(this.alarmInterval);
+                    this.alarmInterval = null;
+                }
+            }
+        }
+
+        const audioManager = new AudioEngine();
+
+        // --- ICONOS & COMPONENTES VISUALES ---
+        const Droplet = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>;
+        const Thermometer = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>;
+        const FlameIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3-1.09.91-2.1 1.6-3.08 .4 1.7 1.2 3.8 1.4 6.88Z"/></svg>;
+        const AlertOctagon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+        const Settings = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const Gauge = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>;
+        const BookOpen = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+        const X = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+        const Activity = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>;
+
+        function MethodModal({ isOpen, onClose }) {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+                    <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-slate-700 flex justify-between items-center sticky top-0 bg-slate-800 z-10">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <BookOpen className="text-cyan-400" /> Método Matemático de Simulación
+                            </h2>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6 text-slate-300">
+                             <section>
+                                <h3 className="text-lg font-bold text-blue-400 mb-2">1. Hidrodinámica (Caudal de Agua)</h3>
+                                <div className="bg-slate-900 p-3 rounded border border-slate-700 font-mono text-xs md:text-sm text-green-400 mb-2">
+                                    Q_&#123;agua&#125; = A_&#123;apertura&#125; \cdot Q_&#123;max&#125; \cdot \sqrt&#123;\frac&#123;P_&#123;red&#125;&#125;&#123;P_&#123;ref&#125;&#125;&#125;
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="text-lg font-bold text-yellow-500 mb-2">2. Suministro de Gas</h3>
+                                <div className="bg-slate-900 p-3 rounded border border-slate-700 font-mono text-xs md:text-sm text-yellow-300 mb-2">
+                                    F_&#123;gas&#125; = V_&#123;apertura&#125; \cdot \text&#123;CapacidadRegulador&#125; \cdot \sqrt&#123;\frac&#123;P_&#123;suministro&#125;&#125;&#123;P_&#123;nominal&#125;&#125;&#125;
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="text-lg font-bold text-red-400 mb-2">3. Estequiometría (\(\lambda\))</h3>
+                                <div className="bg-slate-900 p-3 rounded border border-slate-700 font-mono text-xs md:text-sm text-red-300 mb-2">
+                                    \lambda = \frac&#123;\text&#123;Aire&#125;&#125;&#123;\text&#123;Gas&#125; \cdot \text&#123;Constante&#125;&#125;
+                                </div>
+                            </section>
+                             <section>
+                                <h3 className="text-lg font-bold text-purple-400 mb-2">4. Termodinámica</h3>
+                                <div className="bg-slate-900 p-3 rounded border border-slate-700 font-mono text-xs md:text-sm text-purple-300 mb-2">
+                                    \Delta T = \frac&#123;P_&#123;gas&#125; \cdot \eta(\lambda)&#125;&#123;\dot&#123;m&#125;_&#123;agua&#125; \cdot C_p&#125;
+                                </div>
+                            </section>
+                        </div>
+                        <div className="p-6 border-t border-slate-700 bg-slate-800 sticky bottom-0 text-right">
+                            <button onClick={onClose} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded font-bold transition-colors">Entendido</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- COMPONENTE DE TUBERÍAS INFERIORES ---
+        const BottomPipes = ({ flowSpeed, temperature }) => {
+            let outletColor = "#3b82f6";
+            if (temperature > 60) outletColor = "#ef4444"; 
+            else if (temperature > 40) outletColor = "#f59e0b"; 
+            else if (temperature > 25) outletColor = "#a855f7"; 
+            
+            const animationDuration = flowSpeed > 0 ? `${2.2 - (flowSpeed * 2)}s` : '0s';
+            
+            return (
+                <div className="w-full h-full relative">
+                    <svg width="100%" height="100%" viewBox="0 0 300 100" className="pointer-events-none">
+                        {/* Coordenadas basadas en: Width 300. Puntos de acople al 20% (60), 50% (150), 80% (240) */}
+                        
+                        {/* Tubería Agua Fría (Izquierda - Acople 60) */}
+                        <path d="M60 100 L60 0" stroke="#334155" strokeWidth="16" fill="none" />
+                        <path d="M60 100 L60 0" stroke="#3b82f6" strokeWidth="10" fill="none" strokeOpacity="0.3" />
+                        <path 
+                            className="water-path" 
+                            d="M60 100 L60 0" /* Flujo hacia arriba (Entrando) */
+                            stroke="#60a5fa" 
+                            strokeWidth="4" 
+                            fill="none" 
+                            style={{ animationDuration: animationDuration, opacity: flowSpeed > 0 ? 1 : 0.3 }}
+                        />
+                        {/* Conector Roscado */}
+                        <rect x="52" y="0" width="16" height="8" fill="#94a3b8" />
+
+                        {/* Tubería Gas (Centro - Acople 150) */}
+                        <path d="M150 100 L150 0" stroke="#334155" strokeWidth="14" fill="none" />
+                        <path d="M150 100 L150 0" stroke="#eab308" strokeWidth="8" fill="none" strokeOpacity="0.3" />
+                        {/* Conector Roscado */}
+                        <rect x="143" y="0" width="14" height="8" fill="#ca8a04" />
+
+                        {/* Tubería Agua Caliente (Derecha - Acople 240) */}
+                        <path d="M240 0 L240 100" stroke="#334155" strokeWidth="16" fill="none" />
+                        <path d="M240 0 L240 100" stroke={outletColor} strokeWidth="10" fill="none" strokeOpacity="0.3" style={{transition: 'stroke 0.5s'}} />
+                        <path 
+                            className="water-path" 
+                            d="M240 0 L240 100" /* Flujo hacia abajo (Saliendo) */
+                            stroke={outletColor} 
+                            strokeWidth="4" 
+                            fill="none" 
+                            style={{ animationDuration: animationDuration, opacity: flowSpeed > 0 ? 1 : 0.3, transition: 'stroke 0.5s' }}
+                        />
+                        {/* Conector Roscado */}
+                        <rect x="232" y="0" width="16" height="8" fill="#94a3b8" />
+                    </svg>
+                </div>
+            );
+        };
+
+        function App() {
+            const [isRunning, setIsRunning] = useState(false);
+            const [showMethod, setShowMethod] = useState(false);
+            const [inletPressure, setInletPressure] = useState(45);
+            const [faucetOpen, setFaucetOpen] = useState(0); 
+            const [inletTemp, setInletTemp] = useState(18);
+            const [gasValve, setGasValve] = useState(0); 
+            const [airShutter, setAirShutter] = useState(50); 
+            const [gasSupplyPressure, setGasSupplyPressure] = useState(35); 
+            const [regulatorLimit, setRegulatorLimit] = useState(100); 
+
+            const [waterFlow, setWaterFlow] = useState(0); 
+            const [outletTemp, setOutletTemp] = useState(18);
+            const [lambda, setLambda] = useState(0);
+            const [efficiency, setEfficiency] = useState(0);
+            const [coPpm, setCoPpm] = useState(0);
+            const [isIgnited, setIsIgnited] = useState(false);
+            const [history, setHistory] = useState([]);
+            
+            const prevIgnitedRef = useRef(false);
+            const MAX_GAS_FLOW_KW = 35; 
+            const NOMINAL_PRESSURE = 35; 
+            const SPECIFIC_HEAT_WATER = 4.186;
+
+            const handleSystemToggle = () => {
+                if (!isRunning) {
+                    audioManager.init(); 
+                } else {
+                    audioManager.setAlarm(false);
+                    audioManager.setWaterIntensity(0); 
+                }
+                setIsRunning(!isRunning);
+            };
+
+            useEffect(() => {
+                if (!isRunning) {
+                    setWaterFlow(0); setOutletTemp(inletTemp); setIsIgnited(false);
+                    setCoPpm(0); setLambda(0); setEfficiency(0);
+                    audioManager.setBurnerIntensity(0, false); audioManager.setWaterIntensity(0); audioManager.setAlarm(false);
+                    return;
+                }
+
+                const interval = setInterval(() => {
+                    const noise = (Math.random() - 0.5) * 0.1;
+                    const maxFlowAt120PSI = 22; 
+                    const pressureFactor = Math.sqrt(inletPressure) / Math.sqrt(120); 
+                    const flowRaw = (faucetOpen / 100) * maxFlowAt120PSI * pressureFactor;
+                    const currentFlow = Math.max(0, flowRaw + (flowRaw > 0 ? noise : 0));
+                    audioManager.setWaterIntensity(currentFlow);
+
+                    const gasPressureFactor = Math.sqrt(gasSupplyPressure / NOMINAL_PRESSURE);
+                    const regulatorCapacity = regulatorLimit / 100;
+                    const actualGasLoad = (gasValve / 100) * regulatorCapacity * gasPressureFactor;
+
+                    const minFlowToIgnite = 2.5; 
+                    const hasFuel = actualGasLoad > 0.02; 
+                    const ignition = currentFlow > minFlowToIgnite && hasFuel;
+                    
+                    if (ignition && !prevIgnitedRef.current) audioManager.triggerIgnition();
+                    prevIgnitedRef.current = ignition;
+                    setIsIgnited(ignition);
+
+                    let currentLambda = 0; let currentCo = 0; let currentEff = 0; let thermalPowerKW = 0;
+
+                    if (ignition) {
+                        const airFactor = 0.5 + (airShutter / 100) * 1.5; 
+                        currentLambda = (airFactor / (actualGasLoad * 2.2)) + (noise * 0.05);
+
+                        if (currentLambda < 1.0) currentCo = 50 + 8000 * Math.pow((1.0 - currentLambda), 2.5);
+                        else if (currentLambda < 1.4) currentCo = 20 + (Math.random() * 10);
+                        else currentCo = 30 + 100 * (currentLambda - 1.4);
+                        currentCo += (Math.random() * 5); currentCo = Math.max(0, currentCo);
+
+                        if (currentLambda < 1.0) currentEff = 90 - (50 * (1 - currentLambda));
+                        else currentEff = 92 - (25 * (currentLambda - 1.0));
+                        currentEff = Math.min(95, Math.max(30, currentEff));
+
+                        const grossPower = actualGasLoad * MAX_GAS_FLOW_KW;
+                        thermalPowerKW = grossPower * (currentEff / 100);
+                        audioManager.setBurnerIntensity(actualGasLoad, true);
+                    } else {
+                        audioManager.setBurnerIntensity(0, false);
+                    }
+
+                    if (currentCo > 200) audioManager.setAlarm(true);
+                    else audioManager.setAlarm(false);
+
+                    let finalTemp = inletTemp;
+                    if (currentFlow > 0.5) {
+                        const flowKgSec = currentFlow / 60; 
+                        const deltaT = thermalPowerKW > 0 ? thermalPowerKW / (flowKgSec * SPECIFIC_HEAT_WATER) : 0;
+                        finalTemp = inletTemp + deltaT;
+                    }
+                    if (finalTemp > 98) finalTemp = 98;
+
+                    setLambda(currentLambda);
+                    setCoPpm(prev => prev + (currentCo - prev) * 0.1);
+                    setEfficiency(currentEff);
+                    setWaterFlow(currentFlow);
+                    setOutletTemp(prev => prev + (finalTemp - prev) * 0.15);
+
+                    setHistory(prev => {
+                        const newPt = { t: Date.now(), temp: finalTemp, co: currentCo };
+                        const h = [...prev, newPt];
+                        if (h.length > 80) h.shift();
+                        return h;
+                    });
+                }, 100);
+                return () => clearInterval(interval);
+            }, [isRunning, inletPressure, faucetOpen, inletTemp, gasValve, airShutter, gasSupplyPressure, regulatorLimit]);
+
+            const getFlameStyles = () => {
+                let coreColor, mainColor, outerColor, scale, opacity, label;
+                let unstable = false;
+                if (lambda < 0.85) { coreColor = 'bg-yellow-100'; mainColor = 'from-orange-500 via-red-500 to-yellow-600'; outerColor = 'from-red-500/50 to-transparent'; scale = 1.3; opacity = 1; label = 'PELIGRO (RICA)'; unstable = true; }
+                else if (lambda < 0.98) { coreColor = 'bg-blue-200'; mainColor = 'from-blue-600 via-yellow-400 to-orange-400'; outerColor = 'from-orange-400/30 to-transparent'; scale = 1.1; opacity = 0.95; label = 'RICA'; }
+                else if (lambda <= 1.25) { coreColor = 'bg-white shadow-[0_0_15px_white]'; mainColor = 'from-blue-600 via-cyan-400 to-transparent'; outerColor = 'from-blue-500/20 to-transparent'; scale = 1.0; opacity = 0.9; label = 'ÓPTIMA'; }
+                else { coreColor = 'bg-blue-100'; mainColor = 'from-cyan-400 via-blue-300 to-transparent'; outerColor = 'from-white/10 to-transparent'; scale = 0.9; opacity = 0.6; label = 'POBRE'; unstable = true; }
+                return { coreColor, mainColor, outerColor, scale, opacity, label, unstable };
+            };
+            const flameStyle = getFlameStyles();
+            const getCoColor = (ppm) => ppm < 50 ? "text-green-500" : ppm < 200 ? "text-yellow-500" : "text-red-600 animate-pulse";
+            const pressureRatio = Math.sqrt(gasSupplyPressure / NOMINAL_PRESSURE);
+            const regulatorFactor = regulatorLimit/100;
+            const displayLoad = (gasValve/100) * regulatorFactor * pressureRatio * 100;
+
+            const renderChart = () => {
+                if (history.length < 2) return null;
+                const h = 60; const w = 180;
+                const ptsTemp = history.map((p, i) => `${(i/(history.length-1))*w},${h-((p.temp/90)*h)}`).join(' ');
+                const ptsCo = history.map((p, i) => `${(i/(history.length-1))*w},${h-((Math.min(p.co,1000)/1000)*h)}`).join(' ');
+                return (
+                    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full overflow-visible">
+                         <line x1="0" y1={h/2} x2={w} y2={h/2} stroke="#334155" strokeDasharray="2" />
+                         <polyline points={ptsTemp} fill="none" stroke="#60a5fa" strokeWidth="2" />
+                         <polyline points={ptsCo} fill="none" stroke="#ef4444" strokeWidth="2" strokeOpacity="0.7" />
+                    </svg>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-2 md:p-6 flex flex-col items-center">
+                    <MethodModal isOpen={showMethod} onClose={() => setShowMethod(false)} />
+
+                    <div className="w-full max-w-6xl mb-6 flex justify-between items-center bg-slate-900/50 p-4 rounded-xl border border-slate-800 backdrop-blur">
+                        <div>
+                            <h1 className="text-2xl font-bold text-white tracking-wider flex items-center gap-2">
+                                <FlameIcon className="text-orange-500" /> ThermoTrainer <span className="text-cyan-400">PRO</span>
+                            </h1>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowMethod(true)} className="px-3 py-2 rounded text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm border border-slate-700">
+                                <BookOpen className="w-4 h-4" /> Método
+                            </button>
+                            <button onClick={handleSystemToggle} className={`px-4 py-2 rounded font-bold transition-all shadow-md flex items-center gap-2 ${isRunning ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white animate-bounce'}`}>
+                                {isRunning ? "APAGAR" : "ENCENDER"}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        
+                        <div className="lg:col-span-3 space-y-4">
+                            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4 shadow-lg">
+                                <h3 className="text-xs font-bold text-blue-400 uppercase mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+                                    <Droplet className="w-4 h-4" /> Red Hidráulica
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span>Presión Red</span>
+                                            <span className="font-mono text-cyan-300">{inletPressure} psi</span>
+                                        </div>
+                                        <input type="range" min="20" max="100" value={inletPressure} onChange={(e)=>setInletPressure(Number(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"/>
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span>Temp. Entrada</span>
+                                            <span className="font-mono text-cyan-300">{inletTemp}°C</span>
+                                        </div>
+                                        <input type="range" min="5" max="30" value={inletTemp} onChange={(e)=>setInletTemp(Number(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"/>
+                                    </div>
+                                    
+                                    <div className="pt-2 border-t border-slate-800 mt-2">
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span className="font-bold text-blue-400 uppercase">ABRIR GRIFO (DEMANDA)</span>
+                                            <span className="font-mono text-white">{faucetOpen}%</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            value={faucetOpen} 
+                                            onChange={(e)=>setFaucetOpen(Number(e.target.value))} 
+                                            className="w-full h-3 bg-slate-950 rounded-full appearance-none cursor-pointer accent-blue-500 border border-slate-700"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4 shadow-lg">
+                                <h3 className="text-xs font-bold text-yellow-500 uppercase mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+                                    <Gauge className="w-4 h-4" /> Red de Gas
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span>Presión Entrada</span>
+                                            <span className={`font-mono ${gasSupplyPressure > 45 ? 'text-red-400 animate-pulse' : 'text-yellow-300'}`}>{gasSupplyPressure} mbar</span>
+                                        </div>
+                                        <input type="range" min="15" max="60" value={gasSupplyPressure} onChange={(e)=>setGasSupplyPressure(Number(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"/>
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-1">
+                                            <span>Capacidad Regulador</span>
+                                            <span className="font-mono text-yellow-300">{regulatorLimit}%</span>
+                                        </div>
+                                        <input type="range" min="0" max="100" value={regulatorLimit} onChange={(e)=>setRegulatorLimit(Number(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4 shadow-lg flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Activity className="w-5 h-5 text-blue-400" />
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-slate-400 uppercase">Sensor Caudal</span>
+                                        <span className="text-2xl font-mono text-blue-400 font-bold">{waterFlow.toFixed(1)} <span className="text-xs text-slate-500">L/min</span></span>
+                                    </div>
+                                </div>
+                                {waterFlow > 0 && (
+                                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* COLUMNA CENTRAL: CALENTADOR Y TUBERÍAS INFERIORES */}
+                        <div className="lg:col-span-6 flex flex-col items-center">
+                            
+                            {/* CAJA DEL CALENTADOR */}
+                            <div className="w-full bg-slate-200 rounded-t-2xl rounded-b-md shadow-2xl overflow-hidden relative border-4 border-slate-400 min-h-[500px] flex flex-col items-center z-10">
+                                
+                                <div className="w-full h-8 bg-slate-300 flex justify-center items-center gap-2 border-b border-slate-400">
+                                    {[...Array(8)].map((_, i) => <div key={i} className="w-6 h-2 bg-slate-400 rounded-full"></div>)}
+                                </div>
+
+                                <div className="mt-4 text-slate-500 font-bold tracking-widest text-sm border border-slate-400 px-2 py-1 rounded">THERMOTRAINER</div>
+
+                                {/* VENTANA DE FUEGO */}
+                                <div className="mt-8 w-3/4 bg-slate-800 rounded-lg border-4 border-slate-300 h-64 relative overflow-hidden shadow-inner group">
+                                    <div className="absolute inset-0 opacity-10 pointer-events-none pipe-pattern"></div>
+                                    <div className="absolute top-4 left-4 right-4 h-16 border-4 border-slate-600 rounded bg-slate-700 z-10 grid grid-cols-6 gap-1 px-1 content-center opacity-80">
+                                        {[...Array(6)].map((_, i) => <div key={i} className="h-full bg-slate-800 rounded-sm"></div>)}
+                                    </div>
+
+                                    {isIgnited && (
+                                        <div className="absolute top-2 left-2 right-2 flex justify-between text-[10px] font-mono text-white/70 z-30">
+                                            <span>λ: {lambda.toFixed(2)}</span>
+                                            <span className={flameStyle.unstable ? "text-red-400 animate-pulse" : "text-green-400"}>{flameStyle.label}</span>
+                                        </div>
+                                    )}
+
+                                    <div className="absolute bottom-10 left-0 right-0 h-40 flex justify-center items-end">
+                                        <div className={`transition-all duration-300 relative flex justify-center items-end flame-container ${isIgnited ? 'opacity-100' : 'opacity-0'}`} style={{height: '200px', transform: `scale(${displayLoad/100 + 0.4})`}}>
+                                            <div className={`absolute w-40 h-56 bg-gradient-to-t rounded-full blur-2xl transform origin-bottom animate-flame-outer ${flameStyle.outerColor} ${flameStyle.unstable ? 'flame-unstable' : ''}`}></div>
+                                            <div className={`absolute w-24 h-48 bg-gradient-to-t rounded-full blur-md transform origin-bottom animate-flame-main ${flameStyle.mainColor} ${flameStyle.unstable ? 'flame-unstable' : ''}`}></div>
+                                            <div className={`absolute w-16 h-32 rounded-full blur-sm transform origin-bottom animate-flame-core bottom-0 ${flameStyle.coreColor} ${flameStyle.unstable ? 'flame-unstable' : ''}`}></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="absolute bottom-8 left-10 right-10 h-6 bg-slate-600 rounded-t flex justify-around px-2 z-20 shadow-lg">
+                                        {[...Array(10)].map((_, i) => <div key={i} className="w-1 h-2 bg-slate-800 mt-1 rounded-full"></div>)}
+                                    </div>
+                                </div>
+
+                                {/* CONTROLES EN EL ARTEFACTO */}
+                                <div className="mt-auto mb-8 w-full px-8 grid grid-cols-2 gap-8">
+                                    <div className="flex flex-col items-center">
+                                        <div className="text-slate-500 text-[10px] uppercase font-bold mb-1">Potencia Gas</div>
+                                        <div className="relative w-16 h-16 bg-slate-300 rounded-full border-b-4 border-slate-400 shadow-lg flex items-center justify-center">
+                                            <div className="absolute inset-0 rounded-full border border-slate-400"></div>
+                                            <div className="w-1 h-6 bg-slate-600 absolute top-2 origin-bottom transform transition-transform" style={{transform: `rotate(${(gasValve/100)*270 - 135}deg)`}}></div>
+                                        </div>
+                                        <input type="range" min="0" max="100" value={gasValve} onChange={(e)=>setGasValve(Number(e.target.value))} className="w-24 mt-2 h-1 bg-slate-400 rounded-lg appearance-none cursor-pointer accent-orange-500 opacity-50 hover:opacity-100 transition-opacity"/>
+                                    </div>
+
+                                    <div className="flex flex-col items-center">
+                                        <div className="text-slate-500 text-[10px] uppercase font-bold mb-1">Aire (Venturi)</div>
+                                        <div className="relative w-16 h-16 bg-slate-300 rounded-full border-b-4 border-slate-400 shadow-lg flex items-center justify-center">
+                                            <div className="absolute inset-0 rounded-full border border-slate-400"></div>
+                                            <div className="w-1 h-6 bg-blue-500 absolute top-2 origin-bottom transform transition-transform" style={{transform: `rotate(${(airShutter/100)*270 - 135}deg)`}}></div>
+                                        </div>
+                                        <input type="range" min="0" max="100" value={airShutter} onChange={(e)=>setAirShutter(Number(e.target.value))} className="w-24 mt-2 h-1 bg-slate-400 rounded-lg appearance-none cursor-pointer accent-blue-500 opacity-50 hover:opacity-100 transition-opacity"/>
+                                    </div>
+                                </div>
+
+                                {/* NIPLES DE CONEXIÓN INFERIOR */}
+                                <div className="absolute bottom-0 left-0 right-0 h-4 flex justify-around items-end px-4">
+                                    <div className="w-8 h-full bg-slate-500 rounded-b shadow-inner border-x border-b border-slate-600"></div> {/* Cold */}
+                                    <div className="w-8 h-full bg-slate-500 rounded-b shadow-inner border-x border-b border-slate-600"></div> {/* Gas */}
+                                    <div className="w-8 h-full bg-slate-500 rounded-b shadow-inner border-x border-b border-slate-600"></div> {/* Hot */}
+                                </div>
+                            </div>
+
+                            {/* SECCIÓN DE TUBERÍAS INFERIORES */}
+                            <div className="w-full h-32 relative -mt-1 z-0 flex justify-center">
+                                <BottomPipes flowSpeed={waterFlow / 20} temperature={outletTemp} />
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-3 space-y-4">
+                            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4 shadow-lg relative overflow-hidden">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase">CO Ambiente</h3>
+                                    {coPpm > 200 && <AlertOctagon className="w-5 h-5 text-red-500 animate-bounce" />}
+                                </div>
+                                <div className="flex items-end gap-2">
+                                    <span className={`text-4xl font-mono font-bold ${getCoColor(coPpm)}`}>{Math.round(coPpm)}</span>
+                                    <span className="text-xs text-slate-500 mb-1">ppm</span>
+                                </div>
+                                <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+                                    <div className={`h-full transition-all duration-500 ${coPpm < 50 ? 'bg-green-500' : coPpm < 200 ? 'bg-yellow-500' : 'bg-red-600'}`} style={{width: `${Math.min(100, (coPpm/400)*100)}%`}}></div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4 shadow-lg">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Temp. Salida</h3>
+                                <div className="flex items-center justify-between">
+                                    <div className="text-3xl font-mono font-bold text-white">{outletTemp.toFixed(1)}°C</div>
+                                    <Thermometer className={`w-8 h-8 ${outletTemp > 50 ? 'text-red-400' : outletTemp > 35 ? 'text-green-400' : 'text-blue-400'}`} />
+                                </div>
+                                <div className="text-xs text-blue-400 mt-1">ΔT: +{(outletTemp - inletTemp).toFixed(1)}°C</div>
+                            </div>
+
+                            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4 shadow-lg">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Eficiencia</h3>
+                                <div className="relative pt-2">
+                                    <div className="flex items-center justify-between text-sm mb-1">
+                                        <span className="text-slate-500">Combustión</span>
+                                        <span className={efficiency > 90 ? "text-green-400" : "text-yellow-500"}>{efficiency.toFixed(0)}%</span>
+                                    </div>
+                                    <div className="w-full bg-slate-800 h-2 rounded-full">
+                                        <div className="h-full bg-cyan-600 rounded-full transition-all duration-500" style={{width: `${efficiency}%`}}></div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 h-20 bg-slate-950/50 rounded border border-slate-800/50 relative">
+                                    {renderChart()}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
