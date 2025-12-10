@@ -778,8 +778,13 @@
                 cambiarPerfilVisual('General'); 
                 cerrarGate(); 
             } else if (p === 'Corporativo') {
-                // REDIRECCIÓN DIRECTA PARA CORPORATIVO
-                window.location.href = "ModalERP_CRM_V1.html";
+                // TRY-CATCH PARA EVITAR ERRORES EN PREVIEW/BLOB
+                try {
+                    window.location.href = "ModalERP_CRM_V1.html";
+                } catch (e) {
+                    console.warn("Redirección bloqueada en entorno sandbox:", e);
+                    alert("En un entorno real (servidor), serás redirigido a ModalERP_CRM_V1.html.");
+                }
             } else { 
                 abrirLoginSecundario(p); 
             } 
@@ -829,7 +834,12 @@
 
             // --- REDIRECCIÓN PERFIL ACADÉMICO ---
             if (p === 'Académico') {
-                window.location.href = "ModalDeCursosPerfilAcademico_V1.html";
+                try {
+                    window.location.href = "ModalDeCursosPerfilAcademico_V1.html";
+                } catch (e) {
+                    console.warn("Redirección bloqueada en entorno sandbox:", e);
+                    alert("En un entorno real (servidor), serás redirigido a ModalDeCursosPerfilAcademico_V1.html.");
+                }
                 return;
             }
 
