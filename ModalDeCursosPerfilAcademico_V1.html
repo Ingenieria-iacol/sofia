@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GasEngineering Hub - Formación Profesional</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel para procesar JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons (Script global) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { background-color: #0f0f0f; }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #0f0f0f; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #3f3f3f; 
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #555; 
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, createElement } = React;
+
+        // Componente Icon Helper para usar Lucide en entorno CDN sin compilación
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconData = lucide.icons[name];
+            if (!iconData) return null;
+
+            // Convertimos la definición de Lucide a elementos SVG de React
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width={size} 
+                    height={size} 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                >
+                    {iconData.map((child, index) => {
+                        const [tag, attrs] = child;
+                        return createElement(tag, { ...attrs, key: index });
+                    })}
+                </svg>
+            );
+        };
+
+        // Datos del curso
+        const courseData = {
+            title: "Certificación Profesional: Ingeniería de Gas y Combustión Industrial",
+            instructor: "Ing. Roberto Méndez, PhD.",
+            subscribers: "12.5k estudiantes",
+            description: "Este programa integral cubre desde los fundamentos termodinámicos de la combustión hasta el diseño avanzado de redes de distribución de gas natural y GLP, cumpliendo con normativas NFPA y ASME.",
+            tags: ["Combustión", "Gas Natural", "Hidráulica", "Seguridad Industrial"]
+        };
+
+        const playlist = [
+            { id: 1, title: "1. Introducción a la Termodinámica de la Combustión", duration: "14:20", thumbnail: "bg-orange-600", completed: true, category: "Fundamentos" },
+            { id: 2, title: "2. Estequiometría y Cálculo de Aire Teórico", duration: "22:15", thumbnail: "bg-blue-600", completed: true, category: "Fundamentos" },
+            { id: 3, title: "3. Diseño de Redes: Tuberías de Polietileno y Acero", duration: "35:40", thumbnail: "bg-slate-600", completed: false, category: "Redes y Tuberías", isPlaying: true },
+            { id: 4, title: "4. Regulación y Medición (ERM): Selección de Equipos", duration: "28:10", thumbnail: "bg-zinc-700", completed: false, category: "Equipos" },
+            { id: 5, title: "5. Quemadores Industriales: Atmosféricos vs. Aire Forzado", duration: "31:05", thumbnail: "bg-red-700", completed: false, category: "Equipos" },
+            { id: 6, title: "6. Normativa NFPA 54 y 86: Seguridad en Sistemas", duration: "45:00", thumbnail: "bg-yellow-700", completed: false, category: "Normativa" },
+            { id: 7, title: "7. Análisis de Gases de Chimenea y Eficiencia", duration: "19:30", thumbnail: "bg-gray-600", completed: false, category: "Mantenimiento" }
+        ];
+
+        function App() {
+            const [currentVideo, setCurrentVideo] = useState(playlist[2]);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            const [activeTab, setActiveTab] = useState('temario');
+
+            const handleVideoChange = (video) => {
+                setCurrentVideo(video);
+            };
+
+            return (
+                <div className="flex flex-col h-screen bg-[#0f0f0f] text-white font-sans overflow-hidden">
+                
+                {/* --- HEADER --- */}
+                <header className="flex items-center justify-between px-4 py-3 bg-[#0f0f0f] border-b border-gray-800 z-20">
+                    <div className="flex items-center gap-4">
+                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-gray-800 rounded-full">
+                        <Icon name="Menu" className="w-6 h-6" />
+                    </button>
+                    <div className="flex items-center gap-1 cursor-pointer">
+                        <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                        <Icon name="Flame" className="w-5 h-5 text-white fill-current" />
+                        </div>
+                        <span className="text-xl font-bold tracking-tight">GasEngineering<span className="text-xs align-top opacity-70">Hub</span></span>
+                    </div>
+                    </div>
+
+                    <div className="hidden md:flex flex-1 max-w-2xl mx-8">
+                    <div className="flex w-full">
+                        <input 
+                        type="text" 
+                        placeholder="Buscar temas (ej. Válvulas solenoides, NFPA...)" 
+                        className="w-full bg-[#121212] border border-gray-700 rounded-l-full py-2 px-4 focus:outline-none focus:border-blue-500"
+                        />
+                        <button className="bg-gray-800 border border-l-0 border-gray-700 px-5 rounded-r-full hover:bg-gray-700 flex items-center justify-center">
+                        <Icon name="Search" className="w-5 h-5" />
+                        </button>
+                    </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                    <button className="hidden sm:block p-2 hover:bg-gray-800 rounded-full"><Icon name="Bell" className="w-6 h-6" /></button>
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer">
+                        ING
+                    </div>
+                    </div>
+                </header>
+
+                {/* --- CONTENT --- */}
+                <div className="flex flex-1 overflow-hidden">
+                    
+                    <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+                    <div className="max-w-[1280px] mx-auto">
+                        
+                        {/* PLAYER */}
+                        <div className="aspect-video w-full bg-black rounded-xl overflow-hidden relative group shadow-2xl border border-gray-800">
+                        <div className={`w-full h-full flex items-center justify-center flex-col ${currentVideo.thumbnail} opacity-40 bg-cover bg-center`}>
+                            <div className="mb-4 animate-pulse"><Icon name="Flame" size={96} className="text-white opacity-50" /></div>
+                            <h2 className="text-2xl font-bold text-center px-4">{currentVideo.title}</h2>
+                            <p className="mt-2 text-gray-300">Módulo de Ingeniería Aplicada</p>
+                        </div>
+
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="h-1 w-full bg-gray-600 rounded-full mb-4 cursor-pointer relative">
+                            <div className="absolute h-full w-1/3 bg-red-600 rounded-full"></div>
+                            <div className="absolute h-4 w-4 bg-red-600 rounded-full -top-1.5 left-1/3 shadow-lg transform scale-0 group-hover:scale-100 transition-transform"></div>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <button className="hover:text-red-500"><Icon name="Pause" className="w-6 h-6 fill-current" /></button>
+                                <button className="hover:text-gray-300"><Icon name="SkipForward" className="w-6 h-6" /></button>
+                                <div className="flex items-center gap-2 group/vol">
+                                <Icon name="Volume2" className="w-5 h-5" />
+                                <div className="w-0 overflow-hidden group-hover/vol:w-20 transition-all">
+                                    <div className="h-1 w-16 bg-white rounded-full ml-2"></div>
+                                </div>
+                                </div>
+                                <span className="text-sm text-gray-300">12:45 / {currentVideo.duration}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <button><Icon name="Settings" className="w-5 h-5" /></button>
+                                <button><Icon name="Maximize" className="w-5 h-5" /></button>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+
+                        {/* INFO */}
+                        <div className="mt-4 pb-4 border-b border-gray-800">
+                        <h1 className="text-xl md:text-2xl font-bold text-white mb-2">{currentVideo.title}</h1>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold">
+                                RM
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-sm">{courseData.instructor}</h3>
+                                <p className="text-xs text-gray-400">{courseData.subscribers}</p>
+                            </div>
+                            <button className="bg-white text-black px-4 py-2 rounded-full font-medium text-sm hover:bg-gray-200 transition-colors ml-4">
+                                Suscribirse al Plan
+                            </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                            <button className="flex items-center gap-2 bg-[#272727] px-4 py-2 rounded-full hover:bg-[#3f3f3f] text-sm font-medium transition-colors">
+                                <Icon name="ThumbsUp" className="w-4 h-4" /> <span>Me gusta</span>
+                            </button>
+                            <button className="flex items-center gap-2 bg-[#272727] px-4 py-2 rounded-full hover:bg-[#3f3f3f] text-sm font-medium transition-colors">
+                                <Icon name="Share2" className="w-4 h-4" /> <span>Compartir</span>
+                            </button>
+                            <button className="bg-[#272727] p-2 rounded-full hover:bg-[#3f3f3f] transition-colors flex items-center">
+                                <Icon name="Download" className="w-4 h-4" />
+                            </button>
+                            </div>
+                        </div>
+                        </div>
+
+                        {/* DESCRIPTION */}
+                        <div className="mt-4 bg-[#1a1a1a] rounded-xl p-4 hover:bg-[#222] transition-colors cursor-pointer">
+                        <div className="flex gap-2 text-sm font-bold mb-2">
+                            <span>1,452 vistas</span>
+                            <span>•</span>
+                            <span>hace 2 días</span>
+                            {courseData.tags.map(tag => (
+                            <span key={tag} className="text-blue-400">#{tag.replace(/\s/g, '')}</span>
+                            ))}
+                        </div>
+                        <p className="text-sm text-gray-300 whitespace-pre-line mb-4">
+                            {courseData.description}
+                            {'\n\n'}
+                            En este módulo abordaremos el cálculo crítico para el dimensionamiento de tuberías, considerando la fórmula de Weymouth y Panhandle B para alta presión.
+                        </p>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div className="bg-[#272727] p-3 rounded-lg flex items-center gap-3">
+                            <Icon name="BookOpen" className="text-orange-500 w-5 h-5" />
+                            <div>
+                                <p className="text-xs text-gray-400">Recurso</p>
+                                <p className="text-sm font-semibold">Tabla de Caudales</p>
+                            </div>
+                            </div>
+                            <div className="bg-[#272727] p-3 rounded-lg flex items-center gap-3">
+                            <Icon name="FileText" className="text-blue-500 w-5 h-5" />
+                            <div>
+                                <p className="text-xs text-gray-400">Normativa</p>
+                                <p className="text-sm font-semibold">PDF NFPA 54</p>
+                            </div>
+                            </div>
+                            <div className="bg-[#272727] p-3 rounded-lg flex items-center gap-3">
+                            <Icon name="Activity" className="text-green-500 w-5 h-5" />
+                            <div>
+                                <p className="text-xs text-gray-400">Práctica</p>
+                                <p className="text-sm font-semibold">Simulador Flujo</p>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                        
+                        {/* COMMENTS */}
+                        <div className="mt-6">
+                            <h3 className="font-bold text-lg mb-4">Comentarios destacados de alumnos</h3>
+                            <div className="flex gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-full bg-purple-600 flex-shrink-0 flex items-center justify-center font-bold text-xs">JA</div>
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-sm font-semibold">Juan Arias</span>
+                                        <span className="text-xs text-gray-500">hace 1 hora</span>
+                                    </div>
+                                    <p className="text-sm">Excelente explicación sobre la caída de presión en tuberías de polietileno. ¿Podría profundizar en la fusión a tope en el siguiente video?</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    </main>
+
+                    {/* --- SIDEBAR --- */}
+                    <aside className={`${isSidebarOpen ? 'w-full lg:w-[400px]' : 'w-0'} bg-[#0f0f0f] border-l border-gray-800 transition-all duration-300 flex flex-col flex-shrink-0 absolute lg:relative z-10 h-full right-0`}>
+                    
+                    <div className="p-4 border-b border-gray-800 bg-[#0f0f0f]">
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="font-bold text-lg">Contenido del Curso</h2>
+                            <span className="text-xs text-gray-400">2/7 Completado</span>
+                        </div>
+                        <div className="flex bg-[#1f1f1f] p-1 rounded-lg mb-2">
+                            <button 
+                            onClick={() => setActiveTab('temario')}
+                            className={`flex-1 py-1 text-sm rounded-md transition-all ${activeTab === 'temario' ? 'bg-[#3f3f3f] text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                            >
+                            Temario
+                            </button>
+                            <button 
+                            onClick={() => setActiveTab('recursos')}
+                            className={`flex-1 py-1 text-sm rounded-md transition-all ${activeTab === 'recursos' ? 'bg-[#3f3f3f] text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                            >
+                            Certificación
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+                        {activeTab === 'temario' ? (
+                            <div className="space-y-1">
+                            {playlist.map((video) => (
+                                <div 
+                                key={video.id}
+                                onClick={() => handleVideoChange(video)}
+                                className={`flex gap-2 p-2 rounded-xl cursor-pointer transition-colors group ${currentVideo.id === video.id ? 'bg-[#272727] border border-gray-700' : 'hover:bg-[#1f1f1f]'}`}
+                                >
+                                    <div className={`relative w-28 h-16 rounded-lg ${video.thumbnail} flex-shrink-0 overflow-hidden`}>
+                                        <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 rounded">
+                                            {video.duration}
+                                        </div>
+                                        {video.completed && (
+                                            <div className="absolute top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center">
+                                                <Icon name="CheckCircle2" className="w-6 h-6 text-green-500" />
+                                            </div>
+                                        )}
+                                        {currentVideo.id === video.id && !video.completed && (
+                                            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/20">
+                                                <Icon name="Play" className="w-6 h-6 text-white fill-white" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-col justify-center flex-1 min-w-0">
+                                        <h4 className={`text-sm font-semibold line-clamp-2 ${currentVideo.id === video.id ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
+                                            {video.title}
+                                        </h4>
+                                        <p className="text-xs text-gray-400 mt-1">{video.category}</p>
+                                        {currentVideo.id === video.id && (
+                                            <p className="text-xs text-red-400 mt-0.5 flex items-center gap-1">
+                                                <Icon name="Activity" className="w-3 h-3" /> Reproduciendo
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            <div className="mt-6 p-4 bg-gradient-to-br from-blue-900 to-slate-900 rounded-xl border border-blue-700 mx-2">
+                                <h3 className="font-bold text-white mb-2">¿Listo para certificarte?</h3>
+                                <p className="text-xs text-blue-200 mb-3">Obtén tu diploma oficial en Ingeniería de Combustión completando todos los módulos.</p>
+                                <button className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors">
+                                    Ver Plan Premium
+                                </button>
+                            </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 text-center">
+                                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Icon name="BookOpen" className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <h3 className="text-lg font-bold">Material de Apoyo</h3>
+                                <p className="text-sm text-gray-400 mt-2">Accede a los PDFs técnicos, tablas de cálculo de tuberías y normativas ASME B31.8 asociadas a este curso.</p>
+                                <button className="mt-4 px-4 py-2 border border-gray-600 rounded-full text-sm hover:bg-gray-800">
+                                    Descargar Pack de Recursos
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    </aside>
+
+                </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
