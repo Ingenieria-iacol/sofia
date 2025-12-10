@@ -4,720 +4,470 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entalpia | ERP & CRM Cloud</title>
-    <!-- Fuente moderna -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* --- SISTEMA DE DISEÑO (Design System) --- */
         :root {
-            --primary: #2563EB;      
-            --primary-dark: #1E40AF;
-            --secondary: #64748B;    
-            --success: #10B981;      
-            --warning: #F59E0B;      
-            --danger: #EF4444;       
-            
-            --bg-body: #F3F4F6;      
-            --bg-surface: #FFFFFF;   
-            --bg-sidebar: #0F172A;   
-            
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --text-on-dark: #F9FAFB;
-            
-            --sidebar-width: 260px;
-            --header-height: 64px;
-            --radius: 8px;
-            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --primary: #2563EB; --primary-dark: #1E40AF;
+            --secondary: #64748B; --success: #10B981; --danger: #EF4444;
+            --bg-body: #F3F4F6; --bg-surface: #FFFFFF; --bg-sidebar: #0F172A;
+            --text-main: #111827; --text-muted: #6B7280; --text-on-dark: #F9FAFB;
+            --sidebar-width: 260px; --header-height: 64px; --radius: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; }
 
-        /* --- LOGIN MODAL --- */
+        /* MODALES */
         .full-screen-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.95);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 9999;
+            background: rgba(15, 23, 42, 0.95); display: flex; align-items: center; justify-content: center; z-index: 9999;
         }
-        
-        .login-card {
-            background: white; padding: 40px; border-radius: 12px; width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        
-        .login-input, .form-input {
-            width: 100%; padding: 12px; margin-bottom: 16px;
-            border: 1px solid #E2E8F0; border-radius: 6px;
-            font-size: 1rem;
-        }
-
-        .form-label {
-            display: block; text-align: left; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; color: var(--text-main);
-        }
-        
-        .login-btn {
-            width: 100%; padding: 12px; background: var(--primary); color: white;
-            border: none; border-radius: 6px; font-weight: 600; cursor: pointer;
-            font-size: 1rem; transition: background 0.2s;
-        }
-        .login-btn:hover { background: var(--primary-dark); }
-
-        .link-text {
-            color: var(--primary); cursor: pointer; font-weight: 600; text-decoration: none;
-        }
-        .link-text:hover { text-decoration: underline; }
-
-        /* --- APP LAYOUT --- */
-        #app-container { display: none; width: 100%; height: 100%; }
-
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: var(--sidebar-width); background-color: var(--bg-sidebar); color: var(--text-on-dark);
-            display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.3s;
-        }
-
-        .brand {
-            height: var(--header-height); display: flex; align-items: center; padding: 0 24px;
-            font-size: 1.25rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .brand span { color: var(--primary); margin-left: 5px; }
-
-        .nav-menu { flex: 1; padding: 24px 12px; overflow-y: auto; }
-        
-        .nav-category {
-            font-size: 0.75rem; text-transform: uppercase; color: #94A3B8;
-            margin-bottom: 10px; padding-left: 12px; font-weight: 600;
-        }
-
-        .nav-item {
-            display: flex; align-items: center; padding: 12px; color: #CBD5E1;
-            text-decoration: none; border-radius: var(--radius); margin-bottom: 4px;
-            transition: all 0.2s; font-size: 0.9rem; cursor: pointer;
-        }
-        .nav-item:hover, .nav-item.active { background-color: rgba(255,255,255,0.1); color: white; }
-        .nav-item.active { background-color: var(--primary); }
-        .nav-icon { margin-right: 12px; width: 20px; text-align: center; }
-
-        .sidebar-footer {
-            padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);
-            display: flex; align-items: center; gap: 12px; cursor: pointer;
-        }
-        .sidebar-footer:hover { background: rgba(255,255,255,0.05); }
-
-        /* --- CONTENT & VIEWS --- */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-        header {
-            height: var(--header-height); background-color: var(--bg-surface);
-            border-bottom: 1px solid #E5E7EB; display: flex; align-items: center;
-            justify-content: space-between; padding: 0 32px;
-        }
-
-        .view-section { display: none; height: 100%; overflow-y: auto; padding: 32px; }
-        .view-section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center;
-            padding: 8px 16px; border-radius: var(--radius); font-size: 0.875rem;
-            font-weight: 500; cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
-        }
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-outline { border-color: #D1D5DB; background-color: white; color: var(--text-main); }
-        .btn-danger { background-color: #FEE2E2; color: var(--danger); }
-        .btn-danger:hover { background-color: #FECDCD; }
-        
-        /* Logout Button */
-        .btn-logout { border-color: #fee2e2; background-color: #fef2f2; color: var(--danger); }
-        .btn-logout:hover { background-color: #fee2e2; border-color: var(--danger); }
-
-        /* Grids & Cards */
-        .grid { display: grid; gap: 24px; }
-        .grid-4 { grid-template-columns: repeat(4, 1fr); }
-        .grid-3-1 { grid-template-columns: 3fr 1fr; }
-
-        .card {
-            background-color: var(--bg-surface); border-radius: var(--radius);
-            box-shadow: var(--shadow); padding: 24px; border: 1px solid #F3F4F6;
-        }
-
-        /* Tables */
-        .table-container { overflow-x: auto; width: 100%; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-        th { text-align: left; padding: 12px 16px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid #E5E7EB; background: #F9FAFB; }
-        td { padding: 16px; border-bottom: 1px solid #F3F4F6; color: var(--text-main); }
-        tr:last-child td { border-bottom: none; }
-        
-        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
-        .status-success { background: #DEF7EC; color: #03543F; }
-        .status-warning { background: #FEF3C7; color: #92400E; }
-        .status-danger { background: #FDE8E8; color: #9B1C1C; }
-
-        /* KPI */
-        .stat-card { display: flex; flex-direction: column; }
-        .stat-label { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 8px; }
-        .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-        .stat-trend { font-size: 0.75rem; margin-top: 8px; }
-        .trend-up { color: var(--success); } .trend-down { color: var(--danger); }
-
-        /* Generic Modal */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 500; justify-content: center; align-items: center;
         }
         .modal-box { background: white; padding: 24px; border-radius: 8px; width: 500px; max-width: 90%; }
+        
+        .login-card { background: white; padding: 40px; border-radius: 12px; width: 400px; text-align: center; }
+        .form-input { width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #E2E8F0; border-radius: 6px; }
+        .form-label { display: block; text-align: left; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
+        
+        .btn { padding: 10px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-outline { background: white; border: 1px solid #D1D5DB; color: var(--text-main); }
+        .btn-danger { background: #FEE2E2; color: var(--danger); }
+        .btn-logout { background: #FEF2F2; color: var(--danger); border: 1px solid #FECACA; }
 
-        @media (max-width: 1024px) { .grid-4, .grid-3-1 { grid-template-columns: 1fr; } }
+        /* LAYOUT */
+        #app-container { display: none; width: 100%; height: 100%; }
+        .sidebar { width: var(--sidebar-width); background: var(--bg-sidebar); color: var(--text-on-dark); display: flex; flex-direction: column; }
+        .brand { height: var(--header-height); display: flex; align-items: center; padding: 0 24px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .nav-menu { flex: 1; padding: 20px; overflow-y: auto; }
+        .nav-item { display: flex; align-items: center; padding: 12px; color: #CBD5E1; cursor: pointer; border-radius: 6px; margin-bottom: 4px; }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: var(--primary); }
+        .nav-icon { margin-right: 12px; width: 20px; text-align: center; }
+        .main-content { flex: 1; display: flex; flex-direction: column; }
+        header { height: var(--header-height); background: white; border-bottom: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; padding: 0 32px; }
+        
+        /* VISTAS */
+        .view-section { display: none; height: 100%; overflow-y: auto; padding: 32px; }
+        .view-section.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+
+        /* TABLAS Y CARDS */
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #E5E7EB; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .stat-value { font-size: 1.5rem; font-weight: 700; display: block; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #F3F4F6; }
+        th { background: #F9FAFB; color: #6B7280; font-weight: 600; }
+        .status-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+        .status-success { background: #DEF7EC; color: #03543F; }
+        
+        @media (max-width: 1000px) { .grid-4 { grid-template-columns: 1fr 1fr; } .sidebar { width: 60px; } .brand span, .nav-item span:last-child { display: none; } }
     </style>
 </head>
 <body>
 
-    <!-- LOADING OVERLAY -->
+    <!-- LOADING -->
     <div id="loading-overlay" class="full-screen-modal" style="background: white; z-index: 10000; color: black;">
-        <div style="text-align: center;">
-            <div style="font-weight: bold; margin-bottom: 10px;">Iniciando Entalpia ERP...</div>
-            <div style="font-size: 0.8rem; color: #666;">Verificando entorno local</div>
-        </div>
+        <div>Iniciando Sistema...</div>
     </div>
 
-    <!-- 1. LOGIN MODAL -->
+    <!-- LOGIN -->
     <div id="login-modal" class="full-screen-modal">
         <div class="login-card">
-            <div id="login-title" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">ENTALPIA <span style="color:var(--primary)">ERP</span></div>
-            <p style="color: #666; margin-bottom: 20px; font-size: 0.9rem;">Acceso exclusivo para Clientes Corporativos</p>
+            <h2 id="login-title" style="margin-bottom: 10px;">ENTALPIA <span style="color:var(--primary)">ERP</span></h2>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Acceso Corporativo Seguro</p>
             
-            <form onsubmit="handleAuth(event)">
-                <input type="email" id="email" class="login-input" placeholder="correo@empresa.com" required>
-                <input type="password" id="password" class="login-input" placeholder="Contraseña" required>
-                <button type="submit" id="login-btn-action" class="login-btn">Acceder al Sistema</button>
+            <form id="auth-form">
+                <input type="email" id="email" class="form-input" placeholder="usuario@empresa.com" required>
+                <input type="password" id="password" class="form-input" placeholder="Contraseña" required>
+                <button type="submit" id="login-btn-action" class="btn btn-primary">Acceder</button>
             </form>
             
             <div id="login-error" style="color: var(--danger); margin-top: 10px; font-size: 0.85rem;"></div>
-            <div style="margin-top: 15px; font-size: 0.8rem; color: #666;" id="toggle-auth-text">
-                ¿No tienes cuenta? <span class="link-text" onclick="toggleAuthMode()">Regístrate aquí</span>
+            <div style="margin-top: 15px; font-size: 0.85rem; cursor: pointer; color: var(--primary);" onclick="window.toggleAuthMode()">
+                <span id="toggle-auth-text">¿No tienes cuenta? Regístrate</span>
             </div>
-            
-            <div style="margin-top: 20px; font-size: 0.7rem; color: #aaa; border-top: 1px solid #eee; padding-top: 10px;">
-                Modo: <span id="system-mode">Detectando...</span>
-            </div>
+            <div style="margin-top: 20px; font-size: 0.75rem; color: #aaa;">Modo: <span id="system-mode">Detectando...</span></div>
         </div>
     </div>
 
-    <!-- 2. GENERIC FORM MODAL -->
+    <!-- APP -->
+    <div id="app-container">
+        <aside class="sidebar">
+            <div class="brand">ENTALPIA <span>ERP</span></div>
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="window.navigateTo('dashboard', this)"><span class="nav-icon">📊</span> <span>Dashboard</span></div>
+                <div class="nav-item" onclick="window.navigateTo('clients', this)"><span class="nav-icon">👥</span> <span>Clientes</span></div>
+                <div class="nav-item" onclick="window.navigateTo('projects', this)"><span class="nav-icon">🚀</span> <span>Proyectos</span></div>
+                <div class="nav-item" onclick="window.navigateTo('inventory', this)"><span class="nav-icon">📦</span> <span>Inventario</span></div>
+                <div class="nav-item" onclick="window.navigateTo('invoices', this)"><span class="nav-icon">💳</span> <span>Facturas</span></div>
+            </div>
+            <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); cursor: pointer;" onclick="window.handleLogout()">
+                <div style="font-size: 0.8rem; opacity: 0.7;">Usuario Conectado</div>
+                <div id="user-email-display" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h2 id="page-title">Panel de Control</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-logout" onclick="window.handleLogout()">Salir</button>
+                    <button id="btn-new" class="btn btn-primary" style="display: none;" onclick="window.openCreateModal()">+ Nuevo</button>
+                </div>
+            </header>
+
+            <!-- VISTAS -->
+            <div id="view-dashboard" class="view-section active">
+                <div class="grid-4">
+                    <div class="card"><span style="color:#666">Ingresos</span><span class="stat-value" id="kpi-income">$0</span></div>
+                    <div class="card"><span style="color:#666">Proyectos</span><span class="stat-value" id="kpi-projects">0</span></div>
+                    <div class="card"><span style="color:#666">Clientes</span><span class="stat-value" id="kpi-clients">0</span></div>
+                    <div class="card"><span style="color:#666">Stock</span><span class="stat-value" id="kpi-stock">0</span></div>
+                </div>
+                <div class="card">
+                    <h3>Bienvenido al Sistema</h3>
+                    <p style="color:#666; margin-top:5px;">Selecciona una opción del menú lateral para comenzar a gestionar.</p>
+                </div>
+            </div>
+
+            <div id="view-clients" class="view-section">
+                <div class="card">
+                    <h3>Directorio de Clientes</h3>
+                    <div id="list-clients"></div> <!-- Tabla inyectada por JS -->
+                </div>
+            </div>
+            
+            <div id="view-projects" class="view-section">
+                <div class="card"><h3>Proyectos Activos</h3><div id="list-projects"></div></div>
+            </div>
+            
+            <div id="view-inventory" class="view-section">
+                <div class="card"><h3>Inventario</h3><div id="list-inventory"></div></div>
+            </div>
+            
+            <div id="view-invoices" class="view-section">
+                <div class="card"><h3>Facturación</h3><div id="list-invoices"></div></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL GENÉRICO -->
     <div id="generic-modal" class="modal-overlay">
         <div class="modal-box">
-            <h3 id="modal-title" style="margin-bottom: 15px;">Nuevo Item</h3>
-            <div id="modal-form-container">
-                <!-- Fields injected via JS -->
-            </div>
+            <h3 id="modal-title" style="margin-bottom: 20px;">Nuevo Registro</h3>
+            <div id="modal-fields"></div>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-outline" onclick="closeModal('generic-modal')">Cancelar</button>
+                <button class="btn btn-outline" onclick="window.closeModal()">Cancelar</button>
                 <button class="btn btn-primary" id="modal-save-btn">Guardar</button>
             </div>
         </div>
     </div>
 
-    <!-- 3. MAIN APP -->
-    <div id="app-container">
-        <!-- SIDEBAR -->
-        <aside class="sidebar">
-            <div class="brand">ENTALPIA <span>ERP</span></div>
-            <div class="nav-menu">
-                <div class="nav-category">Principal</div>
-                <div class="nav-item active" onclick="navigateTo('dashboard', this)"><span class="nav-icon">📊</span> Dashboard</div>
-                
-                <div class="nav-category" style="margin-top: 20px;">Gestión</div>
-                <div class="nav-item" onclick="navigateTo('clients', this)"><span class="nav-icon">👥</span> Clientes</div>
-                <div class="nav-item" onclick="navigateTo('projects', this)"><span class="nav-icon">🚀</span> Proyectos</div>
-                <div class="nav-item" onclick="navigateTo('inventory', this)"><span class="nav-icon">📦</span> Inventario</div>
-                
-                <div class="nav-category" style="margin-top: 20px;">Finanzas</div>
-                <div class="nav-item" onclick="navigateTo('invoices', this)"><span class="nav-icon">💳</span> Facturación</div>
-            </div>
-            <div class="sidebar-footer" onclick="handleLogout()" title="Cerrar Sesión">
-                <div class="user-avatar" style="color: white; font-size: 0.8rem;">ID</div>
-                <div class="user-info">
-                    <div id="user-email-display" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">Usuario</div>
-                    <div style="color: #ef4444; font-size: 0.7rem;">Cerrar Sesión</div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- CONTENT -->
-        <main class="main-content">
-            <header>
-                <div class="header-left"><h2 id="page-title">Panel de Control</h2></div>
-                <div class="header-actions">
-                    <button class="btn btn-outline" onclick="alert('Función de reporte en desarrollo')">Exportar Reporte</button>
-                    <button class="btn btn-logout" onclick="handleLogout()">Salir ➜</button>
-                    <button class="btn btn-primary" id="main-action-btn" onclick="openCreateModal()">+ Nuevo</button>
-                </div>
-            </header>
-
-            <!-- VIEW: DASHBOARD -->
-            <div id="view-dashboard" class="view-section active">
-                <div class="grid">
-                    <div class="grid grid-4">
-                        <div class="card stat-card">
-                            <span class="stat-label">Ingresos Totales</span>
-                            <span class="stat-value" id="kpi-income">$0.00</span>
-                            <span class="stat-trend trend-up">▲ Facturado</span>
-                        </div>
-                        <div class="card stat-card">
-                            <span class="stat-label">Proyectos Activos</span>
-                            <span class="stat-value" id="kpi-projects">0</span>
-                            <span class="stat-trend">En ejecución</span>
-                        </div>
-                        <div class="card stat-card">
-                            <span class="stat-label">Clientes</span>
-                            <span class="stat-value" id="kpi-clients">0</span>
-                            <span class="stat-trend trend-up">▲ Cartera</span>
-                        </div>
-                        <div class="card stat-card">
-                            <span class="stat-label">Items en Inventario</span>
-                            <span class="stat-value" id="kpi-inventory">0</span>
-                            <span class="stat-trend trend-up">Stock</span>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h3>Resumen Rápido</h3>
-                        <p style="color: #666; margin-top: 10px;">Bienvenido al ERP de Entalpia. Utiliza el menú lateral para gestionar tus recursos.</p>
-                        <div style="margin-top: 20px; display: flex; gap: 10px;">
-                            <button class="btn btn-outline" onclick="navigateTo('clients', document.querySelectorAll('.nav-item')[1])">Ir a Clientes</button>
-                            <button class="btn btn-outline" onclick="navigateTo('invoices', document.querySelectorAll('.nav-item')[4])">Ir a Facturación</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW: CLIENTS -->
-            <div id="view-clients" class="view-section">
-                <div class="card">
-                    <h3>Directorio de Clientes</h3>
-                    <div class="table-container" style="margin-top: 20px;">
-                        <table>
-                            <thead><tr><th>Nombre</th><th>Empresa</th><th>Email</th><th>Teléfono</th><th>Acciones</th></tr></thead>
-                            <tbody id="table-clients"><!-- JS Generated --></tbody>
-                        </table>
-                        <div id="empty-clients" style="padding: 20px; text-align: center; color: #888; display: none;">No hay clientes registrados.</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW: PROJECTS -->
-            <div id="view-projects" class="view-section">
-                <div class="card">
-                    <h3>Gestión de Proyectos</h3>
-                    <div class="table-container" style="margin-top: 20px;">
-                        <table>
-                            <thead><tr><th>Proyecto</th><th>Cliente</th><th>Estado</th><th>Fecha Entrega</th><th>Acciones</th></tr></thead>
-                            <tbody id="table-projects"><!-- JS Generated --></tbody>
-                        </table>
-                        <div id="empty-projects" style="padding: 20px; text-align: center; color: #888; display: none;">No hay proyectos registrados.</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW: INVENTORY -->
-            <div id="view-inventory" class="view-section">
-                <div class="card">
-                    <h3>Inventario de Productos</h3>
-                    <div class="table-container" style="margin-top: 20px;">
-                        <table>
-                            <thead><tr><th>Producto</th><th>SKU</th><th>Stock</th><th>Precio Unit.</th><th>Acciones</th></tr></thead>
-                            <tbody id="table-inventory"><!-- JS Generated --></tbody>
-                        </table>
-                        <div id="empty-inventory" style="padding: 20px; text-align: center; color: #888; display: none;">Inventario vacío.</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW: INVOICES -->
-            <div id="view-invoices" class="view-section">
-                <div class="card">
-                    <h3>Facturas Emitidas</h3>
-                    <div class="table-container" style="margin-top: 20px;">
-                        <table>
-                            <thead><tr><th>N° Factura</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
-                            <tbody id="table-invoices"><!-- JS Generated --></tbody>
-                        </table>
-                        <div id="empty-invoices" style="padding: 20px; text-align: center; color: #888; display: none;">No hay facturas registradas.</div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- LOGIC SCRIPT -->
+    <!-- LÓGICA DEL SISTEMA -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- GLOBAL STATE ---
-        const MOCK_STORAGE_KEY = 'entalpia_local_db';
+        // --- ESTADO GLOBAL ---
+        let db, auth;
         let isLocalMode = false;
-        let app, auth, db;
         let currentUser = null;
         let isRegistering = false;
         let currentView = 'dashboard';
+        const LOCAL_KEY = 'entalpia_db_v2';
 
-        // --- DATA DEFINITIONS (Schemas for Forms) ---
+        // --- DEFINICIÓN DE CAMPOS ---
         const schemas = {
             'clients': [
-                { id: 'name', label: 'Nombre Completo', type: 'text' },
+                { id: 'name', label: 'Nombre', type: 'text' },
                 { id: 'company', label: 'Empresa', type: 'text' },
-                { id: 'email', label: 'Correo Electrónico', type: 'email' },
-                { id: 'phone', label: 'Teléfono', type: 'tel' }
+                { id: 'email', label: 'Email', type: 'email' }
             ],
             'projects': [
-                { id: 'name', label: 'Nombre del Proyecto', type: 'text' },
-                { id: 'client', label: 'Cliente Asignado', type: 'text' },
-                { id: 'status', label: 'Estado', type: 'select', options: ['En Proceso', 'Pendiente', 'Finalizado'] },
-                { id: 'deadline', label: 'Fecha de Entrega', type: 'date' }
+                { id: 'name', label: 'Proyecto', type: 'text' },
+                { id: 'client', label: 'Cliente', type: 'text' },
+                { id: 'status', label: 'Estado', type: 'select', options: ['Activo', 'Pendiente', 'Finalizado'] }
             ],
             'inventory': [
-                { id: 'name', label: 'Nombre del Producto', type: 'text' },
-                { id: 'sku', label: 'Código SKU', type: 'text' },
-                { id: 'stock', label: 'Cantidad en Stock', type: 'number' },
-                { id: 'price', label: 'Precio Unitario ($)', type: 'number' }
+                { id: 'product', label: 'Producto', type: 'text' },
+                { id: 'stock', label: 'Stock', type: 'number' },
+                { id: 'price', label: 'Precio', type: 'number' }
             ],
             'invoices': [
-                { id: 'number', label: 'Número de Factura', type: 'text' },
+                { id: 'number', label: 'N° Factura', type: 'text' },
                 { id: 'client', label: 'Cliente', type: 'text' },
-                { id: 'total', label: 'Total ($)', type: 'number' },
-                { id: 'status', label: 'Estado', type: 'select', options: ['Pagada', 'Pendiente', 'Anulada'] },
-                { id: 'date', label: 'Fecha Emisión', type: 'date' }
+                { id: 'total', label: 'Total', type: 'number' }
             ]
         };
 
-        // --- INIT & AUTH ---
-        const loginModal = document.getElementById('login-modal');
-        const appContainer = document.getElementById('app-container');
-        const userEmailDisplay = document.getElementById('user-email-display');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const systemModeLabel = document.getElementById('system-mode');
-        const loginError = document.getElementById('login-error');
-        const loginTitle = document.getElementById('login-title');
-        const loginBtn = document.getElementById('login-btn-action');
-        const toggleAuthText = document.getElementById('toggle-auth-text');
-
-        try {
-            if (typeof __firebase_config !== 'undefined') {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                systemModeLabel.textContent = "Conectado a Nube (Firebase)";
-                systemModeLabel.style.color = "var(--success)";
-                onAuthStateChanged(auth, handleSessionChange);
-            } else { throw new Error("No config"); }
-        } catch (e) {
-            isLocalMode = true;
-            systemModeLabel.textContent = "Modo Local (Offline Capable)";
-            systemModeLabel.style.color = "var(--warning)";
-            const savedUser = sessionStorage.getItem('entalpia_user');
-            handleSessionChange(savedUser ? JSON.parse(savedUser) : null);
-        }
-
-        function handleSessionChange(user) {
-            loadingOverlay.style.display = 'none';
-            if (user) {
-                currentUser = user;
-                userEmailDisplay.textContent = user.email;
-                loginModal.style.display = 'none';
-                appContainer.style.display = 'flex';
-                // Load all data
-                loadCollection('clients');
-                loadCollection('projects');
-                loadCollection('inventory');
-                loadCollection('invoices');
-                navigateTo('dashboard', document.querySelectorAll('.nav-item')[0]);
-            } else {
-                currentUser = null;
-                appContainer.style.display = 'none';
-                loginModal.style.display = 'flex';
-            }
-        }
-
-        // --- NAVIGATION ---
-        window.navigateTo = (viewId, navEl) => {
-            currentView = viewId;
-            // UI Updates
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${viewId}`).classList.add('active');
-            
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            if(navEl) navEl.classList.add('active');
-
-            // Header Updates
-            const titles = {
-                'dashboard': 'Panel de Control',
-                'clients': 'Gestión de Clientes',
-                'projects': 'Proyectos Activos',
-                'inventory': 'Control de Inventario',
-                'invoices': 'Facturación'
-            };
-            document.getElementById('page-title').textContent = titles[viewId];
-            
-            // Toggle "New" button visibility
-            const btn = document.getElementById('main-action-btn');
-            if (viewId === 'dashboard') btn.style.display = 'none';
-            else btn.style.display = 'inline-flex';
-        };
-
-        // --- DATA MANAGER (CRUD) ---
-        function loadCollection(collectionName) {
-            if (isLocalMode) {
-                const allData = JSON.parse(localStorage.getItem(MOCK_STORAGE_KEY) || '{}');
-                const userData = allData[currentUser.uid] || {};
-                const items = userData[collectionName] || [];
-                renderTable(collectionName, items);
-                updateDashboard(collectionName, items);
-            } else {
-                const colRef = collection(db, 'artifacts', (typeof __app_id !== 'undefined' ? __app_id : 'default'), 'users', currentUser.uid, collectionName);
-                const q = query(colRef, orderBy('createdAt', 'desc'));
-                onSnapshot(q, (snapshot) => {
-                    const items = [];
-                    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-                    renderTable(collectionName, items);
-                    updateDashboard(collectionName, items);
-                });
-            }
-        }
-
-        window.addItem = async (collectionName, data) => {
-            if (isLocalMode) {
-                const allData = JSON.parse(localStorage.getItem(MOCK_STORAGE_KEY) || '{}');
-                if (!allData[currentUser.uid]) allData[currentUser.uid] = {};
-                if (!allData[currentUser.uid][collectionName]) allData[currentUser.uid][collectionName] = [];
-                
-                const newItem = { id: 'local_' + Date.now(), ...data, createdAt: Date.now() };
-                allData[currentUser.uid][collectionName].unshift(newItem);
-                localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(allData));
-                loadCollection(collectionName); // Refresh
-            } else {
-                const colRef = collection(db, 'artifacts', (typeof __app_id !== 'undefined' ? __app_id : 'default'), 'users', currentUser.uid, collectionName);
-                await addDoc(colRef, { ...data, createdAt: serverTimestamp() });
-            }
-        };
-
-        window.deleteItem = async (collectionName, itemId) => {
-            if(!confirm('¿Estás seguro de eliminar este elemento?')) return;
-            
-            if (isLocalMode) {
-                const allData = JSON.parse(localStorage.getItem(MOCK_STORAGE_KEY) || '{}');
-                const items = allData[currentUser.uid][collectionName];
-                allData[currentUser.uid][collectionName] = items.filter(i => i.id !== itemId);
-                localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(allData));
-                loadCollection(collectionName);
-            } else {
-                const docRef = doc(db, 'artifacts', (typeof __app_id !== 'undefined' ? __app_id : 'default'), 'users', currentUser.uid, collectionName, itemId);
-                await deleteDoc(docRef);
-            }
-        };
-
-        // --- RENDERING ---
-        function renderTable(type, items) {
-            const tbody = document.getElementById(`table-${type}`);
-            const emptyMsg = document.getElementById(`empty-${type}`);
-            tbody.innerHTML = '';
-
-            if (items.length === 0) {
-                emptyMsg.style.display = 'block';
-                return;
-            }
-            emptyMsg.style.display = 'none';
-
-            items.forEach(item => {
-                const tr = document.createElement('tr');
-                let html = '';
-                
-                // Definir columnas según tipo
-                if (type === 'clients') {
-                    html = `
-                        <td><strong>${item.name}</strong></td>
-                        <td>${item.company}</td>
-                        <td>${item.email}</td>
-                        <td>${item.phone}</td>
-                    `;
-                } else if (type === 'projects') {
-                    let badgeClass = item.status === 'En Proceso' ? 'status-success' : (item.status === 'Finalizado' ? 'status-warning' : 'status-danger');
-                    html = `
-                        <td><strong>${item.name}</strong></td>
-                        <td>${item.client}</td>
-                        <td><span class="status-badge ${badgeClass}">${item.status}</span></td>
-                        <td>${item.deadline}</td>
-                    `;
-                } else if (type === 'inventory') {
-                    let stockClass = item.stock < 10 ? 'status-danger' : 'status-success';
-                    html = `
-                        <td><strong>${item.name}</strong></td>
-                        <td>${item.sku}</td>
-                        <td><span class="status-badge ${stockClass}">${item.stock}</span></td>
-                        <td>$${item.price}</td>
-                    `;
-                } else if (type === 'invoices') {
-                    let stClass = item.status === 'Pagada' ? 'status-success' : 'status-warning';
-                    html = `
-                        <td>#${item.number}</td>
-                        <td>${item.client}</td>
-                        <td><strong>$${item.total}</strong></td>
-                        <td><span class="status-badge ${stClass}">${item.status}</span></td>
-                        <td>${item.date}</td>
-                    `;
-                }
-
-                // Generic Delete Action
-                html += `<td><button class="btn btn-danger" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteItem('${type}', '${item.id}')">Eliminar</button></td>`;
-                
-                tr.innerHTML = html;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function updateDashboard(type, items) {
-            // Recalculate KPIs
-            if (type === 'clients') document.getElementById('kpi-clients').textContent = items.length;
-            if (type === 'projects') document.getElementById('kpi-projects').textContent = items.length;
-            if (type === 'inventory') {
-                const totalItems = items.reduce((acc, curr) => acc + parseInt(curr.stock || 0), 0);
-                document.getElementById('kpi-inventory').textContent = totalItems;
-            }
-            if (type === 'invoices') {
-                const totalIncome = items.reduce((acc, curr) => acc + parseFloat(curr.total || 0), 0);
-                document.getElementById('kpi-income').textContent = '$' + totalIncome.toLocaleString();
-            }
-        }
-
-        // --- MODAL LOGIC ---
-        window.openCreateModal = () => {
-            const type = currentView;
-            if(!schemas[type]) return;
-
-            document.getElementById('modal-title').textContent = `Nuevo ${type === 'invoices' ? 'Factura' : (type === 'inventory' ? 'Producto' : (type==='clients' ? 'Cliente' : 'Proyecto'))}`;
-            const container = document.getElementById('modal-form-container');
-            container.innerHTML = '';
-
-            schemas[type].forEach(field => {
-                const wrapper = document.createElement('div');
-                const label = document.createElement('label');
-                label.className = 'form-label';
-                label.textContent = field.label;
-                
-                let input;
-                if (field.type === 'select') {
-                    input = document.createElement('select');
-                    input.className = 'form-input';
-                    field.options.forEach(opt => {
-                        const option = document.createElement('option');
-                        option.value = opt;
-                        option.textContent = opt;
-                        input.appendChild(option);
+        // --- INICIALIZACIÓN ---
+        async function initSystem() {
+            try {
+                if (typeof __firebase_config !== 'undefined') {
+                    const app = initializeApp(JSON.parse(__firebase_config));
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+                    document.getElementById('system-mode').textContent = "Nube (Firebase)";
+                    document.getElementById('system-mode').style.color = "green";
+                    
+                    onAuthStateChanged(auth, (user) => {
+                        handleSession(user);
                     });
                 } else {
-                    input = document.createElement('input');
-                    input.className = 'form-input';
-                    input.type = field.type;
+                    throw new Error("No config");
                 }
-                input.id = `input-${field.id}`;
+            } catch (e) {
+                console.log("Fallback a Modo Local");
+                isLocalMode = true;
+                document.getElementById('system-mode').textContent = "Local (Navegador)";
+                document.getElementById('system-mode').style.color = "orange";
                 
-                wrapper.appendChild(label);
-                wrapper.appendChild(input);
-                container.appendChild(wrapper);
-            });
-
-            // Bind Save
-            const saveBtn = document.getElementById('modal-save-btn');
-            saveBtn.onclick = () => {
-                const data = {};
-                let isValid = true;
-                schemas[type].forEach(field => {
-                    const val = document.getElementById(`input-${field.id}`).value;
-                    if (!val) isValid = false;
-                    data[field.id] = val;
-                });
-
-                if(!isValid) return alert('Por favor completa todos los campos');
-                
-                addItem(type, data);
-                closeModal('generic-modal');
-            };
-
-            openModal('generic-modal');
-        };
-
-        // --- AUTH UI ---
-        window.toggleAuthMode = () => {
-            isRegistering = !isRegistering;
-            loginError.textContent = "";
-            if (isRegistering) {
-                loginTitle.innerHTML = 'Crear Cuenta <span style="color:var(--primary)">ERP</span>';
-                loginBtn.textContent = "Registrarme (Local)";
-                toggleAuthText.innerHTML = '¿Ya tienes cuenta? <span class="link-text" onclick="toggleAuthMode()">Inicia Sesión</span>';
-            } else {
-                loginTitle.innerHTML = 'ENTALPIA <span style="color:var(--primary)">ERP</span>';
-                loginBtn.textContent = "Acceder al Sistema";
-                toggleAuthText.innerHTML = '¿No tienes cuenta? <span class="link-text" onclick="toggleAuthMode()">Regístrate</span>';
+                const storedUser = sessionStorage.getItem('entalpia_user');
+                handleSession(storedUser ? JSON.parse(storedUser) : null);
             }
-        };
+        }
 
+        function handleSession(user) {
+            document.getElementById('loading-overlay').style.display = 'none';
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-email-display').textContent = user.email;
+                document.getElementById('login-modal').style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+                loadAllData();
+            } else {
+                currentUser = null;
+                document.getElementById('app-container').style.display = 'none';
+                document.getElementById('login-modal').style.display = 'flex';
+            }
+        }
+
+        // --- FUNCIONES GLOBALES (Window Binding) ---
         window.handleAuth = async (e) => {
-            e.preventDefault();
+            if(e) e.preventDefault();
             const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            loginError.textContent = "";
-
-            if (!email || !password) { loginError.textContent = "Ingresa correo y contraseña"; return; }
-            loadingOverlay.style.display = 'flex';
+            const pass = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+            
+            if (!email || !pass) return errorDiv.textContent = "Completa todos los campos";
+            errorDiv.textContent = "Procesando...";
 
             if (isLocalMode) {
+                // Simulación Local
                 setTimeout(() => {
-                    const localUsers = JSON.parse(localStorage.getItem('entalpia_users') || '[]');
-                    const existingUser = localUsers.find(u => u.email === email);
+                    const users = JSON.parse(localStorage.getItem('entalpia_users') || '[]');
+                    const existing = users.find(u => u.email === email);
+                    
                     if (isRegistering) {
-                        if (existingUser) { loginError.textContent = "Usuario ya existe."; loadingOverlay.style.display = 'none'; }
+                        if (existing) errorDiv.textContent = "El usuario ya existe.";
                         else {
-                            const newUser = { uid: 'local_' + Date.now(), email, password };
-                            localUsers.push(newUser);
-                            localStorage.setItem('entalpia_users', JSON.stringify(localUsers));
+                            const newUser = { uid: 'loc_' + Date.now(), email, pass };
+                            users.push(newUser);
+                            localStorage.setItem('entalpia_users', JSON.stringify(users));
                             sessionStorage.setItem('entalpia_user', JSON.stringify(newUser));
-                            handleSessionChange(newUser);
+                            handleSession(newUser);
                         }
                     } else {
-                        if (existingUser && existingUser.password === password) {
-                            sessionStorage.setItem('entalpia_user', JSON.stringify(existingUser));
-                            handleSessionChange(existingUser);
+                        if (existing && existing.pass === pass) {
+                            sessionStorage.setItem('entalpia_user', JSON.stringify(existing));
+                            handleSession(existing);
                         } else {
-                            loginError.textContent = "Credenciales incorrectas."; loadingOverlay.style.display = 'none';
+                            errorDiv.textContent = "Credenciales incorrectas.";
                         }
                     }
                 }, 500);
             } else {
+                // Firebase Real
                 try {
-                    isRegistering ? await createUserWithEmailAndPassword(auth, email, password) : await signInWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    loadingOverlay.style.display = 'none';
-                    loginError.textContent = "Error: " + error.message;
+                    if (isRegistering) await createUserWithEmailAndPassword(auth, email, pass);
+                    else await signInWithEmailAndPassword(auth, email, pass);
+                } catch (err) {
+                    errorDiv.textContent = "Error: " + err.code;
                 }
             }
         };
 
         window.handleLogout = async () => {
             if (isLocalMode) sessionStorage.removeItem('entalpia_user');
-            else try { await signOut(auth); } catch (e) {}
-            window.location.href = 'index.html';
+            else try { await signOut(auth); } catch(e){}
+            window.location.reload(); 
         };
 
-        // Modal Helpers
-        window.openModal = (id) => document.getElementById(id).style.display = 'flex';
-        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+        window.toggleAuthMode = () => {
+            isRegistering = !isRegistering;
+            const btn = document.getElementById('login-btn-action');
+            const txt = document.getElementById('toggle-auth-text');
+            const title = document.getElementById('login-title');
+            
+            if (isRegistering) {
+                title.innerHTML = "Crear Cuenta";
+                btn.textContent = "Registrarme";
+                txt.textContent = "¿Ya tienes cuenta? Inicia Sesión";
+            } else {
+                title.innerHTML = 'ENTALPIA <span style="color:var(--primary)">ERP</span>';
+                btn.textContent = "Acceder";
+                txt.textContent = "¿No tienes cuenta? Regístrate";
+            }
+        };
+
+        window.navigateTo = (viewId, element) => {
+            currentView = viewId;
+            // UI Update
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            // Titles
+            const titles = { 'dashboard': 'Panel', 'clients': 'Clientes', 'projects': 'Proyectos', 'inventory': 'Inventario', 'invoices': 'Facturación' };
+            document.getElementById('page-title').textContent = titles[viewId];
+            
+            // Show/Hide New Button
+            document.getElementById('btn-new').style.display = viewId === 'dashboard' ? 'none' : 'block';
+        };
+
+        // --- GESTIÓN DE DATOS ---
+        function loadAllData() {
+            ['clients', 'projects', 'inventory', 'invoices'].forEach(col => loadCollection(col));
+        }
+
+        function loadCollection(colName) {
+            if (isLocalMode) {
+                const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+                const userSpace = dbData[currentUser.uid] || {};
+                const items = userSpace[colName] || [];
+                renderTable(colName, items);
+                updateKPI(colName, items);
+            } else {
+                const colRef = collection(db, 'artifacts', (typeof __app_id !== 'undefined' ? __app_id : 'default'), 'users', currentUser.uid, colName);
+                onSnapshot(query(colRef, orderBy('createdAt', 'desc')), (snap) => {
+                    const items = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    renderTable(colName, items);
+                    updateKPI(colName, items);
+                });
+            }
+        }
+
+        window.addItem = async (colName, data) => {
+            if (isLocalMode) {
+                const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+                if (!dbData[currentUser.uid]) dbData[currentUser.uid] = {};
+                if (!dbData[currentUser.uid][colName]) dbData[currentUser.uid][colName] = [];
+                
+                dbData[currentUser.uid][colName].unshift({ id: 'loc_item_'+Date.now(), ...data, createdAt: Date.now() });
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(dbData));
+                loadCollection(colName); // Reload manual
+            } else {
+                const colRef = collection(db, 'artifacts', (typeof __app_id !== 'undefined' ? __app_id : 'default'), 'users', currentUser.uid, colName);
+                await addDoc(colRef, { ...data, createdAt: serverTimestamp() });
+            }
+        };
+
+        window.deleteItem = async (colName, id) => {
+            if(!confirm("¿Eliminar?")) return;
+            if(isLocalMode) {
+                const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+                const list = dbData[currentUser.uid][colName];
+                dbData[currentUser.uid][colName] = list.filter(x => x.id !== id);
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(dbData));
+                loadCollection(colName);
+            } else {
+                const docRef = doc(db, 'artifacts', (typeof __app_id !== 'undefined' ? __app_id : 'default'), 'users', currentUser.uid, colName, id);
+                await deleteDoc(docRef);
+            }
+        };
+
+        // --- RENDERIZADO ---
+        function renderTable(colName, items) {
+            const container = document.getElementById(`list-${colName}`);
+            if (!container) return; // Si es dashboard no hay tabla
+            
+            if (items.length === 0) {
+                container.innerHTML = '<div style="padding:20px; color:#888; text-align:center;">No hay registros.</div>';
+                return;
+            }
+
+            let html = '<table><thead><tr>';
+            schemas[colName].forEach(f => html += `<th>${f.label}</th>`);
+            html += '<th>Acción</th></tr></thead><tbody>';
+
+            items.forEach(item => {
+                html += '<tr>';
+                schemas[colName].forEach(f => {
+                    let val = item[f.id];
+                    if(f.type === 'number') val = (colName === 'invoices' || colName === 'inventory') && f.id !== 'stock' ? '$'+val : val;
+                    if(f.id === 'status') val = `<span class="status-badge status-success">${val}</span>`;
+                    html += `<td>${val}</td>`;
+                });
+                html += `<td><button style="color:red; background:none; border:none; cursor:pointer;" onclick="window.deleteItem('${colName}', '${item.id}')">Eliminar</button></td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function updateKPI(colName, items) {
+            if(colName === 'invoices') {
+                const total = items.reduce((sum, i) => sum + parseFloat(i.total||0), 0);
+                document.getElementById('kpi-income').textContent = '$' + total.toLocaleString();
+            }
+            if(colName === 'projects') document.getElementById('kpi-projects').textContent = items.length;
+            if(colName === 'clients') document.getElementById('kpi-clients').textContent = items.length;
+            if(colName === 'inventory') {
+                const stock = items.reduce((sum, i) => sum + parseInt(i.stock||0), 0);
+                document.getElementById('kpi-stock').textContent = stock;
+            }
+        }
+
+        // --- MODAL DE CREACIÓN ---
+        window.openCreateModal = () => {
+            const fields = schemas[currentView];
+            if(!fields) return;
+            
+            const container = document.getElementById('modal-fields');
+            container.innerHTML = '';
+            
+            fields.forEach(f => {
+                let input;
+                if(f.type === 'select') {
+                    input = `<select id="inp-${f.id}" class="form-input">${f.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+                } else {
+                    input = `<input id="inp-${f.id}" type="${f.type}" class="form-input" placeholder="${f.label}">`;
+                }
+                container.innerHTML += `<div><label class="form-label">${f.label}</label>${input}</div>`;
+            });
+            
+            document.getElementById('generic-modal').style.display = 'flex';
+            
+            document.getElementById('modal-save-btn').onclick = () => {
+                const data = {};
+                let valid = true;
+                fields.forEach(f => {
+                    const val = document.getElementById(`inp-${f.id}`).value;
+                    if(!val) valid = false;
+                    data[f.id] = val;
+                });
+                if(!valid) return alert("Completa todos los campos");
+                
+                window.addItem(currentView, data);
+                window.closeModal();
+            };
+        };
+
+        window.closeModal = () => document.getElementById('generic-modal').style.display = 'none';
+
+        // --- ARRANQUE ---
+        document.getElementById('auth-form').addEventListener('submit', window.handleAuth);
+        initSystem();
 
     </script>
 </body>
