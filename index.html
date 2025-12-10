@@ -771,7 +771,20 @@
 
         function abrirGate() { document.getElementById('profile-gate').style.display = 'flex'; }
         function cerrarGate() { document.getElementById('profile-gate').style.display = 'none'; }
-        function validarCambioPerfil(p) { if (p === 'General') { cambiarPerfilVisual('General'); cerrarGate(); } else abrirLoginSecundario(p); }
+        
+        // --- MODIFICACIÓN: LÓGICA DE VALIDACIÓN DE PERFIL ---
+        function validarCambioPerfil(p) { 
+            if (p === 'General') { 
+                cambiarPerfilVisual('General'); 
+                cerrarGate(); 
+            } else if (p === 'Corporativo') {
+                // REDIRECCIÓN DIRECTA PARA CORPORATIVO
+                window.location.href = "ModalERP_CRM_V1.html";
+            } else { 
+                abrirLoginSecundario(p); 
+            } 
+        }
+        
         function cambiarPerfilVisual(p) {
             perfilActual = p;
             const badge = document.getElementById('profile-indicator');
@@ -814,13 +827,11 @@
             const p = m.dataset.pendingProfile || 'General'; // Fallback
             m.style.display = 'none';
 
-            // --- MODIFICACIÓN: REDIRECCIÓN PERFIL ACADÉMICO ---
+            // --- REDIRECCIÓN PERFIL ACADÉMICO ---
             if (p === 'Académico') {
-                // Si el perfil validado es Académico, ir a la nueva interfaz
                 window.location.href = "ModalDeCursosPerfilAcademico_V1.html";
-                return; // Detenemos la ejecución para que no cargue la interfaz normal
+                return;
             }
-            // --------------------------------------------------
 
             const ls = document.getElementById('login-screen');
             if (ls.style.display !== 'none') {
@@ -923,11 +934,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
