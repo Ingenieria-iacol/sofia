@@ -6,7 +6,7 @@
     <title>Entalpia | ERP & CRM Cloud</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- LIBRERÍAS FIREBASE COMPAT (Ideales para Hosting Estático como GitHub Pages) -->
+    <!-- FIREBASE COMPAT (CDN estable) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
@@ -46,8 +46,9 @@
         .btn-outline { background: white; border: 1px solid #D1D5DB; color: var(--text-main); }
         .btn-danger { background: #FEE2E2; color: var(--danger); }
         .btn-logout { background: #FEF2F2; color: var(--danger); border: 1px solid #FECACA; }
+        .btn-admin { background: #312e81; color: #a5b4fc; border: 1px solid #4338ca; width: 100%; margin-top: 20px; text-align: center; display: block; padding: 10px; border-radius: 6px; text-decoration: none;}
+
         .btn-download { background: #EFF6FF; color: var(--primary); border: 1px solid #BFDBFE; padding: 4px 10px; font-size: 0.75rem; text-decoration: none; display: inline-block; border-radius: 4px; }
-        .btn-download:hover { background: #DBEAFE; }
 
         /* LAYOUT */
         #app-container { display: none; width: 100%; height: 100%; }
@@ -75,8 +76,8 @@
         th { background: #F9FAFB; color: #6B7280; font-weight: 600; }
         .status-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
         .status-success { background: #DEF7EC; color: #03543F; }
+        .status-error { background: #FDE8E8; color: #9B1C1C; }
         
-        /* WARNING BAR */
         .storage-warning { background: #FFF7ED; border: 1px solid #FED7AA; color: #C2410C; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 0.85rem; display: none; }
 
         @media (max-width: 1000px) { .grid-4 { grid-template-columns: 1fr 1fr; } .sidebar { width: 60px; } .brand span, .nav-item span:last-child { display: none; } }
@@ -87,8 +88,8 @@
     <!-- LOADING -->
     <div id="loading-overlay" class="full-screen-modal" style="background: white; z-index: 10000; color: black;">
         <div style="text-align: center;">
-            <div style="font-weight: bold; margin-bottom: 5px;">Iniciando Entalpia ERP...</div>
-            <div style="font-size: 0.8rem; color: #666;">Cargando entorno seguro</div>
+            <div style="font-weight: bold; margin-bottom: 5px;">Entalpia Secure ERP</div>
+            <div style="font-size: 0.8rem; color: #666;" id="loading-text">Verificando credenciales...</div>
         </div>
     </div>
 
@@ -96,19 +97,20 @@
     <div id="login-modal" class="full-screen-modal">
         <div class="login-card">
             <h2 id="login-title" style="margin-bottom: 10px;">ENTALPIA <span style="color:var(--primary)">ERP</span></h2>
-            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Acceso Corporativo Seguro</p>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Acceso exclusivo para miembros activos</p>
             
             <form id="auth-form" onsubmit="window.handleAuth(event)">
                 <input type="email" id="email" class="form-input" placeholder="usuario@empresa.com" required>
                 <input type="password" id="password" class="form-input" placeholder="Contraseña" required>
-                <button type="submit" id="login-btn-action" class="btn btn-primary">Acceder</button>
+                <button type="submit" id="login-btn-action" class="btn btn-primary">Iniciar Sesión</button>
             </form>
             
-            <div id="login-error" style="color: var(--danger); margin-top: 10px; font-size: 0.85rem;"></div>
-            <div style="margin-top: 15px; font-size: 0.85rem; cursor: pointer; color: var(--primary);" onclick="window.toggleAuthMode()">
-                <span id="toggle-auth-text">¿No tienes cuenta? Regístrate</span>
+            <div id="login-error" style="color: var(--danger); margin-top: 15px; font-size: 0.85rem; background: #FEF2F2; padding: 10px; border-radius: 4px; display: none;"></div>
+            
+            <div style="margin-top: 20px; font-size: 0.7rem; color: #aaa; border-top: 1px solid #eee; padding-top: 15px;">
+                <p>Solo correos autorizados.</p>
+                Estado: <span id="system-mode">Detectando...</span>
             </div>
-            <div style="margin-top: 20px; font-size: 0.75rem; color: #aaa;">Estado: <span id="system-mode">Detectando...</span></div>
         </div>
     </div>
 
@@ -123,10 +125,17 @@
                 <div class="nav-item" onclick="window.navigateTo('inventory', this)"><span class="nav-icon">📦</span> <span>Inventario</span></div>
                 <div class="nav-item" onclick="window.navigateTo('invoices', this)"><span class="nav-icon">💳</span> <span>Facturas</span></div>
                 <div class="nav-item" onclick="window.navigateTo('documents', this)"><span class="nav-icon">📄</span> <span>Documentos</span></div>
+                
+                <!-- Panel Admin (Solo visible para Jose) -->
+                <div id="admin-menu-item" class="nav-item" style="display: none; color: #a5b4fc; background: rgba(67, 56, 202, 0.2); margin-top: 20px;" onclick="window.navigateTo('admin', this)">
+                    <span class="nav-icon">🔐</span> <span>Admin Usuarios</span>
+                </div>
             </div>
+            
             <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); cursor: pointer;" onclick="window.handleLogout()">
-                <div style="font-size: 0.8rem; opacity: 0.7;">Usuario Conectado</div>
-                <div id="user-email-display" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+                <div style="font-size: 0.7rem; opacity: 0.7; margin-bottom: 2px;">Membresía Activa</div>
+                <div id="user-email-display" style="font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+                <div id="days-remaining" style="font-size: 0.7rem; color: var(--success); margin-top: 4px;"></div>
             </div>
         </aside>
 
@@ -134,7 +143,6 @@
             <header>
                 <h2 id="page-title">Panel de Control</h2>
                 <div style="display: flex; gap: 10px;">
-                    <!-- Botón Salir redirige al index del repositorio -->
                     <button class="btn btn-logout" onclick="window.handleLogout()">Salir</button>
                     <button id="btn-new" class="btn btn-primary" style="display: none;" onclick="window.openCreateModal()">+ Nuevo</button>
                 </div>
@@ -143,7 +151,7 @@
             <!-- VISTAS -->
             <div id="view-dashboard" class="view-section active">
                 <div id="local-warning" class="storage-warning">
-                    ⚠️ <strong>Modo Local:</strong> Estás usando el almacenamiento temporal del navegador. Para activar los 10GB en GitHub Pages, edita el código e inserta tu <code>firebaseConfig</code>.
+                    ⚠️ <strong>Modo Local:</strong> La base de datos de usuarios está en el almacenamiento local.
                 </div>
 
                 <div class="grid-4">
@@ -153,8 +161,8 @@
                     <div class="card"><span style="color:#666">Docs</span><span class="stat-value" id="kpi-documents">0</span></div>
                 </div>
                 <div class="card">
-                    <h3>Bienvenido a Entalpia</h3>
-                    <p style="color:#666; margin-top:5px;">Plataforma de gestión de recursos corporativos.</p>
+                    <h3>Estado de Membresía</h3>
+                    <p style="color:#666; margin-top:5px;">Tu cuenta corporativa está activa. Tienes acceso completo a todos los módulos.</p>
                 </div>
             </div>
 
@@ -170,19 +178,31 @@
             <div id="view-invoices" class="view-section">
                 <div class="card"><h3>Facturación</h3><div id="list-invoices"></div></div>
             </div>
-            
-            <!-- Vista de Documentos -->
             <div id="view-documents" class="view-section">
                 <div class="card">
-                    <h3>Gestión Documental (Cloud)</h3>
-                    <p style="font-size:0.8rem; color:#666; margin-bottom:15px;">Sube contratos, facturas y evidencias.</p>
+                    <h3>Gestión Documental</h3>
                     <div id="list-documents"></div>
                 </div>
             </div>
+
+            <!-- VISTA ADMIN (Solo Jose) -->
+            <div id="view-admin" class="view-section">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                        <h3>Gestión de Usuarios Autorizados</h3>
+                        <button class="btn btn-primary" style="width: auto;" onclick="window.openAdminModal()">+ Agregar Usuario</button>
+                    </div>
+                    <p style="color:#666; font-size: 0.9rem; margin-bottom: 20px;">
+                        Solo los usuarios listados aquí pueden acceder. La membresía predeterminada es de 30 días.
+                    </p>
+                    <div id="list-users-admin"></div>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- MODAL GENÉRICO -->
+    <!-- MODAL GENÉRICO (DATOS) -->
     <div id="generic-modal" class="modal-overlay">
         <div class="modal-box">
             <h3 id="modal-title" style="margin-bottom: 20px;">Nuevo Registro</h3>
@@ -202,185 +222,287 @@
         </div>
     </div>
 
+    <!-- MODAL ADMIN (CREAR USUARIO) -->
+    <div id="admin-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="margin-bottom: 20px; color: #312e81;">Autorizar Nuevo Usuario</h3>
+            
+            <label class="form-label">Correo Electrónico</label>
+            <input type="email" id="admin-email" class="form-input" placeholder="empleado@empresa.com">
+            
+            <label class="form-label">Contraseña Temporal</label>
+            <input type="text" id="admin-pass" class="form-input" placeholder="123456">
+            
+            <label class="form-label">Días de Membresía</label>
+            <input type="number" id="admin-days" class="form-input" value="30">
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-outline" onclick="window.closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="window.adminCreateUser()">Autorizar Acceso</button>
+            </div>
+        </div>
+    </div>
+
     <!-- LÓGICA DEL SISTEMA -->
     <script>
         // --- CONFIGURACIÓN PARA GITHUB PAGES ---
-        // IMPORTANTE: Para que funcione en tu página web con almacenamiento real,
-        // reemplaza el objeto vacío abajo con tu configuración de Firebase Console.
-        const MANUAL_FIREBASE_CONFIG = {
-            // apiKey: "TU_API_KEY",
-            // authDomain: "TU_PROYECTO.firebaseapp.com",
-            // projectId: "TU_PROYECTO",
-            // storageBucket: "TU_PROYECTO.appspot.com",
-            // messagingSenderId: "...",
-            // appId: "..."
-        };
+        const MANUAL_FIREBASE_CONFIG = {};
 
-        // --- ESTADO Y VARIABLES ---
+        // --- ESTADO ---
         let db, auth, storage;
         let isLocalMode = false;
         let currentUser = null;
-        let isRegistering = false;
         let currentView = 'dashboard';
-        const LOCAL_KEY = 'entalpia_db_v3';
+        const LOCAL_KEY = 'entalpia_db_v4';
+        const USERS_KEY = 'entalpia_authorized_users';
+        const ADMIN_EMAIL = 'josetangarife14@gmail.com';
         const APP_ID = 'entalpia_app_v1';
 
-        // --- DEFINICIÓN DE CAMPOS ---
+        // --- ESQUEMAS DE DATOS ---
         const schemas = {
-            'clients': [
-                { id: 'name', label: 'Nombre', type: 'text' },
-                { id: 'company', label: 'Empresa', type: 'text' },
-                { id: 'email', label: 'Email', type: 'email' }
-            ],
-            'projects': [
-                { id: 'name', label: 'Proyecto', type: 'text' },
-                { id: 'client', label: 'Cliente', type: 'text' },
-                { id: 'status', label: 'Estado', type: 'select', options: ['Activo', 'Pendiente', 'Finalizado'] }
-            ],
-            'inventory': [
-                { id: 'product', label: 'Producto', type: 'text' },
-                { id: 'stock', label: 'Stock', type: 'number' },
-                { id: 'price', label: 'Precio', type: 'number' }
-            ],
-            'invoices': [
-                { id: 'number', label: 'N° Factura', type: 'text' },
-                { id: 'client', label: 'Cliente', type: 'text' },
-                { id: 'total', label: 'Total', type: 'number' }
-            ],
-            'documents': [
-                { id: 'name', label: 'Nombre del Archivo', type: 'text' },
-                { id: 'type', label: 'Tipo', type: 'select', options: ['Contrato', 'Factura', 'Reporte', 'Otro'] },
-                { id: 'file', label: 'Adjuntar Archivo', type: 'file' }
-            ]
+            'clients': [ { id: 'name', label: 'Nombre', type: 'text' }, { id: 'company', label: 'Empresa', type: 'text' }, { id: 'email', label: 'Email', type: 'email' } ],
+            'projects': [ { id: 'name', label: 'Proyecto', type: 'text' }, { id: 'client', label: 'Cliente', type: 'text' }, { id: 'status', label: 'Estado', type: 'select', options: ['Activo', 'Pendiente', 'Finalizado'] } ],
+            'inventory': [ { id: 'product', label: 'Producto', type: 'text' }, { id: 'stock', label: 'Stock', type: 'number' }, { id: 'price', label: 'Precio', type: 'number' } ],
+            'invoices': [ { id: 'number', label: 'N° Factura', type: 'text' }, { id: 'client', label: 'Cliente', type: 'text' }, { id: 'total', label: 'Total', type: 'number' } ],
+            'documents': [ { id: 'name', label: 'Nombre', type: 'text' }, { id: 'type', label: 'Tipo', type: 'select', options: ['Contrato', 'Factura', 'Reporte'] }, { id: 'file', label: 'Archivo', type: 'file' } ]
         };
 
-        // --- INICIALIZACIÓN INTELIGENTE ---
+        // --- INICIALIZACIÓN ---
         function initSystem() {
             try {
-                let config = null;
-
-                // 1. Intentar usar la config manual (prioridad para GitHub Pages)
-                if (MANUAL_FIREBASE_CONFIG.apiKey) {
-                    config = MANUAL_FIREBASE_CONFIG;
-                } 
-                // 2. Intentar usar la config inyectada por IA (entorno de desarrollo)
-                else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    config = JSON.parse(__firebase_config);
-                }
-
+                let config = MANUAL_FIREBASE_CONFIG.apiKey ? MANUAL_FIREBASE_CONFIG : (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
+                
                 if (config) {
-                    // Inicializar Firebase Real
-                    if (!firebase.apps.length) {
-                        firebase.initializeApp(config);
-                    }
+                    if (!firebase.apps.length) firebase.initializeApp(config);
                     auth = firebase.auth();
                     db = firebase.firestore();
                     storage = firebase.storage();
-                    
-                    document.getElementById('system-mode').textContent = "Nube (10GB)";
+                    document.getElementById('system-mode').textContent = "Nube (Seguro)";
                     document.getElementById('system-mode').style.color = "green";
-                    
-                    auth.onAuthStateChanged(handleSession);
+                    auth.onAuthStateChanged(validateAndLoadSession);
                 } else {
-                    throw new Error("Sin configuración");
+                    throw new Error("No config");
                 }
             } catch (e) {
-                // Fallback a Modo Local
-                console.log("Activando Modo Local (Offline) - Razón:", e.message);
                 isLocalMode = true;
                 document.getElementById('system-mode').textContent = "Local (Demo)";
                 document.getElementById('system-mode').style.color = "orange";
                 document.getElementById('local-warning').style.display = 'block';
                 
+                // Pre-sembrar Admin en Local si no existe
+                seedLocalAdmin();
+                
                 const storedUser = sessionStorage.getItem('entalpia_user');
-                handleSession(storedUser ? JSON.parse(storedUser) : null);
+                validateAndLoadSession(storedUser ? JSON.parse(storedUser) : null);
             }
         }
 
-        function handleSession(user) {
+        // Semilla para que Jose pueda entrar en modo local
+        function seedLocalAdmin() {
+            const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+            if (!users.find(u => u.email === ADMIN_EMAIL)) {
+                // Crear al admin con 30 días
+                const expiry = Date.now() + (30 * 24 * 60 * 60 * 1000);
+                users.push({ 
+                    uid: 'admin_001', 
+                    email: ADMIN_EMAIL, 
+                    password: '1204', // Contraseña para modo local
+                    role: 'admin',
+                    expiryDate: expiry
+                });
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+                console.log("Admin local pre-creado.");
+            }
+        }
+
+        // --- VALIDACIÓN DE SEGURIDAD (GATEKEEPER) ---
+        async function validateAndLoadSession(user) {
             document.getElementById('loading-overlay').style.display = 'none';
-            if (user) {
-                currentUser = user;
-                document.getElementById('user-email-display').textContent = user.email;
-                document.getElementById('login-modal').style.display = 'none';
-                document.getElementById('app-container').style.display = 'flex';
-                loadAllData();
-            } else {
-                currentUser = null;
-                document.getElementById('app-container').style.display = 'none';
-                document.getElementById('login-modal').style.display = 'flex';
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.style.display = 'none';
+
+            if (!user) {
+                showLogin();
+                return;
             }
+
+            // Verificar si está autorizado y membresía activa
+            let userData = null;
+            
+            if (isLocalMode) {
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+                userData = users.find(u => u.email === user.email);
+            } else {
+                // Firebase: Buscar en colección 'authorized_users'
+                // Nota: En producción esto debería ser una regla de seguridad o Cloud Function
+                // Aquí simulamos buscando el doc
+                try {
+                    const snap = await db.collection('authorized_users').doc(user.email).get();
+                    if (snap.exists) userData = snap.data();
+                } catch (e) { console.error(e); }
+            }
+
+            // CHEQUEOS DE SEGURIDAD
+            if (!userData) {
+                if(isLocalMode) alert("ERROR CRÍTICO: Usuario no encontrado en base de datos local.");
+                else alert("Acceso Denegado: Tu correo no está en la lista de autorizados.");
+                await handleLogout();
+                return;
+            }
+
+            const now = Date.now();
+            if (userData.expiryDate < now) {
+                errorDiv.textContent = "MEMBRESÍA VENCIDA. Por favor contacta a soporte para renovar tu suscripción.";
+                errorDiv.style.display = 'block';
+                await handleLogout(false); // Logout sin recargar para mostrar mensaje
+                return;
+            }
+
+            // ÉXITO
+            currentUser = { ...user, ...userData }; // Mezclar auth + db data
+            document.getElementById('user-email-display').textContent = currentUser.email;
+            
+            // Calcular días restantes
+            const daysLeft = Math.ceil((userData.expiryDate - now) / (1000 * 60 * 60 * 24));
+            const daysEl = document.getElementById('days-remaining');
+            daysEl.textContent = `${daysLeft} días restantes`;
+            if(daysLeft < 5) daysEl.style.color = "var(--danger)";
+
+            // Mostrar Panel Admin si es Jose
+            if (currentUser.email === ADMIN_EMAIL) {
+                document.getElementById('admin-menu-item').style.display = 'flex';
+            }
+
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('app-container').style.display = 'flex';
+            loadAllData();
         }
 
-        // --- FUNCIONES DE VENTANA ---
+        function showLogin() {
+            currentUser = null;
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('login-modal').style.display = 'flex';
+        }
+
+        // --- AUTH ACTIONS ---
         window.handleAuth = async (e) => {
-            if(e) e.preventDefault();
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('password').value;
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('login-error');
-            
-            if (!email || !pass) return errorDiv.textContent = "Completa todos los campos";
-            errorDiv.textContent = "Procesando...";
+            errorDiv.style.display = 'none';
+
+            if (!email || !pass) return;
 
             if (isLocalMode) {
-                // Simulación Local
-                setTimeout(() => {
-                    const users = JSON.parse(localStorage.getItem('entalpia_users') || '[]');
-                    const existing = users.find(u => u.email === email);
-                    
-                    if (isRegistering) {
-                        if (existing) errorDiv.textContent = "El usuario ya existe.";
-                        else {
-                            const newUser = { uid: 'loc_' + Date.now(), email, pass };
-                            users.push(newUser);
-                            localStorage.setItem('entalpia_users', JSON.stringify(users));
-                            sessionStorage.setItem('entalpia_user', JSON.stringify(newUser));
-                            handleSession(newUser);
-                        }
-                    } else {
-                        if (existing && existing.pass === pass) {
-                            sessionStorage.setItem('entalpia_user', JSON.stringify(existing));
-                            handleSession(existing);
-                        } else {
-                            errorDiv.textContent = "Credenciales incorrectas.";
-                        }
-                    }
-                }, 800);
+                // Auth Local Simulada
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+                const user = users.find(u => u.email === email && u.password === pass);
+                if (user) {
+                    sessionStorage.setItem('entalpia_user', JSON.stringify(user));
+                    validateAndLoadSession(user);
+                } else {
+                    errorDiv.textContent = "Credenciales incorrectas o usuario no registrado.";
+                    errorDiv.style.display = 'block';
+                }
             } else {
-                // Firebase Real
+                // Auth Firebase
                 try {
-                    if (isRegistering) await auth.createUserWithEmailAndPassword(email, pass);
-                    else await auth.signInWithEmailAndPassword(email, pass);
+                    await auth.signInWithEmailAndPassword(email, pass);
+                    // validateAndLoadSession se llama automáticamente por el listener
                 } catch (err) {
-                    errorDiv.textContent = "Error: " + err.message;
+                    errorDiv.textContent = "Error de acceso: " + err.message;
+                    errorDiv.style.display = 'block';
                 }
             }
         };
 
-        window.handleLogout = async () => {
+        window.handleLogout = async (reload = true) => {
             if (isLocalMode) sessionStorage.removeItem('entalpia_user');
             else try { await auth.signOut(); } catch(e){}
-            // Redirige al index.html del repositorio/carpeta actual
-            window.location.href = 'index.html'; 
+            if (reload) window.location.reload();
+            else showLogin();
         };
 
-        window.toggleAuthMode = () => {
-            isRegistering = !isRegistering;
-            const btn = document.getElementById('login-btn-action');
-            const txt = document.getElementById('toggle-auth-text');
-            const title = document.getElementById('login-title');
+        // --- ADMIN MODULE ---
+        window.openAdminModal = () => document.getElementById('admin-modal').style.display = 'flex';
+        
+        window.adminCreateUser = async () => {
+            if (currentUser.email !== ADMIN_EMAIL) return alert("Acción no autorizada");
             
-            if (isRegistering) {
-                title.innerHTML = "Crear Cuenta";
-                btn.textContent = "Registrarme";
-                txt.textContent = "¿Ya tienes cuenta? Inicia Sesión";
+            const email = document.getElementById('admin-email').value;
+            const pass = document.getElementById('admin-pass').value;
+            const days = parseInt(document.getElementById('admin-days').value);
+            
+            if(!email || !pass) return alert("Faltan datos");
+
+            const expiry = Date.now() + (days * 24 * 60 * 60 * 1000);
+            const newUser = { email, password: pass, expiryDate: expiry, createdAt: Date.now() };
+
+            if (isLocalMode) {
+                const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+                if (users.find(u => u.email === email)) return alert("Usuario ya existe");
+                
+                users.push({ ...newUser, uid: 'loc_u_'+Date.now() });
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+                alert("Usuario autorizado localmente.");
+                loadAdminUsersList(); // Refresh list
             } else {
-                title.innerHTML = 'ENTALPIA <span style="color:var(--primary)">ERP</span>';
-                btn.textContent = "Acceder";
-                txt.textContent = "¿No tienes cuenta? Regístrate";
+                // Firebase: Crear registro en 'authorized_users'
+                try {
+                    await db.collection('authorized_users').doc(email).set(newUser);
+                    // NOTA: Crear la cuenta en Auth requiere Admin SDK o función secundaria.
+                    // Aquí asumimos que el usuario se creará o usará una cuenta existente, 
+                    // pero ya tiene permiso en la DB.
+                    alert("Usuario autorizado en base de datos. (Nota: La cuenta Auth debe crearse por separado o primera vez)");
+                    loadAdminUsersList();
+                } catch (e) {
+                    alert("Error: " + e.message);
+                }
             }
+            window.closeModal();
         };
 
+        function loadAdminUsersList() {
+            if (currentView !== 'admin') return;
+            const container = document.getElementById('list-users-admin');
+            container.innerHTML = 'Cargando...';
+
+            let users = [];
+            if (isLocalMode) {
+                users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+                renderAdminList(users);
+            } else {
+                db.collection('authorized_users').get().then(snap => {
+                    users = snap.docs.map(d => d.data());
+                    renderAdminList(users);
+                });
+            }
+        }
+
+        function renderAdminList(users) {
+            const container = document.getElementById('list-users-admin');
+            if (users.length === 0) { container.innerHTML = 'No hay usuarios.'; return; }
+            
+            let html = '<table><thead><tr><th>Email</th><th>Expira</th><th>Días Restantes</th><th>Estado</th></tr></thead><tbody>';
+            const now = Date.now();
+            
+            users.forEach(u => {
+                const days = Math.ceil((u.expiryDate - now) / (86400000));
+                const status = days > 0 ? '<span class="status-badge status-success">Activo</span>' : '<span class="status-badge status-error">Vencido</span>';
+                const dateStr = new Date(u.expiryDate).toLocaleDateString();
+                html += `<tr>
+                    <td>${u.email}</td>
+                    <td>${dateStr}</td>
+                    <td>${days}</td>
+                    <td>${status}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // --- NAVIGATION & VIEWS ---
         window.navigateTo = (viewId, element) => {
             currentView = viewId;
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
@@ -389,15 +511,16 @@
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             if(element) element.classList.add('active');
 
-            const titles = { 
-                'dashboard': 'Panel', 'clients': 'Clientes', 'projects': 'Proyectos', 
-                'inventory': 'Inventario', 'invoices': 'Facturación', 'documents': 'Documentos'
-            };
+            const titles = { 'dashboard': 'Panel', 'clients': 'Clientes', 'projects': 'Proyectos', 'inventory': 'Inventario', 'invoices': 'Facturación', 'documents': 'Documentos', 'admin': 'Administración' };
             document.getElementById('page-title').textContent = titles[viewId];
-            document.getElementById('btn-new').style.display = viewId === 'dashboard' ? 'none' : 'block';
+            
+            const showNewBtn = ['clients','projects','inventory','invoices','documents'].includes(viewId);
+            document.getElementById('btn-new').style.display = showNewBtn ? 'block' : 'none';
+
+            if (viewId === 'admin') loadAdminUsersList();
         };
 
-        // --- GESTIÓN DE DATOS ---
+        // --- DATA HANDLING (CRUD) ---
         function loadAllData() {
             ['clients', 'projects', 'inventory', 'invoices', 'documents'].forEach(col => loadCollection(col));
         }
@@ -405,12 +528,14 @@
         function loadCollection(colName) {
             if (isLocalMode) {
                 const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
-                const userSpace = dbData[currentUser.uid] || {};
+                const userSpace = dbData[currentUser.email] || {}; // Usar email como key para portabilidad
                 const items = userSpace[colName] || [];
                 renderTable(colName, items);
                 updateKPI(colName, items);
             } else {
-                db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName)
+                // Path seguro: artifacts -> users -> EMAIL -> colName
+                // Usamos email en vez de UID para facilitar la gestión admin manual
+                db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.email).collection(colName)
                   .orderBy('createdAt', 'desc')
                   .onSnapshot((snap) => {
                       const items = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -421,156 +546,105 @@
         }
 
         window.addItem = async (colName, data, file) => {
-            // Manejo de Archivos
             if (file) {
-                document.getElementById('upload-progress-container').style.display = 'block';
-                document.getElementById('upload-bar').style.width = '30%'; 
-                
-                if (isLocalMode) {
-                    data.fileUrl = '#'; 
-                    data.fileName = file.name;
-                    alert("⚠️ Modo GitHub/Local: Configura la variable MANUAL_FIREBASE_CONFIG en el código para subir archivos reales.");
-                    document.getElementById('upload-bar').style.width = '100%';
+                // Upload logic (Simplified for space)
+                if(!isLocalMode) {
+                    // Upload to Firebase Storage
+                     try {
+                        const ref = storage.ref().child(`files/${currentUser.email}/${Date.now()}_${file.name}`);
+                        await ref.put(file);
+                        data.fileUrl = await ref.getDownloadURL();
+                     } catch(e) { console.error(e); }
                 } else {
-                    try {
-                        const storageRef = storage.ref().child(`artifacts/${APP_ID}/users/${currentUser.uid}/files/${Date.now()}_${file.name}`);
-                        await storageRef.put(file);
-                        const url = await storageRef.getDownloadURL();
-                        
-                        data.fileUrl = url;
-                        data.fileName = file.name;
-                        data.fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-                        document.getElementById('upload-bar').style.width = '100%';
-                    } catch (error) {
-                        alert("Error subiendo: " + error.message);
-                        return;
-                    }
+                    data.fileUrl = '#local';
                 }
             }
 
-            // Guardado de Datos
             if (isLocalMode) {
                 const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
-                if (!dbData[currentUser.uid]) dbData[currentUser.uid] = {};
-                if (!dbData[currentUser.uid][colName]) dbData[currentUser.uid][colName] = [];
-                
-                dbData[currentUser.uid][colName].unshift({ id: 'loc_item_'+Date.now(), ...data, createdAt: Date.now() });
+                if (!dbData[currentUser.email]) dbData[currentUser.email] = {};
+                if (!dbData[currentUser.email][colName]) dbData[currentUser.email][colName] = [];
+                dbData[currentUser.email][colName].unshift({ id: 'loc_'+Date.now(), ...data, createdAt: Date.now() });
                 localStorage.setItem(LOCAL_KEY, JSON.stringify(dbData));
                 loadCollection(colName);
             } else {
-                await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName).add({
-                    ...data,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.email).collection(colName).add({
+                    ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
-            
-            document.getElementById('upload-progress-container').style.display = 'none';
         };
 
         window.deleteItem = async (colName, id) => {
-            if(!confirm("¿Eliminar registro?")) return;
+            if(!confirm("¿Eliminar?")) return;
             if(isLocalMode) {
                 const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
-                const list = dbData[currentUser.uid][colName];
-                dbData[currentUser.uid][colName] = list.filter(x => x.id !== id);
+                dbData[currentUser.email][colName] = dbData[currentUser.email][colName].filter(x => x.id !== id);
                 localStorage.setItem(LOCAL_KEY, JSON.stringify(dbData));
                 loadCollection(colName);
             } else {
-                await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName).doc(id).delete();
+                await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.email).collection(colName).doc(id).delete();
             }
         };
 
-        // --- RENDERIZADO ---
+        // --- RENDER ---
         function renderTable(colName, items) {
             const container = document.getElementById(`list-${colName}`);
-            if (!container) return; 
+            if (!container) return;
+            if (items.length === 0) { container.innerHTML = '<div style="padding:20px; color:#888;">Sin datos.</div>'; return; }
             
-            if (items.length === 0) {
-                container.innerHTML = '<div style="padding:20px; color:#888; text-align:center;">No hay registros.</div>';
-                return;
-            }
-
             let html = '<table><thead><tr>';
-            schemas[colName].forEach(f => { if (f.type !== 'file') html += `<th>${f.label}</th>`; });
-            if (colName === 'documents') html += `<th>Archivo</th>`;
-            html += '<th>Acción</th></tr></thead><tbody>';
-
+            schemas[colName].forEach(f => { if(f.type!=='file') html += `<th>${f.label}</th>` });
+            html += '<th></th></tr></thead><tbody>';
+            
             items.forEach(item => {
                 html += '<tr>';
                 schemas[colName].forEach(f => {
-                    if (f.type !== 'file') {
-                        let val = item[f.id];
-                        if(f.type === 'number') val = (colName === 'invoices' || colName === 'inventory') && f.id !== 'stock' ? '$'+val : val;
-                        if(f.id === 'status') val = `<span class="status-badge status-success">${val}</span>`;
-                        html += `<td>${val}</td>`;
-                    }
+                    if(f.type!=='file') html += `<td>${item[f.id]}</td>`;
                 });
-                if (colName === 'documents') {
-                    html += item.fileUrl && item.fileUrl !== '#' 
-                        ? `<td><a href="${item.fileUrl}" target="_blank" class="btn-download">⬇ Abrir</a></td>`
-                        : `<td><span style="color:#aaa; font-size:0.8rem;">Local</span></td>`;
-                }
-                html += `<td><button style="color:red; background:none; border:none; cursor:pointer;" onclick="window.deleteItem('${colName}', '${item.id}')">Eliminar</button></td></tr>`;
+                html += `<td><button style="color:red;border:none;background:none;cursor:pointer;" onclick="window.deleteItem('${colName}','${item.id}')">×</button></td></tr>`;
             });
             html += '</tbody></table>';
             container.innerHTML = html;
         }
 
         function updateKPI(colName, items) {
-            if(colName === 'invoices') {
-                const total = items.reduce((sum, i) => sum + parseFloat(i.total||0), 0);
+            if (colName === 'clients') document.getElementById('kpi-clients').textContent = items.length;
+            if (colName === 'projects') document.getElementById('kpi-projects').textContent = items.length;
+            if (colName === 'documents') document.getElementById('kpi-documents').textContent = items.length;
+            if (colName === 'invoices') {
+                const total = items.reduce((acc, curr) => acc + parseFloat(curr.total||0), 0);
                 document.getElementById('kpi-income').textContent = '$' + total.toLocaleString();
             }
-            if(colName === 'projects') document.getElementById('kpi-projects').textContent = items.length;
-            if(colName === 'clients') document.getElementById('kpi-clients').textContent = items.length;
-            if(colName === 'documents') document.getElementById('kpi-documents').textContent = items.length;
         }
 
-        // --- MODAL ---
+        // --- MODAL UTILS ---
         window.openCreateModal = () => {
             const fields = schemas[currentView];
             if(!fields) return;
-            
             const container = document.getElementById('modal-fields');
             container.innerHTML = '';
-            
             fields.forEach(f => {
-                let input;
-                if(f.type === 'select') input = `<select id="inp-${f.id}" class="form-input">${f.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
-                else if (f.type === 'file') input = `<input id="inp-${f.id}" type="file" class="form-input">`;
-                else input = `<input id="inp-${f.id}" type="${f.type}" class="form-input" placeholder="${f.label}">`;
+                let input = f.type === 'select' 
+                    ? `<select id="inp-${f.id}" class="form-input">${f.options.map(o=>`<option>${o}</option>`).join('')}</select>`
+                    : `<input id="inp-${f.id}" type="${f.type}" class="form-input">`;
                 container.innerHTML += `<div><label class="form-label">${f.label}</label>${input}</div>`;
             });
-            
             document.getElementById('generic-modal').style.display = 'flex';
-            document.getElementById('upload-progress-container').style.display = 'none';
-            document.getElementById('upload-bar').style.width = '0%';
-            
             document.getElementById('modal-save-btn').onclick = async () => {
                 const data = {};
                 let file = null;
-                let valid = true;
-                
                 fields.forEach(f => {
                     const el = document.getElementById(`inp-${f.id}`);
-                    if (f.type === 'file') { if (el.files.length > 0) file = el.files[0]; }
-                    else {
-                        const val = el.value;
-                        if(!val) valid = false;
-                        data[f.id] = val;
-                    }
+                    if(f.type==='file') { if(el.files[0]) file = el.files[0]; }
+                    else data[f.id] = el.value;
                 });
-
-                if(!valid) return alert("Completa los campos de texto");
-                const btn = document.getElementById('modal-save-btn');
-                btn.disabled = true; btn.textContent = "Guardando...";
                 await window.addItem(currentView, data, file);
-                btn.disabled = false; btn.textContent = "Guardar";
                 window.closeModal();
             };
         };
-
-        window.closeModal = () => document.getElementById('generic-modal').style.display = 'none';
+        window.closeModal = () => {
+            document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+        };
 
         initSystem();
     </script>
