@@ -6,6 +6,12 @@
     <title>Entalpia | ERP & CRM Cloud</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- FIREBASE COMPAT LIBRARIES (Funcionan sin servidor local) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-storage-compat.js"></script>
+
     <style>
         :root {
             --primary: #2563EB; --primary-dark: #1E40AF;
@@ -81,8 +87,8 @@
     <!-- LOADING -->
     <div id="loading-overlay" class="full-screen-modal" style="background: white; z-index: 10000; color: black;">
         <div style="text-align: center;">
-            <div style="font-weight: bold; margin-bottom: 5px;">Conectando con Entalpia Cloud...</div>
-            <div style="font-size: 0.8rem; color: #666;">Verificando capacidad de almacenamiento</div>
+            <div style="font-weight: bold; margin-bottom: 5px;">Iniciando Entalpia ERP...</div>
+            <div style="font-size: 0.8rem; color: #666;">Cargando entorno seguro</div>
         </div>
     </div>
 
@@ -92,7 +98,7 @@
             <h2 id="login-title" style="margin-bottom: 10px;">ENTALPIA <span style="color:var(--primary)">ERP</span></h2>
             <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Acceso Corporativo Seguro</p>
             
-            <form id="auth-form">
+            <form id="auth-form" onsubmit="window.handleAuth(event)">
                 <input type="email" id="email" class="form-input" placeholder="usuario@empresa.com" required>
                 <input type="password" id="password" class="form-input" placeholder="Contraseña" required>
                 <button type="submit" id="login-btn-action" class="btn btn-primary">Acceder</button>
@@ -102,7 +108,7 @@
             <div style="margin-top: 15px; font-size: 0.85rem; cursor: pointer; color: var(--primary);" onclick="window.toggleAuthMode()">
                 <span id="toggle-auth-text">¿No tienes cuenta? Regístrate</span>
             </div>
-            <div style="margin-top: 20px; font-size: 0.75rem; color: #aaa;">Estado: <span id="system-mode">...</span></div>
+            <div style="margin-top: 20px; font-size: 0.75rem; color: #aaa;">Estado: <span id="system-mode">Detectando...</span></div>
         </div>
     </div>
 
@@ -135,9 +141,8 @@
 
             <!-- VISTAS -->
             <div id="view-dashboard" class="view-section active">
-                <!-- Warning para modo Local -->
                 <div id="local-warning" class="storage-warning">
-                    ⚠️ <strong>Modo Local Detectado:</strong> El almacenamiento está limitado a 5MB por el navegador. Para activar los 10GB de almacenamiento por usuario, asegúrate de desplegar esta aplicación con la configuración de Firebase Cloud activa.
+                    ⚠️ <strong>Modo Local Detectado:</strong> El almacenamiento de archivos está limitado por el navegador. Para activar los 10GB de almacenamiento seguro en la nube, asegúrate de conectar con Firebase Cloud.
                 </div>
 
                 <div class="grid-4">
@@ -148,7 +153,7 @@
                 </div>
                 <div class="card">
                     <h3>Bienvenido al Sistema</h3>
-                    <p style="color:#666; margin-top:5px;">Tu información está segura y sincronizada. Usa el menú lateral para gestionar tus recursos.</p>
+                    <p style="color:#666; margin-top:5px;">Tu información está segura. Usa el menú lateral para gestionar tus recursos.</p>
                 </div>
             </div>
 
@@ -169,7 +174,7 @@
             <div id="view-documents" class="view-section">
                 <div class="card">
                     <h3>Gestión Documental (Cloud)</h3>
-                    <p style="font-size:0.8rem; color:#666; margin-bottom:15px;">Sube contratos, facturas y evidencias. Capacidad disponible: ~10GB.</p>
+                    <p style="font-size:0.8rem; color:#666; margin-bottom:15px;">Sube contratos, facturas y evidencias.</p>
                     <div id="list-documents"></div>
                 </div>
             </div>
@@ -182,9 +187,8 @@
             <h3 id="modal-title" style="margin-bottom: 20px;">Nuevo Registro</h3>
             <div id="modal-fields"></div>
             
-            <!-- Barra de Progreso de Subida -->
             <div id="upload-progress-container" style="display:none; margin-top:15px;">
-                <div style="font-size:0.8rem; margin-bottom:5px;">Subiendo archivo a la nube...</div>
+                <div style="font-size:0.8rem; margin-bottom:5px;">Subiendo archivo...</div>
                 <div style="width:100%; background:#eee; height:6px; border-radius:3px;">
                     <div id="upload-bar" style="width:0%; background:var(--primary); height:100%; border-radius:3px; transition:width 0.3s;"></div>
                 </div>
@@ -197,21 +201,17 @@
         </div>
     </div>
 
-    <!-- LÓGICA DEL SISTEMA -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-
-        // --- ESTADO GLOBAL ---
+    <!-- LÓGICA SIN MÓDULOS (COMPATIBLE CON ESCRITORIO) -->
+    <script>
+        // --- CONFIGURACIÓN Y ESTADO ---
         let db, auth, storage;
         let isLocalMode = false;
         let currentUser = null;
         let isRegistering = false;
         let currentView = 'dashboard';
-        const LOCAL_KEY = 'entalpia_db_v2';
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default';
+        const LOCAL_KEY = 'entalpia_db_v3';
+        // ID de la App para aislar datos
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
 
         // --- DEFINICIÓN DE CAMPOS ---
         const schemas = {
@@ -238,31 +238,33 @@
             'documents': [
                 { id: 'name', label: 'Nombre del Archivo', type: 'text' },
                 { id: 'type', label: 'Tipo', type: 'select', options: ['Contrato', 'Factura', 'Reporte', 'Otro'] },
-                { id: 'file', label: 'Adjuntar Archivo', type: 'file' } // Campo especial
+                { id: 'file', label: 'Adjuntar Archivo', type: 'file' }
             ]
         };
 
         // --- INICIALIZACIÓN ---
-        async function initSystem() {
+        function initSystem() {
             try {
-                if (typeof __firebase_config !== 'undefined') {
+                // Intentamos detectar configuración inyectada (si existe)
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                     const config = JSON.parse(__firebase_config);
-                    const app = initializeApp(config);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-                    storage = getStorage(app); // Inicializar Storage
+                    firebase.initializeApp(config);
                     
-                    document.getElementById('system-mode').textContent = "Nube (Datos + Archivos)";
+                    auth = firebase.auth();
+                    db = firebase.firestore();
+                    storage = firebase.storage();
+                    
+                    document.getElementById('system-mode').textContent = "Nube (Online)";
                     document.getElementById('system-mode').style.color = "green";
                     
-                    onAuthStateChanged(auth, handleSession);
+                    auth.onAuthStateChanged(handleSession);
                 } else {
                     throw new Error("No config");
                 }
             } catch (e) {
-                console.log("Modo Local Activo");
+                console.log("Activando Modo Local (Offline)");
                 isLocalMode = true;
-                document.getElementById('system-mode').textContent = "Local (Limitado)";
+                document.getElementById('system-mode').textContent = "Local (Navegador)";
                 document.getElementById('system-mode').style.color = "orange";
                 document.getElementById('local-warning').style.display = 'block';
                 
@@ -286,7 +288,7 @@
             }
         }
 
-        // --- FUNCIONES GLOBALES ---
+        // --- FUNCIONES GLOBALES (ACCESIBLES DESDE EL HTML) ---
         window.handleAuth = async (e) => {
             if(e) e.preventDefault();
             const email = document.getElementById('email').value;
@@ -297,9 +299,11 @@
             errorDiv.textContent = "Procesando...";
 
             if (isLocalMode) {
+                // Simulación Local
                 setTimeout(() => {
                     const users = JSON.parse(localStorage.getItem('entalpia_users') || '[]');
                     const existing = users.find(u => u.email === email);
+                    
                     if (isRegistering) {
                         if (existing) errorDiv.textContent = "El usuario ya existe.";
                         else {
@@ -317,10 +321,12 @@
                             errorDiv.textContent = "Credenciales incorrectas.";
                         }
                     }
-                }, 500);
+                }, 800);
             } else {
+                // Firebase Real
                 try {
-                    isRegistering ? await createUserWithEmailAndPassword(auth, email, pass) : await signInWithEmailAndPassword(auth, email, pass);
+                    if (isRegistering) await auth.createUserWithEmailAndPassword(email, pass);
+                    else await auth.signInWithEmailAndPassword(email, pass);
                 } catch (err) {
                     errorDiv.textContent = "Error: " + err.message;
                 }
@@ -329,7 +335,7 @@
 
         window.handleLogout = async () => {
             if (isLocalMode) sessionStorage.removeItem('entalpia_user');
-            else try { await signOut(auth); } catch(e){}
+            else try { await auth.signOut(); } catch(e){}
             window.location.reload(); 
         };
 
@@ -379,12 +385,14 @@
                 renderTable(colName, items);
                 updateKPI(colName, items);
             } else {
-                const colRef = collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, colName);
-                onSnapshot(query(colRef, orderBy('createdAt', 'desc')), (snap) => {
-                    const items = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    renderTable(colName, items);
-                    updateKPI(colName, items);
-                });
+                // Referencia Firestore Compat
+                db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName)
+                  .orderBy('createdAt', 'desc')
+                  .onSnapshot((snap) => {
+                      const items = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                      renderTable(colName, items);
+                      updateKPI(colName, items);
+                  });
             }
         }
 
@@ -392,28 +400,30 @@
             // Manejo de Archivos (Upload)
             if (file) {
                 document.getElementById('upload-progress-container').style.display = 'block';
-                document.getElementById('upload-bar').style.width = '50%'; // Simular progreso inicial
+                document.getElementById('upload-bar').style.width = '30%'; 
                 
                 if (isLocalMode) {
-                    // Modo Local: Simulación (No podemos guardar 10GB en local)
-                    data.fileUrl = '#'; // URL dummy
+                    // Simulación Local
+                    data.fileUrl = '#'; 
                     data.fileName = file.name;
-                    alert("⚠️ Advertencia: En modo local los archivos no se guardan permanentemente. Se requiere conexión a nube para almacenamiento de 10GB.");
+                    alert("⚠️ Modo Local: El archivo no se ha subido a la nube real.");
+                    document.getElementById('upload-bar').style.width = '100%';
                 } else {
                     try {
-                        // Subida Real a Firebase Storage
-                        const storageRef = ref(storage, `artifacts/${APP_ID}/users/${currentUser.uid}/files/${Date.now()}_${file.name}`);
-                        const snapshot = await uploadBytes(storageRef, file);
-                        const downloadURL = await getDownloadURL(snapshot.ref);
-                        data.fileUrl = downloadURL;
+                        // Subida Real a Firebase Storage (Compat)
+                        const storageRef = storage.ref().child(`artifacts/${APP_ID}/users/${currentUser.uid}/files/${Date.now()}_${file.name}`);
+                        await storageRef.put(file);
+                        const url = await storageRef.getDownloadURL();
+                        
+                        data.fileUrl = url;
                         data.fileName = file.name;
                         data.fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                        document.getElementById('upload-bar').style.width = '100%';
                     } catch (error) {
                         alert("Error subiendo archivo: " + error.message);
                         return;
                     }
                 }
-                document.getElementById('upload-bar').style.width = '100%';
             }
 
             // Guardado de Metadatos
@@ -426,16 +436,18 @@
                 localStorage.setItem(LOCAL_KEY, JSON.stringify(dbData));
                 loadCollection(colName);
             } else {
-                const colRef = collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, colName);
-                await addDoc(colRef, { ...data, createdAt: serverTimestamp() });
+                // Firestore Compat
+                await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName).add({
+                    ...data,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
             }
             
-            // Cleanup UI
             document.getElementById('upload-progress-container').style.display = 'none';
         };
 
         window.deleteItem = async (colName, id) => {
-            if(!confirm("¿Eliminar?")) return;
+            if(!confirm("¿Eliminar este registro?")) return;
             if(isLocalMode) {
                 const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
                 const list = dbData[currentUser.uid][colName];
@@ -443,8 +455,7 @@
                 localStorage.setItem(LOCAL_KEY, JSON.stringify(dbData));
                 loadCollection(colName);
             } else {
-                const docRef = doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, colName, id);
-                await deleteDoc(docRef);
+                await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName).doc(id).delete();
             }
         };
 
@@ -462,7 +473,7 @@
             schemas[colName].forEach(f => {
                  if (f.type !== 'file') html += `<th>${f.label}</th>`;
             });
-            if (colName === 'documents') html += `<th>Archivo</th>`; // Columna extra para descarga
+            if (colName === 'documents') html += `<th>Archivo</th>`;
             html += '<th>Acción</th></tr></thead><tbody>';
 
             items.forEach(item => {
@@ -476,12 +487,11 @@
                     }
                 });
                 
-                // Botón de descarga para documentos
                 if (colName === 'documents') {
                     if (item.fileUrl && item.fileUrl !== '#') {
                         html += `<td><a href="${item.fileUrl}" target="_blank" class="btn-download">⬇ Descargar</a></td>`;
                     } else {
-                        html += `<td><span style="color:#aaa; font-size:0.8rem;">Sin archivo</span></td>`;
+                        html += `<td><span style="color:#aaa; font-size:0.8rem;">Local/Sin Archivo</span></td>`;
                     }
                 }
 
@@ -499,13 +509,9 @@
             if(colName === 'projects') document.getElementById('kpi-projects').textContent = items.length;
             if(colName === 'clients') document.getElementById('kpi-clients').textContent = items.length;
             if(colName === 'documents') document.getElementById('kpi-documents').textContent = items.length;
-            if(colName === 'inventory') {
-                const stock = items.reduce((sum, i) => sum + parseInt(i.stock||0), 0);
-                document.getElementById('kpi-stock').textContent = stock;
-            }
         }
 
-        // --- MODAL DE CREACIÓN ---
+        // --- MODAL Y HELPERS ---
         window.openCreateModal = () => {
             const fields = schemas[currentView];
             if(!fields) return;
@@ -547,7 +553,6 @@
 
                 if(!valid) return alert("Completa todos los campos de texto");
                 
-                // Deshabilitar botón mientras guarda
                 const btn = document.getElementById('modal-save-btn');
                 btn.disabled = true;
                 btn.textContent = "Guardando...";
@@ -562,8 +567,7 @@
 
         window.closeModal = () => document.getElementById('generic-modal').style.display = 'none';
 
-        // --- ARRANQUE ---
-        document.getElementById('auth-form').addEventListener('submit', window.handleAuth);
+        // INICIAR
         initSystem();
 
     </script>
