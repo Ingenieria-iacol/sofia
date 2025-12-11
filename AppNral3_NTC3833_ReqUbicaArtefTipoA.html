@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluador NTC 3833 - Artefactos Tipo A</title>
+    <!-- Tailwind CSS para estilos modernos y responsivos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF para generar el reporte PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .input-field {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2;
+        }
+        .section-card {
+            @apply bg-white shadow rounded-lg p-6 mb-6 border-l-4 border-blue-600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-10">
+
+    <!-- Header -->
+    <header class="bg-blue-800 text-white p-4 shadow-lg">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold"><i class="fa-solid fa-fire-burner mr-2"></i>Evaluador NTC 3833</h1>
+                <p class="text-xs md:text-sm text-blue-200">Requisitos para instalación de artefactos Tipo A</p>
+            </div>
+            <div class="text-right text-xs">
+                <p id="headerDate">Fecha: --/--/----</p>
+                <p id="headerId" class="font-mono bg-blue-900 px-2 py-1 rounded mt-1">ID: ...</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto mt-6 px-4">
+
+        <!-- Formulario de Datos del Técnico -->
+        <div class="section-card border-l-green-600">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">1. Datos de Trazabilidad</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Nombre del Técnico</label>
+                    <input type="text" id="techName" class="input-field" placeholder="Ej. Juan Pérez">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Dirección del Predio</label>
+                    <input type="text" id="address" class="input-field" placeholder="Ej. Cra 5 # 10-20">
+                </div>
+            </div>
+        </div>
+
+        <!-- Volumetría -->
+        <div class="section-card border-l-indigo-600">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">2. Volumetría del Recinto (m³)</h2>
+            <p class="text-sm text-gray-500 mb-4 text-justify">
+                Ingrese el volumen del recinto donde están los equipos. Si hay comunicación directa sin puertas (corredores, pasadizos), sume esos volúmenes (Nota NTC 3631).
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Volumen Recinto Principal (m³)</label>
+                    <input type="number" id="volMain" class="input-field" placeholder="0.00" step="0.01" oninput="calculate()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Volumen Adicional Comunicado (m³)</label>
+                    <input type="number" id="volAdd" class="input-field" placeholder="0.00" step="0.01" value="0" oninput="calculate()">
+                </div>
+            </div>
+            <div class="mt-4 p-3 bg-indigo-50 rounded text-right">
+                <span class="text-sm font-bold text-indigo-800">Volumen Total Disponible: </span>
+                <span id="totalVolDisplay" class="text-xl font-bold text-indigo-900">0.00</span> <span class="text-sm">m³</span>
+            </div>
+        </div>
+
+        <!-- Artefactos -->
+        <div class="section-card border-l-orange-600">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">3. Artefactos Tipo A (Potencia)</h2>
+            
+            <div class="flex gap-2 mb-4 items-end">
+                <div class="flex-grow">
+                    <label class="block text-sm font-medium text-gray-700">Nombre Artefacto</label>
+                    <select id="applianceType" class="input-field">
+                        <option value="Estufa">Estufa</option>
+                        <option value="Horno">Horno</option>
+                        <option value="Calentador de Paso">Calentador de Paso (Tipo A)</option>
+                        <option value="Secadora">Secadora</option>
+                        <option value="Chimenea">Chimenea</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="w-32">
+                    <label class="block text-sm font-medium text-gray-700">Potencia (KW)</label>
+                    <input type="number" id="appliancePower" class="input-field" placeholder="KW" step="0.1">
+                </div>
+                <button onclick="addAppliance()" class="bg-orange-600 text-white px-4 py-2 rounded shadow hover:bg-orange-700 h-10 mt-1">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artefacto</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Potencia (W)</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="applianceList" class="bg-white divide-y divide-gray-200">
+                        <!-- Items agregados aquí -->
+                    </tbody>
+                    <tfoot class="bg-gray-50">
+                        <tr>
+                            <td class="px-6 py-3 font-bold text-gray-900">Total Potencia Conjunta</td>
+                            <td class="px-6 py-3 text-right font-bold text-orange-700"><span id="totalWatts">0</span> W</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Monóxido -->
+        <div class="section-card border-l-red-600">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">4. Medición Monóxido de Carbono (CO)</h2>
+            <div class="flex items-center gap-4">
+                <div class="flex-grow">
+                    <label class="block text-sm font-medium text-gray-700">Concentración Media (ppm)</label>
+                    <input type="number" id="coLevel" class="input-field" placeholder="0" oninput="calculate()">
+                    <p class="text-xs text-gray-500 mt-1">Límite máximo permitido: 50 ppm</p>
+                </div>
+                <div id="coBadge" class="px-4 py-2 rounded-full font-bold text-sm bg-gray-200 text-gray-600">
+                    --
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div class="bg-gray-800 text-white rounded-lg shadow-xl p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 border-b border-gray-600 pb-2">Resultados de Evaluación</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Calculo Potencia/Volumen -->
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <p class="text-gray-300 text-sm">Relación Potencia / Volumen</p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <span id="ratioDisplay" class="text-3xl font-bold">0.00</span>
+                        <span class="text-sm text-gray-400">W/m³</span>
+                    </div>
+                    <div class="mt-2 text-sm">
+                        <span class="text-gray-400">Límite NTC 3833: </span>
+                        <span class="font-bold text-yellow-400">207.00 W/m³</span>
+                    </div>
+                    <div id="ratioResult" class="mt-3 text-center py-1 rounded font-bold bg-gray-600 text-gray-300">
+                        PENDIENTE
+                    </div>
+                </div>
+
+                <!-- Dictamen Final -->
+                <div class="flex flex-col justify-between bg-gray-700 p-4 rounded-lg">
+                    <p class="text-gray-300 text-sm">Dictamen Técnico</p>
+                    <div id="finalVerdict" class="text-center py-4 rounded-lg font-extrabold text-2xl bg-gray-600 text-gray-400 my-auto">
+                        REQUIERE DATOS
+                    </div>
+                    <p id="recommendation" class="text-xs text-center mt-2 text-gray-300 hidden">
+                        <!-- Mensaje dinámico -->
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón Descarga -->
+        <div class="text-center mb-10">
+            <button onclick="generatePDF()" id="btnDownload" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 flex items-center justify-center mx-auto gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-file-pdf"></i> Descargar Informe PDF
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // Inicialización de variables globales
+        let appliances = [];
+        const MAX_RATIO = 207; // W/m3
+        const MAX_CO = 50; // ppm
+        let reportId = "";
+
+        // Al cargar la página
+        window.onload = function() {
+            const now = new Date();
+            // Generar ID basado en fecha y hora: YYYYMMDD-HHMMSS
+            const dateStr = now.toISOString().slice(0,10).replace(/-/g,"");
+            const timeStr = now.toTimeString().slice(0,8).replace(/:/g,"");
+            reportId = `${dateStr}-${timeStr}-${Math.floor(Math.random() * 1000)}`;
+            
+            document.getElementById('headerDate').innerText = `Fecha: ${now.toLocaleDateString()}`;
+            document.getElementById('headerId').innerText = `ID: ${reportId}`;
+        };
+
+        // Función para agregar artefacto
+        function addAppliance() {
+            const type = document.getElementById('applianceType').value;
+            const powerKW = parseFloat(document.getElementById('appliancePower').value);
+
+            if (!powerKW || powerKW <= 0) {
+                alert("Por favor ingrese una potencia válida en KW.");
+                return;
+            }
+
+            const powerW = powerKW * 1000; // Convertir a Watts
+            appliances.push({ type, power: powerW });
+            
+            renderAppliances();
+            document.getElementById('appliancePower').value = '';
+            calculate();
+        }
+
+        // Función para eliminar artefacto
+        function removeAppliance(index) {
+            appliances.splice(index, 1);
+            renderAppliances();
+            calculate();
+        }
+
+        // Renderizar tabla
+        function renderAppliances() {
+            const list = document.getElementById('applianceList');
+            list.innerHTML = '';
+            let totalW = 0;
+
+            appliances.forEach((app, index) => {
+                totalW += app.power;
+                const row = `
+                    <tr>
+                        <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-900">${app.type}</td>
+                        <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-500 text-right">${app.power} W</td>
+                        <td class="px-6 py-2 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="removeAppliance(${index})" class="text-red-600 hover:text-red-900">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                list.innerHTML += row;
+            });
+
+            document.getElementById('totalWatts').innerText = totalW;
+        }
+
+        // Cálculo principal
+        function calculate() {
+            // 1. Obtener datos
+            const volMain = parseFloat(document.getElementById('volMain').value) || 0;
+            const volAdd = parseFloat(document.getElementById('volAdd').value) || 0;
+            const totalVol = volMain + volAdd;
+            const coLevel = parseFloat(document.getElementById('coLevel').value);
+            
+            // Total Potencia
+            let totalPower = appliances.reduce((sum, item) => sum + item.power, 0);
+
+            // Actualizar UI Volumetría
+            document.getElementById('totalVolDisplay').innerText = totalVol.toFixed(2);
+
+            // Validaciones básicas para no calcular con ceros
+            if (totalVol <= 0) {
+                resetResults();
+                return;
+            }
+
+            // 2. Calcular Relación
+            const ratio = totalPower / totalVol;
+            document.getElementById('ratioDisplay').innerText = ratio.toFixed(2);
+
+            // 3. Evaluar Relación (NTC 3833)
+            const ratioPass = ratio <= MAX_RATIO;
+            const ratioEl = document.getElementById('ratioResult');
+            
+            if (ratioPass) {
+                ratioEl.innerText = "CUMPLE (< 207 W/m³)";
+                ratioEl.className = "mt-3 text-center py-1 rounded font-bold bg-green-500 text-white";
+            } else {
+                ratioEl.innerText = "EXCEDE (> 207 W/m³)";
+                ratioEl.className = "mt-3 text-center py-1 rounded font-bold bg-red-600 text-white";
+            }
+
+            // 4. Evaluar CO
+            let coPass = false;
+            const coBadge = document.getElementById('coBadge');
+            
+            if (!isNaN(coLevel)) {
+                if (coLevel <= MAX_CO) {
+                    coBadge.innerText = "OK";
+                    coBadge.className = "px-4 py-2 rounded-full font-bold text-sm bg-green-100 text-green-800 border border-green-200";
+                    coPass = true;
+                } else {
+                    coBadge.innerText = "ALTO";
+                    coBadge.className = "px-4 py-2 rounded-full font-bold text-sm bg-red-100 text-red-800 border border-red-200 animate-pulse";
+                    coPass = false;
+                }
+            } else {
+                coBadge.innerText = "--";
+                coBadge.className = "px-4 py-2 rounded-full font-bold text-sm bg-gray-200 text-gray-600";
+            }
+
+            // 5. Veredicto Final
+            const verdictEl = document.getElementById('finalVerdict');
+            const recEl = document.getElementById('recommendation');
+            const btn = document.getElementById('btnDownload');
+
+            if (isNaN(coLevel)) {
+                verdictEl.innerText = "FALTAN DATOS CO";
+                verdictEl.className = "text-center py-4 rounded-lg font-extrabold text-2xl bg-yellow-500 text-white my-auto";
+                recEl.classList.add('hidden');
+                return; // Esperar a que ingresen CO
+            }
+
+            if (ratioPass && coPass) {
+                verdictEl.innerText = "APROBADO";
+                verdictEl.className = "text-center py-4 rounded-lg font-extrabold text-2xl bg-green-600 text-white my-auto shadow-lg";
+                recEl.classList.add('hidden');
+            } else {
+                verdictEl.innerText = "NO CONFORME";
+                verdictEl.className = "text-center py-4 rounded-lg font-extrabold text-2xl bg-red-600 text-white my-auto shadow-lg";
+                recEl.classList.remove('hidden');
+                
+                let reasons = [];
+                if (!ratioPass) reasons.push("Potencia excesiva para el volumen.");
+                if (!coPass) reasons.push("CO superior a 50 ppm.");
+                
+                recEl.innerText = "Acción: " + reasons.join(" ") + " Debe ductar artefactos al exterior o aumentar ventilación permanente.";
+            }
+        }
+
+        function resetResults() {
+            document.getElementById('ratioDisplay').innerText = "0.00";
+            document.getElementById('ratioResult').innerText = "PENDIENTE";
+            document.getElementById('ratioResult').className = "mt-3 text-center py-1 rounded font-bold bg-gray-600 text-gray-300";
+            document.getElementById('finalVerdict').innerText = "REQUIERE DATOS";
+            document.getElementById('finalVerdict').className = "text-center py-4 rounded-lg font-extrabold text-2xl bg-gray-600 text-gray-400 my-auto";
+        }
+
+        // Generación de PDF
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Datos
+            const techName = document.getElementById('techName').value || "Sin Nombre";
+            const address = document.getElementById('address').value || "Sin Dirección";
+            const date = new Date().toLocaleString();
+            const totalVol = document.getElementById('totalVolDisplay').innerText;
+            const totalPower = document.getElementById('totalWatts').innerText;
+            const ratio = document.getElementById('ratioDisplay').innerText;
+            const co = document.getElementById('coLevel').value || "0";
+            const verdict = document.getElementById('finalVerdict').innerText;
+
+            // Colores
+            const primaryColor = [21, 101, 192]; // Blue
+            const grayColor = [100, 100, 100];
+            
+            // Header
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.text("Reporte de Inspección NTC 3833", 105, 20, { align: "center" });
+            doc.setFontSize(10);
+            doc.text("Requisitos para instalación de artefactos Tipo A", 105, 28, { align: "center" });
+            
+            // Info Trazabilidad
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`ID Reporte: ${reportId}`, 150, 35);
+            
+            let y = 50;
+            
+            // Caja de Info
+            doc.setDrawColor(200, 200, 200);
+            doc.setFillColor(245, 245, 245);
+            doc.roundedRect(14, y, 182, 25, 3, 3, 'FD');
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("Información del Sitio", 20, y + 8);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Técnico: ${techName}`, 20, y + 16);
+            doc.text(`Dirección: ${address}`, 100, y + 16);
+            doc.text(`Fecha: ${date}`, 20, y + 22);
+
+            y += 35;
+
+            // Detalles de Cálculo
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...primaryColor);
+            doc.text("Evaluación de Potencia vs Volumen", 14, y);
+            doc.setLineWidth(0.5);
+            doc.line(14, y+2, 196, y+2);
+            
+            y += 10;
+            doc.setTextColor(0,0,0);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Volumen Total Recinto: ${totalVol} m³`, 20, y);
+            doc.text(`Potencia Total Tipo A: ${totalPower} W`, 20, y + 7);
+            doc.text(`Relación Calculada: ${ratio} W/m³`, 20, y + 14);
+            
+            // Límite
+            doc.setFont("helvetica", "bold");
+            doc.text(`Límite Permitido (NTC 3833): 207 W/m³`, 100, y + 14);
+
+            y += 25;
+
+            // Tabla Artefactos (Simple)
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...primaryColor);
+            doc.text("Inventario de Artefactos", 14, y);
+            doc.line(14, y+2, 196, y+2);
+            y += 10;
+            
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, y-5, 182, 8, 'F');
+            doc.setTextColor(0,0,0);
+            doc.text("Artefacto", 20, y);
+            doc.text("Potencia (W)", 150, y);
+            
+            y += 8;
+            doc.setFont("helvetica", "normal");
+            appliances.forEach(app => {
+                doc.text(`- ${app.type}`, 20, y);
+                doc.text(`${app.power} W`, 150, y);
+                y += 7;
+            });
+
+            y += 10;
+
+            // Monóxido
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...primaryColor);
+            doc.text("Medición Ambiental", 14, y);
+            doc.line(14, y+2, 196, y+2);
+            y += 10;
+            doc.setTextColor(0,0,0);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Concentración CO: ${co} ppm`, 20, y);
+            doc.text(`Límite Máximo: 50 ppm`, 100, y);
+
+            y += 20;
+
+            // RESULTADO FINAL
+            doc.setDrawColor(0);
+            if (verdict === "APROBADO") {
+                doc.setFillColor(220, 255, 220); // Light Green
+                doc.setTextColor(0, 100, 0);
+            } else {
+                doc.setFillColor(255, 220, 220); // Light Red
+                doc.setTextColor(150, 0, 0);
+            }
+            
+            doc.rect(14, y, 182, 20, 'FD');
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text(`RESULTADO: ${verdict}`, 105, y + 13, { align: "center" });
+
+            // Disclaimer
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Este documento es generado automáticamente basado en los datos ingresados en campo.", 105, 280, { align: "center" });
+            doc.text("Referencia normativa: NTC 3833 - Instalación de artefactos a gas.", 105, 284, { align: "center" });
+
+            // Guardar
+            doc.save(`Reporte_NTC3833_${reportId}.pdf`);
+        }
+    </script>
+</body>
+</html>
