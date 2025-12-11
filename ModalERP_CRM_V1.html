@@ -6,7 +6,7 @@
     <title>Entalpia | ERP & CRM Cloud</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- FIREBASE COMPAT LIBRARIES (Funcionan sin servidor local) -->
+    <!-- LIBRERÍAS FIREBASE COMPAT (Ideales para Hosting Estático como GitHub Pages) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
@@ -134,6 +134,7 @@
             <header>
                 <h2 id="page-title">Panel de Control</h2>
                 <div style="display: flex; gap: 10px;">
+                    <!-- Botón Salir redirige al index del repositorio -->
                     <button class="btn btn-logout" onclick="window.handleLogout()">Salir</button>
                     <button id="btn-new" class="btn btn-primary" style="display: none;" onclick="window.openCreateModal()">+ Nuevo</button>
                 </div>
@@ -142,7 +143,7 @@
             <!-- VISTAS -->
             <div id="view-dashboard" class="view-section active">
                 <div id="local-warning" class="storage-warning">
-                    ⚠️ <strong>Modo Local Detectado:</strong> El almacenamiento de archivos está limitado por el navegador. Para activar los 10GB de almacenamiento seguro en la nube, asegúrate de conectar con Firebase Cloud.
+                    ⚠️ <strong>Modo Local:</strong> Estás usando el almacenamiento temporal del navegador. Para activar los 10GB en GitHub Pages, edita el código e inserta tu <code>firebaseConfig</code>.
                 </div>
 
                 <div class="grid-4">
@@ -152,8 +153,8 @@
                     <div class="card"><span style="color:#666">Docs</span><span class="stat-value" id="kpi-documents">0</span></div>
                 </div>
                 <div class="card">
-                    <h3>Bienvenido al Sistema</h3>
-                    <p style="color:#666; margin-top:5px;">Tu información está segura. Usa el menú lateral para gestionar tus recursos.</p>
+                    <h3>Bienvenido a Entalpia</h3>
+                    <p style="color:#666; margin-top:5px;">Plataforma de gestión de recursos corporativos.</p>
                 </div>
             </div>
 
@@ -201,17 +202,28 @@
         </div>
     </div>
 
-    <!-- LÓGICA SIN MÓDULOS (COMPATIBLE CON ESCRITORIO) -->
+    <!-- LÓGICA DEL SISTEMA -->
     <script>
-        // --- CONFIGURACIÓN Y ESTADO ---
+        // --- CONFIGURACIÓN PARA GITHUB PAGES ---
+        // IMPORTANTE: Para que funcione en tu página web con almacenamiento real,
+        // reemplaza el objeto vacío abajo con tu configuración de Firebase Console.
+        const MANUAL_FIREBASE_CONFIG = {
+            // apiKey: "TU_API_KEY",
+            // authDomain: "TU_PROYECTO.firebaseapp.com",
+            // projectId: "TU_PROYECTO",
+            // storageBucket: "TU_PROYECTO.appspot.com",
+            // messagingSenderId: "...",
+            // appId: "..."
+        };
+
+        // --- ESTADO Y VARIABLES ---
         let db, auth, storage;
         let isLocalMode = false;
         let currentUser = null;
         let isRegistering = false;
         let currentView = 'dashboard';
         const LOCAL_KEY = 'entalpia_db_v3';
-        // ID de la App para aislar datos
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+        const APP_ID = 'entalpia_app_v1';
 
         // --- DEFINICIÓN DE CAMPOS ---
         const schemas = {
@@ -242,29 +254,41 @@
             ]
         };
 
-        // --- INICIALIZACIÓN ---
+        // --- INICIALIZACIÓN INTELIGENTE ---
         function initSystem() {
             try {
-                // Intentamos detectar configuración inyectada (si existe)
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const config = JSON.parse(__firebase_config);
-                    firebase.initializeApp(config);
-                    
+                let config = null;
+
+                // 1. Intentar usar la config manual (prioridad para GitHub Pages)
+                if (MANUAL_FIREBASE_CONFIG.apiKey) {
+                    config = MANUAL_FIREBASE_CONFIG;
+                } 
+                // 2. Intentar usar la config inyectada por IA (entorno de desarrollo)
+                else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    config = JSON.parse(__firebase_config);
+                }
+
+                if (config) {
+                    // Inicializar Firebase Real
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(config);
+                    }
                     auth = firebase.auth();
                     db = firebase.firestore();
                     storage = firebase.storage();
                     
-                    document.getElementById('system-mode').textContent = "Nube (Online)";
+                    document.getElementById('system-mode').textContent = "Nube (10GB)";
                     document.getElementById('system-mode').style.color = "green";
                     
                     auth.onAuthStateChanged(handleSession);
                 } else {
-                    throw new Error("No config");
+                    throw new Error("Sin configuración");
                 }
             } catch (e) {
-                console.log("Activando Modo Local (Offline)");
+                // Fallback a Modo Local
+                console.log("Activando Modo Local (Offline) - Razón:", e.message);
                 isLocalMode = true;
-                document.getElementById('system-mode').textContent = "Local (Navegador)";
+                document.getElementById('system-mode').textContent = "Local (Demo)";
                 document.getElementById('system-mode').style.color = "orange";
                 document.getElementById('local-warning').style.display = 'block';
                 
@@ -288,7 +312,7 @@
             }
         }
 
-        // --- FUNCIONES GLOBALES (ACCESIBLES DESDE EL HTML) ---
+        // --- FUNCIONES DE VENTANA ---
         window.handleAuth = async (e) => {
             if(e) e.preventDefault();
             const email = document.getElementById('email').value;
@@ -336,7 +360,8 @@
         window.handleLogout = async () => {
             if (isLocalMode) sessionStorage.removeItem('entalpia_user');
             else try { await auth.signOut(); } catch(e){}
-            window.location.reload(); 
+            // Redirige al index.html del repositorio/carpeta actual
+            window.location.href = 'index.html'; 
         };
 
         window.toggleAuthMode = () => {
@@ -385,7 +410,6 @@
                 renderTable(colName, items);
                 updateKPI(colName, items);
             } else {
-                // Referencia Firestore Compat
                 db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName)
                   .orderBy('createdAt', 'desc')
                   .onSnapshot((snap) => {
@@ -397,20 +421,18 @@
         }
 
         window.addItem = async (colName, data, file) => {
-            // Manejo de Archivos (Upload)
+            // Manejo de Archivos
             if (file) {
                 document.getElementById('upload-progress-container').style.display = 'block';
                 document.getElementById('upload-bar').style.width = '30%'; 
                 
                 if (isLocalMode) {
-                    // Simulación Local
                     data.fileUrl = '#'; 
                     data.fileName = file.name;
-                    alert("⚠️ Modo Local: El archivo no se ha subido a la nube real.");
+                    alert("⚠️ Modo GitHub/Local: Configura la variable MANUAL_FIREBASE_CONFIG en el código para subir archivos reales.");
                     document.getElementById('upload-bar').style.width = '100%';
                 } else {
                     try {
-                        // Subida Real a Firebase Storage (Compat)
                         const storageRef = storage.ref().child(`artifacts/${APP_ID}/users/${currentUser.uid}/files/${Date.now()}_${file.name}`);
                         await storageRef.put(file);
                         const url = await storageRef.getDownloadURL();
@@ -420,13 +442,13 @@
                         data.fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
                         document.getElementById('upload-bar').style.width = '100%';
                     } catch (error) {
-                        alert("Error subiendo archivo: " + error.message);
+                        alert("Error subiendo: " + error.message);
                         return;
                     }
                 }
             }
 
-            // Guardado de Metadatos
+            // Guardado de Datos
             if (isLocalMode) {
                 const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
                 if (!dbData[currentUser.uid]) dbData[currentUser.uid] = {};
@@ -436,7 +458,6 @@
                 localStorage.setItem(LOCAL_KEY, JSON.stringify(dbData));
                 loadCollection(colName);
             } else {
-                // Firestore Compat
                 await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection(colName).add({
                     ...data,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -447,7 +468,7 @@
         };
 
         window.deleteItem = async (colName, id) => {
-            if(!confirm("¿Eliminar este registro?")) return;
+            if(!confirm("¿Eliminar registro?")) return;
             if(isLocalMode) {
                 const dbData = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
                 const list = dbData[currentUser.uid][colName];
@@ -470,9 +491,7 @@
             }
 
             let html = '<table><thead><tr>';
-            schemas[colName].forEach(f => {
-                 if (f.type !== 'file') html += `<th>${f.label}</th>`;
-            });
+            schemas[colName].forEach(f => { if (f.type !== 'file') html += `<th>${f.label}</th>`; });
             if (colName === 'documents') html += `<th>Archivo</th>`;
             html += '<th>Acción</th></tr></thead><tbody>';
 
@@ -486,15 +505,11 @@
                         html += `<td>${val}</td>`;
                     }
                 });
-                
                 if (colName === 'documents') {
-                    if (item.fileUrl && item.fileUrl !== '#') {
-                        html += `<td><a href="${item.fileUrl}" target="_blank" class="btn-download">⬇ Descargar</a></td>`;
-                    } else {
-                        html += `<td><span style="color:#aaa; font-size:0.8rem;">Local/Sin Archivo</span></td>`;
-                    }
+                    html += item.fileUrl && item.fileUrl !== '#' 
+                        ? `<td><a href="${item.fileUrl}" target="_blank" class="btn-download">⬇ Abrir</a></td>`
+                        : `<td><span style="color:#aaa; font-size:0.8rem;">Local</span></td>`;
                 }
-
                 html += `<td><button style="color:red; background:none; border:none; cursor:pointer;" onclick="window.deleteItem('${colName}', '${item.id}')">Eliminar</button></td></tr>`;
             });
             html += '</tbody></table>';
@@ -511,7 +526,7 @@
             if(colName === 'documents') document.getElementById('kpi-documents').textContent = items.length;
         }
 
-        // --- MODAL Y HELPERS ---
+        // --- MODAL ---
         window.openCreateModal = () => {
             const fields = schemas[currentView];
             if(!fields) return;
@@ -521,13 +536,9 @@
             
             fields.forEach(f => {
                 let input;
-                if(f.type === 'select') {
-                    input = `<select id="inp-${f.id}" class="form-input">${f.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
-                } else if (f.type === 'file') {
-                    input = `<input id="inp-${f.id}" type="file" class="form-input">`;
-                } else {
-                    input = `<input id="inp-${f.id}" type="${f.type}" class="form-input" placeholder="${f.label}">`;
-                }
+                if(f.type === 'select') input = `<select id="inp-${f.id}" class="form-input">${f.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+                else if (f.type === 'file') input = `<input id="inp-${f.id}" type="file" class="form-input">`;
+                else input = `<input id="inp-${f.id}" type="${f.type}" class="form-input" placeholder="${f.label}">`;
                 container.innerHTML += `<div><label class="form-label">${f.label}</label>${input}</div>`;
             });
             
@@ -542,34 +553,26 @@
                 
                 fields.forEach(f => {
                     const el = document.getElementById(`inp-${f.id}`);
-                    if (f.type === 'file') {
-                        if (el.files.length > 0) file = el.files[0];
-                    } else {
+                    if (f.type === 'file') { if (el.files.length > 0) file = el.files[0]; }
+                    else {
                         const val = el.value;
                         if(!val) valid = false;
                         data[f.id] = val;
                     }
                 });
 
-                if(!valid) return alert("Completa todos los campos de texto");
-                
+                if(!valid) return alert("Completa los campos de texto");
                 const btn = document.getElementById('modal-save-btn');
-                btn.disabled = true;
-                btn.textContent = "Guardando...";
-                
+                btn.disabled = true; btn.textContent = "Guardando...";
                 await window.addItem(currentView, data, file);
-                
-                btn.disabled = false;
-                btn.textContent = "Guardar";
+                btn.disabled = false; btn.textContent = "Guardar";
                 window.closeModal();
             };
         };
 
         window.closeModal = () => document.getElementById('generic-modal').style.display = 'none';
 
-        // INICIAR
         initSystem();
-
     </script>
 </body>
 </html>
