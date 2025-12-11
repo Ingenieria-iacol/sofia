@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entalpia | Hub de Ingeniería</title>
-    <!-- Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Fuente Roboto -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <style>
@@ -203,7 +201,6 @@
 
     <audio id="bg-music" loop><source src="" type="audio/mpeg"></audio>
 
-    <!-- 1. LOGIN PRINCIPAL -->
     <div id="login-screen">
         <div class="login-box-static">
             <h1 class="login-title">Entalpia</h1>
@@ -212,7 +209,6 @@
                 <input type="text" id="user-static" class="login-input" placeholder="Usuario" required>
                 <div class="password-wrapper">
                     <input type="password" id="pass-static" class="login-input" placeholder="Contraseña" style="margin-bottom:0;" required>
-                    <!-- CORREGIDO: Se pasa 'this' explícitamente a la función para no depender de la estructura del DOM -->
                     <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('pass-static', this)"></i>
                 </div>
                 <div style="margin-bottom: 20px;"></div>
@@ -228,7 +224,6 @@
         </div>
     </div>
 
-    <!-- 2. INTERFAZ PRINCIPAL -->
     <div id="main-interface" class="hidden">
         <nav id="navbar" class="navbar">
             <div style="display:flex; align-items:center; gap:40px;">
@@ -241,6 +236,8 @@
             </div>
             
             <div class="user-menu">
+                <i id="audio-toggle" class="fas fa-volume-up" style="cursor:pointer; color:#ccc; margin-right:15px;" onclick="toggleAudio()" title="Silenciar/Activar Sonido"></i>
+
                 <div class="search-box" id="search-box">
                     <i class="fas fa-search" onclick="toggleBuscador()" style="cursor:pointer; font-size:1.1rem; color:#ccc;"></i>
                     <input type="text" id="search-input" class="search-input" placeholder="Títulos, categorías..." oninput="filtrarContenido(this.value)">
@@ -276,7 +273,6 @@
         </footer>
     </div>
 
-    <!-- 3. PROFILE GATE -->
     <div id="profile-gate">
         <h1 class="gate-title">Perfiles</h1>
         <div class="gate-profiles">
@@ -293,7 +289,6 @@
         <button class="btn gate-close" onclick="cerrarGate()">VOLVER AL MENU</button>
     </div>
 
-    <!-- 4. MODAL LOGIN SECUNDARIO -->
     <div id="dynamic-login-modal" class="modal-base">
         <div class="modal-login-content" id="modal-content-style">
             <button onclick="cerrarLoginSecundario()" style="position:absolute; top:20px; right:25px; background:none; border:none; color:gray; font-size:1.8rem; cursor:pointer;">&times;</button>
@@ -308,7 +303,6 @@
         </div>
     </div>
 
-    <!-- 5. MODAL EDITAR PERFIL -->
     <div id="edit-profile-modal" class="modal-base">
         <div class="edit-profile-box">
             <button onclick="document.getElementById('edit-profile-modal').style.display='none'" style="position:absolute; top:20px; right:25px; background:none; border:none; color:gray; font-size:1.8rem; cursor:pointer;">&times;</button>
@@ -352,7 +346,6 @@
         </div>
     </div>
 
-    <!-- 6. MODAL MEMBRESIA -->
     <div id="membership-modal" class="modal-base">
         <div class="membership-box">
             <i class="fas fa-check-circle" style="font-size:5rem; color:var(--secondary-green); margin-bottom:25px;"></i>
@@ -362,7 +355,6 @@
         </div>
     </div>
 
-    <!-- AUXILIARES -->
     <div id="video-modal" class="modal-base" onclick="this.style.display='none'; document.getElementById('promo-video').pause();">
         <button style="position:absolute; top:30px; right:30px; background:none; border:none; color:white; font-size:2.5rem; cursor:pointer;">&times;</button>
         <video id="promo-video" controls src="VideoSaberMas.mp4"></video>
@@ -563,35 +555,82 @@
         
         const fallbackImg = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070";
 
-        // --- AUDIO PERSISTENTE ---
-        const EPIC_TRACKS = [
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
+        // --- AUDIO PERSISTENTE (MODIFICADO) ---
+        // Pistas de naturaleza y ambiente
+        const NATURE_TRACKS = [
+            "https://actions.google.com/sounds/v1/water/waves_crashing.ogg", // Olas de mar
+            "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", // Lluvia fuerte
+            "https://actions.google.com/sounds/v1/weather/strong_wind_whistling.ogg", // Viento
+            "https://actions.google.com/sounds/v1/ambiences/night_crickets_water_lapping.ogg" // Noche/Grillos
         ];
         const audioPlayer = document.getElementById('bg-music');
+        let isMuted = false;
+        let rotacionIntervalo;
 
         function gestionarMusica() {
+            // Verificar si hay una pista guardada o iniciar una nueva
             const savedTime = localStorage.getItem('audio_time');
             const savedTrack = localStorage.getItem('audio_track');
             
-            if (savedTrack && savedTime) {
+            if (savedTrack && NATURE_TRACKS.includes(savedTrack)) {
                 audioPlayer.src = savedTrack;
-                audioPlayer.currentTime = parseFloat(savedTime);
+                if(savedTime) audioPlayer.currentTime = parseFloat(savedTime);
             } else {
-                const randomTrack = EPIC_TRACKS[Math.floor(Math.random() * EPIC_TRACKS.length)];
-                audioPlayer.src = randomTrack;
-                localStorage.setItem('audio_track', randomTrack);
+                cambiarPistaAleatoria();
             }
-            // Catch error if autoplay is blocked
+
+            // Intentar reproducir
             const playPromise = audioPlayer.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => { 
-                    console.log("Autoplay prevenido por el navegador, se activará al hacer click.");
-                    document.body.addEventListener('click', () => { audioPlayer.play(); }, { once: true }); 
+                    console.log("Autoplay prevenido, esperando interacción.");
+                    // Si falla el autoplay, mostrar botón en estado 'mute'
+                    isMuted = true;
+                    actualizarIconoAudio();
                 });
             }
+
+            // Iniciar rotación cada 12 minutos (12 * 60 * 1000 = 720000 ms)
+            if(rotacionIntervalo) clearInterval(rotacionIntervalo);
+            rotacionIntervalo = setInterval(() => {
+                if(!audioPlayer.paused && !isMuted) {
+                    cambiarPistaAleatoria();
+                }
+            }, 720000); 
         }
+
+        function cambiarPistaAleatoria() {
+            const randomTrack = NATURE_TRACKS[Math.floor(Math.random() * NATURE_TRACKS.length)];
+            audioPlayer.src = randomTrack;
+            localStorage.setItem('audio_track', randomTrack);
+            audioPlayer.play().catch(e => console.log(e));
+        }
+
+        function toggleAudio() {
+            const icon = document.getElementById('audio-toggle');
+            if (audioPlayer.paused || isMuted) {
+                audioPlayer.play();
+                isMuted = false;
+            } else {
+                audioPlayer.pause();
+                isMuted = true;
+            }
+            actualizarIconoAudio();
+        }
+
+        function actualizarIconoAudio() {
+            const icon = document.getElementById('audio-toggle');
+            if(isMuted) {
+                icon.classList.remove('fa-volume-up');
+                icon.classList.add('fa-volume-mute');
+                icon.style.color = "#777";
+            } else {
+                icon.classList.remove('fa-volume-mute');
+                icon.classList.add('fa-volume-up');
+                icon.style.color = "#ccc";
+            }
+        }
+
         audioPlayer.addEventListener('timeupdate', () => { localStorage.setItem('audio_time', audioPlayer.currentTime); });
 
         // --- INICIALIZACIÓN DE SESIÓN ---
