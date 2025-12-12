@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IngenieroCAD - P&ID Web V6 (Precisión y Líneas)</title>
+    <title>IngenieroCAD - P&ID Web V7 (Soportes Realistas)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -104,9 +104,9 @@
             Wifi: <path d="M5 12.55a11 11 0 0 1 14.08 0" />,
             Heater: <React.Fragment><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M8 10h8"/><path d="M8 14h8"/><path d="M8 18h8"/></React.Fragment>,
             // NUEVOS ICONOS PERIFÉRICOS
-            SupportBase: <path d="M12 4v12M8 16h8M6 20h12" />,
-            SupportHanger: <React.Fragment><path d="M12 20V4"/><path d="M9 4h6"/></React.Fragment>,
-            SupportClamp: <React.Fragment><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor"/><path d="M4 12h16"/></React.Fragment>
+            SupportBase: <React.Fragment><path d="M12 8v12"/><path d="M8 20h8"/><path d="M8 8a4 4 0 0 0 8 0"/></React.Fragment>,
+            SupportHanger: <React.Fragment><path d="M12 4v12"/><circle cx="12" cy="16" r="4"/><path d="M9 4h6"/><path d="M10 2l4 4"/><path d="M14 2l-4 4"/></React.Fragment>,
+            SupportClamp: <React.Fragment><circle cx="8" cy="12" r="6"/><path d="M14 12h8"/><rect x="13" y="10" width="2" height="4"/></React.Fragment>
         };
 
         const GRID_SIZE = 40; 
@@ -624,23 +624,72 @@
                         // Ticks eliminados
                         break;
                     case TOOLS.BASE_SUPPORT:
-                        const bsW = baseSize * 0.8; const bsH = baseSize * 1.2;
-                        ctx.moveTo(0, 0); ctx.lineTo(0, bsH);
-                        ctx.moveTo(-bsW, bsH); ctx.lineTo(bsW, bsH);
+                        // New realistic base support: Saddle + Post + Base
+                        const bsW = baseSize * 0.8; 
+                        const bsH = baseSize * 1.2;
+                        const pipeR = baseSize * 0.4;
+                        
+                        // Saddle (Cuna)
+                        ctx.beginPath();
+                        ctx.arc(0, 0, pipeR, 0, Math.PI); // Half circle for saddle
+                        ctx.stroke();
+                        
+                        // Vertical Post
+                        ctx.beginPath();
+                        ctx.moveTo(0, pipeR); 
+                        ctx.lineTo(0, bsH);
+                        ctx.stroke();
+                        
+                        // Base
+                        ctx.beginPath();
+                        ctx.moveTo(-bsW, bsH); 
+                        ctx.lineTo(bsW, bsH);
                         ctx.stroke();
                         break;
                     case TOOLS.HANGER:
-                        const hH = baseSize * 1.5; const hW = baseSize * 0.4;
-                        ctx.moveTo(0, 0); ctx.lineTo(0, -hH); 
-                        ctx.moveTo(-hW, -hH); ctx.lineTo(hW, -hH);
-                        ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                        // New realistic hanger: Strap + Rod + Threaded Top
+                        const hH = baseSize * 1.8; 
+                        const hW = baseSize * 0.4;
+                        const strapR = baseSize * 0.45;
+
+                        // Strap around pipe
+                        ctx.beginPath();
+                        ctx.arc(0, 0, strapR, 0, 2*Math.PI);
+                        ctx.stroke();
+
+                        // Rod up
+                        ctx.beginPath();
+                        ctx.moveTo(0, -strapR);
+                        ctx.lineTo(0, -hH);
+                        ctx.stroke();
+
+                        // Threaded Top / Anchor
+                        ctx.beginPath();
+                        ctx.moveTo(-hW, -hH);
+                        ctx.lineTo(hW, -hH); // Top bar
+                        // Small zigzag for threads
+                        ctx.moveTo(-hW/2, -hH); ctx.lineTo(hW/2, -hH + 5); ctx.moveTo(-hW/2, -hH + 5); ctx.lineTo(hW/2, -hH + 10);
+                        ctx.stroke();
                         break;
                     case TOOLS.CLAMP:
-                        const cR = baseSize * 0.4;
-                        ctx.arc(0, 0, cR, 0, Math.PI); 
+                        // New realistic clamp: Two parts + bolts
+                        const cR = baseSize * 0.45;
+                        const lugSize = 4;
+                        
+                        // Main circle
+                        ctx.beginPath();
+                        ctx.arc(0, 0, cR, 0, 2*Math.PI);
                         ctx.stroke();
-                        ctx.beginPath(); ctx.moveTo(-cR, 0); ctx.lineTo(-cR-5, 0); 
-                        ctx.moveTo(cR, 0); ctx.lineTo(cR+5, 0); ctx.stroke();
+                        
+                        // Lugs (ears) for bolts
+                        ctx.strokeRect(-cR - lugSize, -lugSize/2, lugSize, lugSize); // Left lug
+                        ctx.strokeRect(cR, -lugSize/2, lugSize, lugSize); // Right lug
+                        
+                        // Anchor rod extending right
+                        ctx.beginPath();
+                        ctx.moveTo(cR + lugSize, 0);
+                        ctx.lineTo(cR + lugSize + baseSize, 0);
+                        ctx.stroke();
                         break;
                     case TOOLS.FLANGE:
                         const fH = baseSize * 0.8; const fW = baseSize * 0.3;
@@ -800,7 +849,10 @@
 
             // --- Helper: Update Selection Properties ---
             const updateSelectedRotationDeg = (deg) => {
-                 const rad = (parseFloat(deg) * Math.PI) / 180;
+                 // Ensure rotation wraps nicely
+                 let d = parseFloat(deg) % 360;
+                 if (d < 0) d += 360;
+                 const rad = (d * Math.PI) / 180;
                  setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, rotation: rad } : el));
             };
             const updateSelectedScale = (val) => { const num = parseFloat(val); if (isNaN(num) || num <= 0) return; setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, elementScale: num } : el)); };
@@ -912,14 +964,10 @@
                 
                 if (el.type === TOOLS.TEXT) {
                     // Improved Hit Box for Text
-                    // Approximate width: chars * fontSize * 0.6 (average char width factor for monospace)
                     const fontSize = el.fontSize || (GRID_SIZE * 0.35);
                     const text = el.text || "Texto";
-                    const estWidth = text.length * fontSize * 0.6 + 10; // +10 padding
-                    const estHeight = fontSize + 10; // +10 padding
-                    
-                    // Assuming text is drawn at x1, y1 (baseline left). Box goes UP from baseline.
-                    // Let's broaden the box to be user friendly: centered vertically on y1 somewhat
+                    const estWidth = text.length * fontSize * 0.6 + 10;
+                    const estHeight = fontSize + 10; 
                     return (
                         pos.x >= el.x1 - 5 && 
                         pos.x <= el.x1 + estWidth &&
@@ -928,11 +976,10 @@
                     );
                 } 
                 else if (el.type === TOOLS.TRAMO_DATA) {
-                    // TRAMO_DATA box
                     return (
                         pos.x >= el.x1 - 5 && 
                         pos.x <= el.x1 + 130 &&
-                        pos.y >= el.y1 - 60 && // Approx height of the multi-line text block going up
+                        pos.y >= el.y1 - 60 && 
                         pos.y <= el.y1 + 10
                     );
                 }
@@ -941,14 +988,9 @@
                     let param = -1; if (lenSq !== 0) param = dot / lenSq; let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; }
                     return Math.sqrt((pos.x - xx)**2 + (pos.y - yy)**2) < tol;
                 } else if (el.type === TOOLS.RECTANGLE) {
-                    // Check near borders
                     return (Math.abs(pos.x - el.x1) < tol || Math.abs(pos.x - el.x2) < tol) && (pos.y > Math.min(el.y1, el.y2) && pos.y < Math.max(el.y1, el.y2)) || (Math.abs(pos.y - el.y1) < tol || Math.abs(pos.y - el.y2) < tol) && (pos.x > Math.min(el.x1, el.x2) && pos.x < Math.max(el.x1, el.x2));
                 } else {
-                    // Symbols (Circle, Valve, Tee, etc.)
-                    // Use visual size based on elementScale
                     const localScale = el.elementScale || 1;
-                    // Visual radius is roughly GRID_SIZE * 0.6 * localScale / 2 ~= 12 * scale
-                    // But let's be generous: GRID_SIZE * 0.6 * localScale
                     const visualRadius = (GRID_SIZE * 0.6 * localScale);
                     const d = Math.sqrt((pos.x - el.x1)**2 + (pos.y - el.y1)**2); 
                     return d < visualRadius; 
