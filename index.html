@@ -1,4 +1,4 @@
-      <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -92,10 +92,26 @@
         
         .nav-logo { color: var(--primary-blue); font-size: 1.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; text-shadow: 0 0 10px rgba(0, 113, 235, 0.4); }
         
-        .nav-links { display: flex; gap: 25px; font-size: 0.95rem; font-weight: 500; color: var(--text-gray); }
+        .nav-links { display: flex; gap: 25px; font-size: 0.95rem; font-weight: 500; color: var(--text-gray); align-items: center; }
         .nav-item { cursor: pointer; transition: color 0.3s; } 
         .nav-item:hover, .nav-item.active { color: white; font-weight: 700; }
         
+        /* BOTÓN PLANES DESTACADO */
+        .nav-btn-planes {
+            background-color: var(--primary-blue);
+            color: white !important;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .nav-btn-planes:hover {
+            background-color: #005bb5;
+            box-shadow: 0 0 12px rgba(0, 113, 235, 0.6);
+            transform: scale(1.05);
+        }
+
         .user-menu { display: flex; align-items: center; gap: 20px; font-size: 1.1rem; }
         .profile-badge { border: 1px solid rgba(255,255,255,0.3); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; transition: all 0.3s; letter-spacing: 1px; }
         
@@ -232,6 +248,8 @@
                     <a href="interfazDeOpcionInicio.html" class="nav-item">Inicio</a>
                     <a href="#" class="nav-item active" onclick="location.reload()">Herramientas</a>
                     <span class="nav-item">Mi Lista</span>
+                    <!-- Botón Planes Agregado -->
+                    <a href="ModalPrecios.html" class="nav-item nav-btn-planes">Planes</a>
                 </div>
             </div>
             
@@ -1019,12 +1037,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
