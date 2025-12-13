@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IngenieroCAD - P&ID Web V12 (Tuberías & Capas)</title>
+    <title>IngenieroCAD - P&ID Web V13 (Precisión & Diámetros)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -153,12 +153,11 @@
 
             elements.forEach(el => {
                 if (el.type === TOOLS.LINE && el.customData) {
-                     // Lines acting as pipes
                     const c = el.customData;
                     const desc = `Tubería ${c.material || 'Genérica'}`;
                     const spec = `Ø ${c.diameter || '?'}`;
                     const lenPx = Math.sqrt(Math.pow(el.x2-el.x1, 2) + Math.pow(el.y2-el.y1, 2));
-                    const lenM = (lenPx / GRID_SIZE); // Assuming 1 grid unit = 1 meter approx for BOM
+                    const lenM = (lenPx / GRID_SIZE); 
                     addToBom(desc, spec, lenM, 'm');
                 }
                 else if (el.type === TOOLS.TRAMO_DATA && el.tagMetadata) {
@@ -189,10 +188,13 @@
                             case TOOLS.MANOMETER: 
                                 const type = c.manometerType || 'Media';
                                 const range = c.range || '-';
-                                const unit = c.manometerUnit || '-';
+                                const unit = (type === 'Baja') ? (c.manometerUnit || 'mbar') : (c.manometerUnit || 'psi');
                                 desc = `Manómetro (${type})`; 
                                 spec = `${range} ${unit}`; 
                                 break;
+                            case TOOLS.NIPPLE: desc = 'Niple'; spec = `Ø ${c.diameter || '-'}`; break;
+                            case TOOLS.PLUG: desc = `Tapón ${c.gender || ''}`; spec = `Ø ${c.diameter || '-'} | ${c.pressure || '-'}`; break;
+                            case TOOLS.TERMINAL: desc = `Terminal ${c.gender || ''}`; spec = `Ø ${c.diameter || '-'} | ${c.pressure || '-'}`; break;
                             default:
                                 const group = Object.keys(SYMBOL_GROUPS).find(k => SYMBOL_GROUPS[k].find(i => i.id === el.type));
                                 const itemDef = group ? SYMBOL_GROUPS[group].find(i => i.id === el.type) : null;
@@ -678,7 +680,7 @@
             const getSymbolSnapPoints = (el) => { const localScale = el.elementScale || 1; const baseSize = GRID_SIZE * 0.6 * localScale; const points = []; const angle = el.rotation || 0; const cos = Math.cos(angle); const sin = Math.sin(angle); const trans = (lx, ly) => ({ x: lx * cos - ly * sin + el.x1, y: lx * sin + ly * cos + el.y1 }); if (el.type === TOOLS.TEE) { const s = baseSize * 0.8; const validBranches = getValidBranchAngles(angle); const flipIndex = el.extraData && el.extraData.flipIndex ? el.extraData.flipIndex : 0; const branchAngle = validBranches[flipIndex % validBranches.length]; const bx = Math.cos(branchAngle) * s; const by = Math.sin(branchAngle) * s; points.push(trans(-s, 0)); points.push(trans(s, 0)); points.push({x: el.x1 + bx, y: el.y1 + by}); } else if (el.type === TOOLS.ELBOW_90) { const r = baseSize * 0.8; points.push(trans(0, 0)); points.push(trans(-r, 0)); points.push(trans(0, r)); } else if ([TOOLS.VALVE, TOOLS.REGULATOR, TOOLS.FILTER, TOOLS.UNION_UNIVERSAL, TOOLS.UNION_TUBE].includes(el.type)) { const s = baseSize * 0.8; points.push(trans(-s, 0)); points.push(trans(s, 0)); } else if (el.type === TOOLS.REDUCER) { const l = baseSize * 1.2; points.push(trans(-l/2, 0)); points.push(trans(l/2, 0)); } else if (el.type === TOOLS.NIPPLE) { const nipL = baseSize * 1.5; points.push(trans(-nipL/2, 0)); points.push(trans(nipL/2, 0)); } else if (el.type === TOOLS.BASE_SUPPORT) { const bsH = baseSize * 1.2; points.push(trans(0, 0)); points.push(trans(0, bsH)); } else if (el.type === TOOLS.HANGER) { const hH = baseSize * 1.5; points.push(trans(0, 0)); points.push(trans(0, -hH)); } else { points.push({x: el.x1, y: el.y1}); } return points; };
             const getNearestEndpoint = (pos) => { let nearest = null; let minDist = 15 / scale; const visibleLayersIds = new Set(layers.filter(l => l.visible).map(l => l.id)); const visibleElements = elements.filter(el => !el.layerId || visibleLayersIds.has(el.layerId)); visibleElements.forEach(el => { if (el.x2 !== undefined) { const d1 = Math.sqrt((pos.x - el.x1)**2 + (pos.y - el.y1)**2); if (d1 < minDist) { minDist = d1; nearest = { x: el.x1, y: el.y1 }; } const d2 = Math.sqrt((pos.x - el.x2)**2 + (pos.y - el.y2)**2); if (d2 < minDist) { minDist = d2; nearest = { x: el.x2, y: el.y2 }; } } const SYMBOL_TOOLS = Object.values(TOOLS).filter(t => ![TOOLS.SELECT, TOOLS.PAN, TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.BEZIER, TOOLS.TEXT, TOOLS.DIMENSION, TOOLS.TAG, TOOLS.TRAMO_DATA].includes(t)); if (SYMBOL_TOOLS.includes(el.type)) { const snaps = getSymbolSnapPoints(el); snaps.forEach(pt => { const d = Math.sqrt((pos.x - pt.x)**2 + (pos.y - pt.y)**2); if (d < minDist) { minDist = d; nearest = pt; } }); } }); return nearest; };
             const getNearestLine = (pos) => { let nearest = null; let minDist = 15 / scale; elements.forEach(el => { const layer = layers.find(l => l.id === el.layerId); if (layer && !layer.visible) return; if (el.type === TOOLS.LINE) { const { x1, y1, x2, y2 } = el; const A = pos.x - x1; const B = pos.y - y1; const C = x2 - x1; const D = y2 - y1; const dot = A * C + B * D; const lenSq = C * C + D * D; let param = -1; if (lenSq !== 0) param = dot / lenSq; let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; } const dist = Math.sqrt((pos.x - xx)**2 + (pos.y - yy)**2); if (dist < minDist) { minDist = dist; nearest = { x: xx, y: yy, angle: Math.atan2(y2 - y1, x2 - x1) }; } } }); return nearest; };
-            const checkHit = (pos, el) => { const tol = 10 / scale; if (el.type === TOOLS.TEXT) { const fontSize = el.fontSize || (GRID_SIZE * 0.35); const text = el.text || "Texto"; const estWidth = text.length * fontSize * 0.6 + 10; const estHeight = fontSize + 10; return ( pos.x >= el.x1 - 5 && pos.x <= el.x1 + estWidth && pos.y >= el.y1 - estHeight && pos.y <= el.y1 + 5 ); } else if (el.type === TOOLS.TRAMO_DATA) { return ( pos.x >= el.x1 - 5 && pos.x <= el.x1 + 130 && pos.y >= el.y1 - 60 && pos.y <= el.y1 + 10 ); } else if (el.type === TOOLS.LINE || el.type === TOOLS.DIMENSION) { const {x1, y1, x2, y2} = el; const A = pos.x - x1; const B = pos.y - y1; const C = x2 - x1; const D = y2 - y1; const dot = A * C + B * D; const lenSq = C * C + D * D; let param = -1; if (lenSq !== 0) param = dot / lenSq; let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; } return Math.sqrt((pos.x - xx)**2 + (pos.y - yy)**2) < tol; } else if (el.type === TOOLS.RECTANGLE) { return (Math.abs(pos.x - el.x1) < tol || Math.abs(pos.x - el.x2) < tol) && (pos.y > Math.min(el.y1, el.y2) && pos.y < Math.max(el.y1, el.y2)) || (Math.abs(pos.y - el.y1) < tol || Math.abs(pos.y - el.y2) < tol) && (pos.x > Math.min(el.x1, el.x2) && pos.x < Math.max(el.x1, el.x2)); } else { const localScale = el.elementScale || 1; const visualRadius = (GRID_SIZE * 0.6 * localScale); const d = Math.sqrt((pos.x - el.x1)**2 + (pos.y - el.y1)**2); return d < visualRadius; } };
+            const checkHit = (pos, el) => { const tol = 10 / scale; if (el.type === TOOLS.TEXT) { const fontSize = el.fontSize || (GRID_SIZE * 0.35); const text = el.text || "Texto"; const estWidth = text.length * fontSize * 0.6 + 10; const estHeight = fontSize + 10; return ( pos.x >= el.x1 - 5 && pos.x <= el.x1 + estWidth && pos.y >= el.y1 - estHeight && pos.y <= el.y1 + 5 ); } else if (el.type === TOOLS.TRAMO_DATA) { return ( pos.x >= el.x1 - 5 && pos.x <= el.x1 + 130 && pos.y >= el.y1 - 60 && pos.y <= el.y1 + 10 ); } else if (el.type === TOOLS.LINE || el.type === TOOLS.DIMENSION) { const {x1, y1, x2, y2} = el; const A = pos.x - x1; const B = pos.y - y1; const C = x2 - x1; const D = y2 - y1; const dot = A * C + B * D; const lenSq = C * C + D * D; let param = -1; if (lenSq !== 0) param = dot / lenSq; let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; } return Math.sqrt((pos.x - xx)**2 + (pos.y - yy)**2) < tol; } else if (el.type === TOOLS.RECTANGLE) { return (Math.abs(pos.x - el.x1) < tol || Math.abs(pos.x - el.x2) < tol) && (pos.y > Math.min(el.y1, el.y2) && pos.y < Math.max(el.y1, el.y2)) || (Math.abs(pos.y - el.y1) < tol || Math.abs(pos.y - el.y2) < tol) && (pos.x > Math.min(el.x1, el.x2) && pos.x < Math.max(el.x1, el.x2)); } else { const localScale = el.elementScale || 1; const visualRadius = (GRID_SIZE * 0.4 * localScale); const d = Math.sqrt((pos.x - el.x1)**2 + (pos.y - el.y1)**2); return d < visualRadius; } };
             const handleMouseDown = (e) => { if (contextMenu.visible) return; const screenPos = { x: e.clientX - canvasRef.current.getBoundingClientRect().left, y: e.clientY - canvasRef.current.getBoundingClientRect().top }; let worldPos = screenToWorld(screenPos.x, screenPos.y); if (e.button === 1 || tool === TOOLS.PAN) { setIsPanning(true); setLastMousePos(screenPos); return; } if (tool === TOOLS.SELECT) { const clickedElement = elements.slice().reverse().find(el => { const layer = layers.find(l => l.id === el.layerId); if (layer && !layer.visible) return false; return checkHit(worldPos, el); }); if (clickedElement) { if (e.shiftKey) { if (selectedIds.includes(clickedElement.id)) { setSelectedIds(prev => prev.filter(id => id !== clickedElement.id)); } else { setSelectedIds(prev => [...prev, clickedElement.id]); } } else { if (!selectedIds.includes(clickedElement.id)) { setSelectedIds([clickedElement.id]); } setIsDraggingSelected(true); setDragStartPos(worldPos); } } else { if (!e.shiftKey) setSelectedIds([]); } return; } if (snapPoint) worldPos = snapPoint; if (tool === TOOLS.TAG) { setContextMenu({ visible: false }); setContextMenu({ visible: true, x: e.clientX, y: e.clientY, worldX: worldPos.x, worldY: worldPos.y }); return; } if (tool === TOOLS.DIMENSION) { if (dimensionStep === 0) { setCurrentElement({ id: Date.now(), type: TOOLS.DIMENSION, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, color: '#fbbf24', lineWidth: 1, lineStyle: lineStyle, layerId: activeLayer }); setDimensionStep(1); } else { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setDimensionStep(0); } return; } if (tool === TOOLS.TEXT) { setTextPos(worldPos); setShowTextModal(true); return; } if (tool === TOOLS.BEZIER) { if (bezierStep === 0) { setCurrentElement({ id: Date.now(), type: TOOLS.BEZIER, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, cx: worldPos.x, cy: worldPos.y, color, lineWidth, lineStyle: lineStyle, layerId: activeLayer }); setBezierStep(1); } else { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setBezierStep(0); } return; } const IS_SYMBOL_TOOL = Object.values(TOOLS).includes(tool) && ![TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.BEZIER, TOOLS.TEXT, TOOLS.DIMENSION, TOOLS.SELECT, TOOLS.PAN, TOOLS.TAG, TOOLS.TRAMO_DATA].includes(tool); if (IS_SYMBOL_TOOL) { const defaultCustomData = {}; const rotation = snapRotation !== null ? snapRotation : (flipRotation * 30 * Math.PI / 180); setElements(prev => [...prev, { id: Date.now(), type: tool, x1: mouseWorldPos.x, y1: mouseWorldPos.y, x2: mouseWorldPos.x, y2: mouseWorldPos.y, color, lineWidth, lineStyle: lineStyle, rotation: rotation, extraData: { flipIndex: 0 }, customData: defaultCustomData, anchor, layerId: activeLayer, elementScale: 1 }]); return; } setCurrentElement({ id: Date.now(), type: tool, x1: worldPos.x, y1: worldPos.y, x2: worldPos.x, y2: worldPos.y, color, lineWidth, lineStyle: lineStyle, layerId: activeLayer }); if (tool === TOOLS.LINE) setDrawingLength(''); };
             const handleMouseMove = (e) => { const screenPos = { x: e.clientX - canvasRef.current.getBoundingClientRect().left, y: e.clientY - canvasRef.current.getBoundingClientRect().top }; const worldPos = screenToWorld(screenPos.x, screenPos.y); if (isPanning) { setOffset(prev => ({ x: prev.x + (screenPos.x - lastMousePos.x), y: prev.y + (screenPos.y - lastMousePos.y) })); setLastMousePos(screenPos); setMouseWorldPos(worldPos); return; } if (isDraggingSelected) { const dx = worldPos.x - dragStartPos.x; const dy = worldPos.y - dragStartPos.y; setElements(prev => prev.map(el => { if (selectedIds.includes(el.id)) { let newEl = { ...el }; if (newEl.x1 !== undefined) newEl.x1 += dx; if (newEl.y1 !== undefined) newEl.y1 += dy; if (newEl.x2 !== undefined) newEl.x2 += dx; if (newEl.y2 !== undefined) newEl.y2 += dy; if (newEl.cx !== undefined) newEl.cx += dx; if (newEl.cy !== undefined) newEl.cy += dy; return newEl; } return el; })); setDragStartPos(worldPos); return; } let finalPos = { ...worldPos }; let foundSnap = null; let foundGuide = null; if ([TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.DIMENSION, TOOLS.BEZIER].includes(tool)) { const endpoint = getNearestEndpoint(worldPos); if (endpoint) { foundSnap = endpoint; finalPos = endpoint; } } if (!foundSnap && tool === TOOLS.LINE && currentElement) { const startX = currentElement.x1; const startY = currentElement.y1; const dx = worldPos.x - startX; const dy = worldPos.y - startY; const dist = Math.sqrt(dx*dx + dy*dy); if (dist > 5) { const angle = Math.atan2(dy, dx); const snapAngles = [0, 30, 90, 150, 180, 210, 270, 330, -30, -90, -150, -210, -270, -330]; for (let target of snapAngles) { const targetRad = target * (Math.PI / 180); let diff = Math.abs(angle - targetRad); if (diff > Math.PI) diff = 2 * Math.PI - diff; if (diff < 0.1) { const snapX = startX + dist * Math.cos(targetRad); const snapY = startY + dist * Math.sin(targetRad); finalPos = { x: snapX, y: snapY }; foundGuide = { x1: startX, y1: startY, x2: startX + (dist + 10000) * Math.cos(targetRad), y2: startY + (dist + 10000) * Math.sin(targetRad) }; break; } } } } setSnapPoint(foundSnap); setGuideLine(foundGuide); setMouseWorldPos(finalPos); const IS_SYMBOL_TOOL = Object.values(TOOLS).includes(tool) && ![TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.BEZIER, TOOLS.TEXT, TOOLS.DIMENSION, TOOLS.SELECT, TOOLS.PAN, TOOLS.TAG, TOOLS.TRAMO_DATA].includes(tool); if (IS_SYMBOL_TOOL) { const snapInfo = getNearestLine(worldPos); if (snapInfo) { setMouseWorldPos({ x: snapInfo.x, y: snapInfo.y }); setSnapRotation(snapInfo.angle); } else { setMouseWorldPos(worldPos); setSnapRotation(null); } } if (tool === TOOLS.DIMENSION && currentElement && dimensionStep === 1) { setCurrentElement(prev => ({ ...prev, x2: finalPos.x, y2: finalPos.y })); } if (tool === TOOLS.BEZIER && currentElement && bezierStep === 1) setCurrentElement(prev => ({ ...prev, x2: finalPos.x, y2: finalPos.y, cx: (prev.x1 + finalPos.x)/2, cy: (prev.y1 + finalPos.y)/2 })); if (currentElement && [TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.CIRCLE].includes(tool)) { setCurrentElement(prev => ({ ...prev, x2: finalPos.x, y2: finalPos.y })); } };
             const handleMouseUp = () => { if (isPanning) setIsPanning(false); else if (isDraggingSelected) setIsDraggingSelected(false); else if (![TOOLS.BEZIER, TOOLS.DIMENSION].includes(tool) && currentElement) { setElements(prev => [...prev, currentElement]); setCurrentElement(null); setGuideLine(null); setSnapPoint(null); } };
@@ -789,7 +791,7 @@
 
                                         <div>
                                             <label className="text-xs text-gray-400 mb-1 block">Capa</label>
-                                            <select onChange={(e) => changeSelectionLayer(e.target.value)} className="prop-input" value={elements.find(el => el.id === selectedIds[0])?.layerId || 'default'}>
+                                            <select onChange={(e) => changeSelectionLayer(e.target.value)} className="prop-input">
                                                 <option value="">-- Mover a Capa --</option>
                                                 {layers.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                                             </select>
@@ -899,6 +901,20 @@
                                                             </div>
                                                         </React.Fragment>
                                                     )}
+                                                    
+                                                    {/* Generic Component Diameter Property for all fitting types */}
+                                                    {(el.type === TOOLS.ELBOW_90 || el.type === TOOLS.TEE || el.type === TOOLS.UNION_TUBE || el.type === TOOLS.VALVE || el.type === TOOLS.FLANGE || el.type === TOOLS.UNION_UNIVERSAL || el.type === TOOLS.FILTER || el.type === TOOLS.PLUG || el.type === TOOLS.TERMINAL || el.type === TOOLS.NIPPLE) && (
+                                                         <React.Fragment>
+                                                             <div className="section-title text-green-400">Datos Componente</div>
+                                                             <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                         </React.Fragment>
+                                                    )}
+
+                                                    {el.type === TOOLS.NIPPLE && (
+                                                        <React.Fragment>
+                                                            <div><span className="prop-label">Material</span><select className="prop-input" value={custom.material || ''} onChange={(e) => updateCustomData('material', e.target.value)}>{MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                                                        </React.Fragment>
+                                                    )}
 
                                                     {el.type === TOOLS.REGULATOR && (
                                                         <React.Fragment>
@@ -911,14 +927,12 @@
                                                                 <div><span className="prop-label">Dia. Ent.</span><select className="prop-input" value={custom.diaIn || ''} onChange={(e) => updateCustomData('diaIn', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                                 <div><span className="prop-label">Dia. Sal.</span><select className="prop-input" value={custom.diaOut || ''} onChange={(e) => updateCustomData('diaOut', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                             </div>
-                                                            <div><span className="prop-label">Caudal</span><div className="prop-row"><input type="text" className="prop-input" value={custom.flow || ''} onChange={(e) => updateCustomData('flow', e.target.value)} /><select className="prop-select w-16" value={custom.flowUnit || 'm³/h'} onChange={(e) => updateCustomData('flowUnit', e.target.value)}>{FLOW_UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div></div>
+                                                            <div><span className="prop-label">Caudal (m³/h)</span><input type="text" className="prop-input" value={custom.flow || ''} onChange={(e) => updateCustomData('flow', e.target.value)} /></div>
                                                         </React.Fragment>
                                                     )}
                                                     
                                                     {el.type === TOOLS.ELBOW_90 && (
                                                          <React.Fragment>
-                                                             <div className="section-title text-green-400">Datos Codo</div>
-                                                             <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                              <div><span className="prop-label">Apertura Codo</span>
                                                                  <select className="prop-input" value={custom.bendAngle || 90} onChange={(e) => updateCustomData('bendAngle', parseFloat(e.target.value))}>
                                                                      {ELBOW_ANGLES.map(a => <option key={a.val} value={a.val}>{a.label}</option>)}
@@ -929,16 +943,7 @@
 
                                                     {el.type === TOOLS.VALVE && (
                                                         <React.Fragment>
-                                                            <div className="section-title text-green-400">Datos Válvula</div>
-                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                             <div><span className="prop-label">Tipo</span><select className="prop-input" value={custom.valveType || ''} onChange={(e) => updateCustomData('valveType', e.target.value)}>{VALVE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                                                        </React.Fragment>
-                                                    )}
-
-                                                    {(el.type === TOOLS.TEE || el.type === TOOLS.UNION_TUBE) && (
-                                                        <React.Fragment>
-                                                            <div className="section-title text-green-400">Datos Accesorio</div>
-                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                         </React.Fragment>
                                                     )}
 
@@ -954,8 +959,6 @@
 
                                                     {el.type === TOOLS.FLANGE && (
                                                         <React.Fragment>
-                                                            <div className="section-title text-green-400">Datos Brida</div>
-                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                             <div className="grid grid-cols-2 gap-2">
                                                                 <div><span className="prop-label">Presión</span><select className="prop-input" value={custom.pressure || ''} onChange={(e) => updateCustomData('pressure', e.target.value)}>{FLANGE_PRESSURES.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
                                                                 <div><span className="prop-label">Conexión</span><select className="prop-input" value={custom.connection || ''} onChange={(e) => updateCustomData('connection', e.target.value)}>{FLANGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
@@ -966,8 +969,6 @@
 
                                                     {el.type === TOOLS.UNION_UNIVERSAL && (
                                                         <React.Fragment>
-                                                            <div className="section-title text-green-400">Datos Unión Univ.</div>
-                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                             <div className="grid grid-cols-2 gap-2">
                                                                 <div><span className="prop-label">Asiento</span><select className="prop-input" value={custom.seat || ''} onChange={(e) => updateCustomData('seat', e.target.value)}>{UNION_SEATS.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                                                                 <div><span className="prop-label">Género</span><select className="prop-input" value={custom.gender || ''} onChange={(e) => updateCustomData('gender', e.target.value)}>{GENDERS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
@@ -977,15 +978,12 @@
 
                                                     {el.type === TOOLS.FILTER && (
                                                         <React.Fragment>
-                                                            <div className="section-title text-green-400">Datos Filtro</div>
-                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                                                             <div><span className="prop-label">Micras</span><input type="number" className="prop-input" value={custom.microns || ''} onChange={(e) => updateCustomData('microns', e.target.value)} /></div>
                                                         </React.Fragment>
                                                     )}
 
                                                     {(el.type === TOOLS.PLUG || el.type === TOOLS.TERMINAL) && (
                                                         <React.Fragment>
-                                                            <div className="section-title text-green-400">Datos Terminal</div>
                                                             <div className="grid grid-cols-2 gap-2">
                                                                 <div><span className="prop-label">Género</span><select className="prop-input" value={custom.gender || ''} onChange={(e) => updateCustomData('gender', e.target.value)}>{GENDERS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
                                                                 <div><span className="prop-label">Resistencia</span><input type="text" className="prop-input" placeholder="Ej: 300 psi" value={custom.pressure || ''} onChange={(e) => updateCustomData('pressure', e.target.value)} /></div>
