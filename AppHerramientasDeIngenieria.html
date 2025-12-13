@@ -266,6 +266,8 @@
                 <div id="nav-avatar-icon" class="nav-avatar av-gen" onclick="abrirEditorPerfil()">
                     <i class="fas fa-user"></i>
                 </div>
+                <!-- Botón Cerrar Sesión -->
+                <i class="fas fa-sign-out-alt" style="cursor:pointer; color:#ccc;" onclick="cerrarSesion()" title="Cerrar Sesión"></i>
             </div>
         </nav>
 
@@ -536,6 +538,12 @@
         function cerrarInstallModal() {
             installModal.style.display = 'none';
             safeSetItem('app_install_dismissed', 'true'); 
+        }
+
+        // --- FUNCION CERRAR SESION ---
+        function cerrarSesion() {
+            try { localStorage.removeItem('sofia_session'); } catch(e) {}
+            window.location.href = "Index.html"; 
         }
 
         // --- INICIALIZACIÓN ---
