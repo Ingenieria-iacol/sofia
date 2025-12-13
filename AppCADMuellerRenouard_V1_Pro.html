@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IngenieroCAD - P&ID Web V7 (Soportes Realistas)</title>
+    <title>IngenieroCAD - P&ID Web V8 (Propiedades Inteligentes)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -183,6 +183,13 @@
         const MATERIALS = ['Ag', 'Ac', 'Cu Flex', 'Cu Rig', 'Multicapa', 'PEAD'];
         const DIAMETERS = ['1/4"', '3/8"', '1/2"', '3/4"', '1"', '1 1/4"', '1 1/2"', '2"', '2 1/2"', '3"', '4"', '6"', '8"'];
         
+        const VALVE_TYPES = ['Cuarto de vuelta', 'Aguja', 'Actuada', 'Antirretorno', 'Exceso de flujo', 'Break away'];
+        const FLANGE_PRESSURES = ['150 psi', '300 psi', '3000 psi'];
+        const FLANGE_TYPES = ['Soldar', 'Roscar'];
+        const UNION_SEATS = ['Plano', 'Cónico'];
+        const GENDERS = ['Hembra', 'Macho'];
+        const BURNER_TYPES = ['Anillo', 'Flauta', 'Corona', 'Cañón', 'Combustión Asistida'];
+
         const DIAMETER_DB = {
             'Ag': { '1/2"': 21.34, '3/4"': 26.67, '1"': 33.40, '1 1/4"': 42.16, '1 1/2"': 48.26, '2"': 60.33, '3"': 88.90, '4"': 114.30, '6"': 168.30, '8"': 219.10 },
             'Ac': { '1/2"': 15.8, '3/4"': 20.9, '1"': 26.6, '1 1/4"': 35.1, '1 1/2"': 40.9, '2"': 52.5, '2 1/2"': 62.7, '3"': 77.9, '4"': 102.3, '6"': 154.1, '8"': 202.7 },
@@ -824,29 +831,6 @@
                 } catch (e) { alert("Error PDF: " + e.message); }
             };
 
-            const exportExcel = (metadata) => {
-                setDownloadModal({ visible: false, type: null });
-                if (!window.XLSX || elements.length === 0) return alert("Nada que exportar.");
-                
-                const metaRows = [ ['DATOS DEL PROYECTO'], ['Proyecto:', metadata.project], ['Cliente:', metadata.client], ['Ubicación:', metadata.location], ['Dibujante:', metadata.draftsman], ['Fecha:', metadata.date], ['ID Plano:', metadata.id], [] ];
-                
-                const headers = ['ID Tramo', 'Longitud', 'Unidad Longitud', 'Diámetro Nominal', 'Diámetro Real (mm)', 'Material', 'Carga / Caudal', 'Unidad Carga', 'Capa'];
-                const data = [...metaRows, headers];
-                elements.forEach((el) => { if (el.type === TOOLS.TRAMO_DATA && el.tagMetadata) { const layer = layers.find(l => l.id === el.layerId); if (layer && !layer.visible) return; const m = el.tagMetadata; const realDia = getRealDiameter(m.diameter, m.material); data.push([m.id, m.length, m.lengthUnit, m.diameter, realDia, m.material, m.load, m.loadUnit, layer ? layer.name : 'Default']); } });
-                
-                const bom = calculateDespiece(elements);
-                const bomHeaders = ['Ítem', 'Descripción', 'Especificación', 'Cantidad', 'Unidad'];
-                const bomData = [bomHeaders];
-                bom.forEach((item, idx) => bomData.push([idx+1, item.desc, item.spec, item.qty, item.unit]));
-
-                const wb = XLSX.utils.book_new(); 
-                const ws = XLSX.utils.aoa_to_sheet(data); 
-                XLSX.utils.book_append_sheet(wb, ws, "Tramos"); 
-                const wsBom = XLSX.utils.aoa_to_sheet(bomData);
-                XLSX.utils.book_append_sheet(wb, wsBom, "Despiece");
-                XLSX.writeFile(wb, `Datos_${metadata.id}.xlsx`);
-            };
-
             // --- Helper: Update Selection Properties ---
             const updateSelectedRotationDeg = (deg) => {
                  // Ensure rotation wraps nicely
@@ -869,7 +853,9 @@
             const updateSelectedFontSize = (val) => { setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, fontSize: parseFloat(val) } : el)); };
             const updateSelectedCoord = (prop, val) => { const num = parseFloat(val); if (isNaN(num)) return; setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, [prop]: num } : el)); };
             const updateTramoMeta = (prop, val) => { setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, tagMetadata: { ...el.tagMetadata, [prop]: val } } : el)); };
-            const updateCustomData = (prop, val) => { setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, customData: { ...el.customData, [prop]: val } } : el)); };
+            const updateCustomData = (prop, val) => { setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, customData: { ...(el.customData || {}), [prop]: val } } : el)); };
+            const updateName = (val) => { setElements(prev => prev.map(el => selectedIds.includes(el.id) ? { ...el, name: val } : el)); };
+
             const deleteSelection = () => { setElements(prev => prev.filter(el => !selectedIds.includes(el.id))); setSelectedIds([]); };
             const undo = () => setElements(prev => prev.slice(0, -1));
             const clearCanvas = () => { if(window.confirm('¿Borrar todo el dibujo y la memoria local?')) { setElements([]); localStorage.removeItem('ing-cad-autosave-v2'); } };
@@ -1027,9 +1013,7 @@
                 const IS_SYMBOL_TOOL = Object.values(TOOLS).includes(tool) && ![TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.BEZIER, TOOLS.TEXT, TOOLS.DIMENSION, TOOLS.SELECT, TOOLS.PAN, TOOLS.TAG, TOOLS.TRAMO_DATA].includes(tool);
                 if (IS_SYMBOL_TOOL) { 
                     const defaultCustomData = {};
-                    if (tool === TOOLS.REGULATOR) { defaultCustomData.pIn = '2'; defaultCustomData.pOut = '1'; defaultCustomData.flow = '5'; defaultCustomData.length = '0.2'; }
-                    if (tool === TOOLS.REDUCER) { defaultCustomData.reductionType = 'Copa Reducción'; defaultCustomData.diaMajor = DIAMETERS[4]; defaultCustomData.diaMinor = DIAMETERS[2]; }
-                    if (tool === TOOLS.TERMINAL) { defaultCustomData.terminalType = 'Macho'; defaultCustomData.dimension = DIAMETERS[2]; }
+                    // Pre-population if needed, but now handled in properties panel mostly
                     
                     const rotation = snapRotation !== null ? snapRotation : (flipRotation * 30 * Math.PI / 180);
 
@@ -1178,6 +1162,21 @@
                                     </div>
                                     
                                     <div className="space-y-3 mt-2">
+                                        
+                                        {/* Common Name/Tag Field */}
+                                        {selectedIds.length === 1 && (
+                                            <div>
+                                                <label className="text-xs font-bold text-blue-400 mb-1 block uppercase">Nombre / Tag</label>
+                                                <input 
+                                                    type="text" 
+                                                    className="prop-input font-bold text-yellow-400" 
+                                                    placeholder="Ej: V-101"
+                                                    value={elements.find(e => e.id === selectedIds[0])?.name || ''} 
+                                                    onChange={(e) => updateName(e.target.value)} 
+                                                />
+                                            </div>
+                                        )}
+
                                         {/* PROPIEDADES GENERALES */}
                                         <div className="section-title">General</div>
                                         <div>
@@ -1222,7 +1221,7 @@
 
                                         {selectedIds.length === 1 && (() => {
                                             const el = elements.find(e => e.id === selectedIds[0]);
-                                            if (!el) return null; // Safety check
+                                            if (!el) return null; 
                                             
                                             const SYMBOL_TOOLS = Object.values(TOOLS).filter(t => ![TOOLS.SELECT, TOOLS.PAN, TOOLS.LINE, TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.BEZIER, TOOLS.TEXT, TOOLS.DIMENSION, TOOLS.TAG, TOOLS.TRAMO_DATA].includes(t));
                                             const isSymbol = SYMBOL_TOOLS.includes(el.type);
@@ -1249,6 +1248,7 @@
                                                         </React.Fragment>
                                                     )}
 
+                                                    {/* --- SMART PROPERTIES FOR COMPONENTS --- */}
                                                     {el.type === TOOLS.REGULATOR && (
                                                         <React.Fragment>
                                                             <div className="section-title text-green-400">Datos Regulador</div>
@@ -1256,7 +1256,106 @@
                                                                 <div><span className="prop-label">P. Entrada</span><input type="text" className="prop-input" value={custom.pIn || ''} onChange={(e) => updateCustomData('pIn', e.target.value)} /></div>
                                                                 <div><span className="prop-label">P. Salida</span><input type="text" className="prop-input" value={custom.pOut || ''} onChange={(e) => updateCustomData('pOut', e.target.value)} /></div>
                                                             </div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div><span className="prop-label">Dia. Ent.</span><select className="prop-input" value={custom.diaIn || ''} onChange={(e) => updateCustomData('diaIn', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                                <div><span className="prop-label">Dia. Sal.</span><select className="prop-input" value={custom.diaOut || ''} onChange={(e) => updateCustomData('diaOut', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                            </div>
                                                             <div><span className="prop-label">Caudal (m³/h)</span><input type="text" className="prop-input" value={custom.flow || ''} onChange={(e) => updateCustomData('flow', e.target.value)} /></div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {el.type === TOOLS.VALVE && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-green-400">Datos Válvula</div>
+                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                            <div><span className="prop-label">Tipo</span><select className="prop-input" value={custom.valveType || ''} onChange={(e) => updateCustomData('valveType', e.target.value)}>{VALVE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {(el.type === TOOLS.TEE || el.type === TOOLS.ELBOW_90 || el.type === TOOLS.UNION_TUBE) && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-green-400">Datos Accesorio</div>
+                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {el.type === TOOLS.REDUCER && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-green-400">Datos Reducción</div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div><span className="prop-label">Dia. Mayor</span><select className="prop-input" value={custom.diaMajor || ''} onChange={(e) => updateCustomData('diaMajor', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                                <div><span className="prop-label">Dia. Menor</span><select className="prop-input" value={custom.diaMinor || ''} onChange={(e) => updateCustomData('diaMinor', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                            </div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {el.type === TOOLS.FLANGE && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-green-400">Datos Brida</div>
+                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div><span className="prop-label">Presión</span><select className="prop-input" value={custom.pressure || ''} onChange={(e) => updateCustomData('pressure', e.target.value)}>{FLANGE_PRESSURES.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+                                                                <div><span className="prop-label">Conexión</span><select className="prop-input" value={custom.connection || ''} onChange={(e) => updateCustomData('connection', e.target.value)}>{FLANGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                                            </div>
+                                                            <div><span className="prop-label"># Pernos</span><input type="number" className="prop-input" value={custom.bolts || ''} onChange={(e) => updateCustomData('bolts', e.target.value)} /></div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {el.type === TOOLS.UNION_UNIVERSAL && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-green-400">Datos Unión Univ.</div>
+                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div><span className="prop-label">Asiento</span><select className="prop-input" value={custom.seat || ''} onChange={(e) => updateCustomData('seat', e.target.value)}>{UNION_SEATS.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                                                                <div><span className="prop-label">Género</span><select className="prop-input" value={custom.gender || ''} onChange={(e) => updateCustomData('gender', e.target.value)}>{GENDERS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+                                                            </div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {el.type === TOOLS.FILTER && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-green-400">Datos Filtro</div>
+                                                            <div><span className="prop-label">Diámetro</span><select className="prop-input" value={custom.diameter || ''} onChange={(e) => updateCustomData('diameter', e.target.value)}>{DIAMETERS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                                                            <div><span className="prop-label">Micras</span><input type="number" className="prop-input" value={custom.microns || ''} onChange={(e) => updateCustomData('microns', e.target.value)} /></div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {(el.type === TOOLS.PLUG || el.type === TOOLS.TERMINAL) && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-green-400">Datos Terminal</div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div><span className="prop-label">Género</span><select className="prop-input" value={custom.gender || ''} onChange={(e) => updateCustomData('gender', e.target.value)}>{GENDERS.map(g => <option key={g} value={g}>{g}</option>)}</select></div>
+                                                                <div><span className="prop-label">Resistencia</span><input type="text" className="prop-input" placeholder="Ej: 300 psi" value={custom.pressure || ''} onChange={(e) => updateCustomData('pressure', e.target.value)} /></div>
+                                                            </div>
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {/* EQUIPOS */}
+                                                    {(el.type === TOOLS.BURNER || el.type === TOOLS.BOILER || el.type === TOOLS.STOVE) && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-yellow-400">Datos Equipo</div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div><span className="prop-label">Consumo (BTU/h)</span><input type="text" className="prop-input" value={custom.btu || ''} onChange={(e) => updateCustomData('btu', e.target.value)} /></div>
+                                                                <div><span className="prop-label">P. Servicio</span><input type="text" className="prop-input" value={custom.servicePressure || ''} onChange={(e) => updateCustomData('servicePressure', e.target.value)} /></div>
+                                                            </div>
+                                                            <div><span className="prop-label">Fabricante</span><input type="text" className="prop-input" value={custom.manufacturer || ''} onChange={(e) => updateCustomData('manufacturer', e.target.value)} /></div>
+                                                            <div><span className="prop-label">Referencia</span><input type="text" className="prop-input" value={custom.reference || ''} onChange={(e) => updateCustomData('reference', e.target.value)} /></div>
+                                                            
+                                                            {(el.type === TOOLS.BURNER || el.type === TOOLS.STOVE) && (
+                                                                <div><span className="prop-label">Tipo Quemador</span><select className="prop-input" value={custom.burnerType || ''} onChange={(e) => updateCustomData('burnerType', e.target.value)}>{BURNER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                                                            )}
+                                                            
+                                                            {el.type === TOOLS.BOILER && (
+                                                                <div><span className="prop-label">Potencia (BHP/h)</span><input type="text" className="prop-input" value={custom.bhp || ''} onChange={(e) => updateCustomData('bhp', e.target.value)} /></div>
+                                                            )}
+                                                        </React.Fragment>
+                                                    )}
+
+                                                    {el.type === TOOLS.HEATER && (
+                                                        <React.Fragment>
+                                                            <div className="section-title text-yellow-400">Datos Calentador</div>
+                                                            <div><span className="prop-label">Capacidad (L/min)</span><input type="text" className="prop-input" value={custom.capacityLmin || ''} onChange={(e) => updateCustomData('capacityLmin', e.target.value)} /></div>
+                                                            <div><span className="prop-label">Consumo (BTU/h)</span><input type="text" className="prop-input" value={custom.btu || ''} onChange={(e) => updateCustomData('btu', e.target.value)} /></div>
                                                         </React.Fragment>
                                                     )}
 
