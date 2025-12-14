@@ -31,25 +31,20 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            position: relative;
+            position: relative; /* Necesario para el posicionamiento del fondo */
         }
 
-        /* --- FONDO MARCA DE AGUA (ADHERIDO AL FINAL) --- */
+        /* --- FONDO MARCA DE AGUA (GIGANTE Y CENTRADA) --- */
         body::before {
             content: "";
             position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 700px;
-            height: 600px;
+            inset: 0; /* Ocupa todo el alto y ancho del documento */
             background-image: url('LogoEntalpia.png');
             background-repeat: no-repeat;
-            background-position: bottom center;
-            background-size: contain;
-            opacity: 0.05;
-            z-index: 0;
+            background-position: center center; /* Centrada perfectamente */
+            background-size: 80%; /* Mucho más grande */
+            opacity: 0.05; /* Muy tenue para no molestar */
+            z-index: -1; /* Detrás de todo el contenido */
             pointer-events: none;
         }
 
@@ -161,19 +156,6 @@
         .tile-content { position: absolute; inset: 0; opacity: 0; background: linear-gradient(to top, #141414 10%, rgba(20,20,20,0.4)); display: flex; justify-content: center; align-items: center; transition: opacity 0.3s; }
         .tile:hover .tile-content { opacity: 1; }
         
-        /* Descripción visible en Hover */
-        .tile-description {
-            font-size: 0.8rem;
-            color: #ddd;
-            margin-bottom: 10px;
-            line-height: 1.3;
-            display: none;
-            text-align: center;
-            padding: 0 10px;
-            text-shadow: 0 1px 3px black;
-        }
-        .tile:hover .tile-description { display: block; }
-
         .tile-actions { display: flex; gap: 15px; }
         .tile-icon { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; font-size: 1rem; background: rgba(30,30,30,0.6); color: white; transition: 0.2s; }
         .tile-icon:hover { background: white; color: black; border-color: white; transform: scale(1.1); }
