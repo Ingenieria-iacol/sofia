@@ -256,7 +256,7 @@
             <div class="nav-links">
                 <a href="interfazDeOpcionInicio.html" class="nav-item"><i class="fas fa-home hidden-desktop" style="display:none;"></i> Inicio</a>
                 <a href="#" class="nav-item active" onclick="location.reload()"><i class="fas fa-th-large hidden-desktop" style="display:none;"></i> Herramientas</a>
-                <span class="nav-item" onclick="mostrarFavoritosScroll()"><i class="fas fa-list hidden-desktop" style="display:none;"></i> Mi Lista</span>
+                <span class="nav-item" onclick="mostrarRecientesScroll()"><i class="fas fa-history hidden-desktop" style="display:none;"></i> Recientes</span>
                 <a href="ModalPrecios.html" class="nav-item nav-btn-planes"><i class="fas fa-crown hidden-desktop" style="display:none;"></i> Planes</a>
             </div>
             
@@ -342,7 +342,7 @@
     <div id="viewer" class="modal-base" style="background:black; z-index:5500; display:none; flex-direction:column; padding:0;">
         <div style="width:100%; padding:10px 15px; background:#141414; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; height:50px;">
             <span id="viewer-title" style="font-weight:bold; font-size:1rem; color:var(--primary-blue); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:70%;">App</span>
-            <button class="btn" style="background:transparent; border:1px solid #555; color:white; padding:5px 15px; font-size:0.8rem;" onclick="document.getElementById('viewer').style.display='none'; document.getElementById('app-frame').src='';">CERRAR</button>
+            <button class="btn" style="background:transparent; border:1px solid #555; color:white; padding:5px 15px; font-size:0.8rem;" onclick="document.getElementById('viewer').style.display='none'; document.getElementById('app-frame').src=''; renderizarFilas();">CERRAR</button>
         </div>
         <div style="flex:1; width:100%; position:relative;">
              <iframe id="app-frame" style="width:100%; height:100%;"></iframe>
@@ -394,8 +394,8 @@
         let perfilActual = "General";
         // Usuario activo por defecto
         let usuarioActivo = DATOS_INICIALES[0];
-        let favoritos = [];
-        try { favoritos = JSON.parse(safeGetItem('favs')) || []; } catch(e) { favoritos = []; }
+        let recientes = [];
+        try { recientes = JSON.parse(safeGetItem('sofia_recents')) || []; } catch(e) { recientes = []; }
         
         // Imagen por defecto si falla la local (URL válida de Unsplash)
         const fallbackImg = "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop";
@@ -512,9 +512,25 @@
             // No es necesario forzar la navegación aquí, el <a> lo hace.
         }
 
-        function mostrarFavoritosScroll() {
-             const row = document.getElementById('row-mi-lista');
+        function mostrarRecientesScroll() {
+             const row = document.getElementById('row-recientes');
              if(row) row.scrollIntoView({behavior: "smooth"});
+        }
+
+        // --- GESTIÓN DE RECIENTES ---
+        function registrarUso(id) {
+            // Eliminar si ya existe para ponerlo al principio
+            const index = recientes.indexOf(id);
+            if (index > -1) {
+                recientes.splice(index, 1);
+            }
+            // Agregar al inicio
+            recientes.unshift(id);
+            // Mantener solo los últimos 10
+            if (recientes.length > 10) {
+                recientes.pop();
+            }
+            safeSetItem('sofia_recents', JSON.stringify(recientes));
         }
 
         // --- INICIALIZACIÓN ---
@@ -536,7 +552,6 @@
             
             renderizarFilas();
             iniciarCarrusel();
-            //cambiarPerfilVisual("General"); // Ya es el default en CSS
             
             setTimeout(mostrarModalInstalacion, 3000);
         });
@@ -562,7 +577,6 @@
                 // Para resultados de búsqueda, usamos la misma lógica visual simplificada
                 resultados.forEach(tool => {
                     const img = tool.imagen.includes('.') ? tool.imagen : tool.imagen + '.jpg';
-                    const isFav = favoritos.includes(tool.nombre);
                     
                     const card = document.createElement('div');
                     card.className = 'tool-card';
@@ -582,11 +596,8 @@
                         ${valiaBadge}
                         <div class="tile-content">
                             <div class="tile-actions">
-                                <div class="tile-icon icon-play" onclick="abrirApp('${tool.nombre}','${tool.url}');event.stopPropagation()">
+                                <div class="tile-icon icon-play" onclick="abrirApp(${tool.id}, '${tool.nombre}','${tool.url}');event.stopPropagation()">
                                     <i class="fas fa-play"></i>
-                                </div>
-                                <div class="tile-icon" onclick="toggleFav('${tool.nombre}');event.stopPropagation()">
-                                    <i class="fas ${isFav?'fa-check':'fa-plus'}"></i>
                                 </div>
                                 <div class="tile-icon" onclick="verDetalles(${tool.id});event.stopPropagation()">
                                     <i class="fas fa-chevron-down"></i>
@@ -610,7 +621,6 @@
         // Helper para crear el elemento DOM de la tarjeta
         function crearTarjetaDOM(tool) {
             const img = tool.imagen.includes('.') ? tool.imagen : tool.imagen + '.jpg';
-            const isFav = favoritos.includes(tool.nombre);
             
             const card = document.createElement('div');
             card.className = 'tool-card';
@@ -630,11 +640,8 @@
                 ${valiaBadge}
                 <div class="tile-content">
                     <div class="tile-actions">
-                        <div class="tile-icon icon-play" onclick="abrirApp('${tool.nombre}','${tool.url}');event.stopPropagation()">
+                        <div class="tile-icon icon-play" onclick="abrirApp(${tool.id}, '${tool.nombre}','${tool.url}');event.stopPropagation()">
                             <i class="fas fa-play"></i>
-                        </div>
-                        <div class="tile-icon" onclick="toggleFav('${tool.nombre}');event.stopPropagation()">
-                            <i class="fas ${isFav?'fa-check':'fa-plus'}"></i>
                         </div>
                         <div class="tile-icon" onclick="verDetalles(${tool.id});event.stopPropagation()">
                             <i class="fas fa-chevron-down"></i>
@@ -670,15 +677,17 @@
             if(!c) return;
             c.innerHTML = "";
             
-            // Lógica de Fila de Favoritos (Mi Lista)
-            if (favoritos.length > 0) {
-                const fs = HERRAMIENTAS.filter(h => favoritos.includes(h.nombre));
-                if(fs.length) {
-                    const row = document.createElement('div'); row.className = 'row'; row.id = "row-mi-lista";
-                    const tEl = document.createElement('h3'); tEl.className = 'row-title'; tEl.textContent = "Mi Lista";
+            // Lógica de Fila de RECIENTES (cronológico inverso)
+            if (recientes.length > 0) {
+                // Mapear IDs guardados a objetos completos de herramientas
+                const herramientasRecientes = recientes.map(id => HERRAMIENTAS.find(h => h.id === id)).filter(h => h !== undefined);
+                
+                if(herramientasRecientes.length > 0) {
+                    const row = document.createElement('div'); row.className = 'row'; row.id = "row-recientes";
+                    const tEl = document.createElement('h3'); tEl.className = 'row-title'; tEl.textContent = "Recientes";
                     const scr = document.createElement('div'); scr.className = 'row-scroller';
                     
-                    fs.forEach(tool => {
+                    herramientasRecientes.forEach(tool => {
                         const card = crearTarjetaDOM(tool);
                         scr.appendChild(card);
                     });
@@ -692,14 +701,6 @@
                 const its = HERRAMIENTAS.filter(h => h.categoria === cat);
                 crearFila(c, cat, its);
             });
-        }
-
-        function toggleFav(n) {
-            const i = favoritos.indexOf(n);
-            if(i > -1) favoritos.splice(i,1); else favoritos.push(n);
-            safeSetItem('favs', JSON.stringify(favoritos));
-            const sv = document.getElementById('search-input').value;
-            if(sv) filtrarContenido(sv); else renderizarFilas();
         }
 
         let hIdx = 0; let hInt;
@@ -718,7 +719,7 @@
                 const bi = document.getElementById('hero-btn-details').cloneNode(true);
                 document.getElementById('hero-btn-play').replaceWith(bp);
                 document.getElementById('hero-btn-details').replaceWith(bi);
-                bp.onclick = () => abrirApp(t.nombre, t.url);
+                bp.onclick = () => abrirApp(t.id, t.nombre, t.url);
                 bi.onclick = () => verDetalles(t.id);
                 
                 const localImg = t.imagen.includes('.') ? t.imagen : t.imagen + '.jpg';
@@ -738,7 +739,7 @@
             document.getElementById('modal-title').textContent = t.nombre;
             document.getElementById('modal-cat').textContent = t.categoria;
             document.getElementById('modal-desc').textContent = t.descripcion;
-            document.getElementById('modal-btn-open').onclick = () => abrirApp(t.nombre, t.url);
+            document.getElementById('modal-btn-open').onclick = () => abrirApp(t.id, t.nombre, t.url);
             
             const localImg = t.imagen.includes('.') ? t.imagen : t.imagen + '.jpg';
             const banner = document.getElementById('modal-banner');
@@ -751,7 +752,11 @@
             m.style.display = 'flex';
         }
         function cerrarDetalles(e) { if(!e || e.target.id === 'details-modal') document.getElementById('details-modal').style.display='none'; }
-        function abrirApp(t, u) {
+        
+        function abrirApp(id, t, u) {
+            // Registrar uso en recientes
+            registrarUso(id);
+            
             document.getElementById('details-modal').style.display='none';
             document.getElementById('viewer').style.display='flex';
             document.getElementById('viewer-title').textContent = t;
