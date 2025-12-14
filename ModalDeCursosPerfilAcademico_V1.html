@@ -85,8 +85,8 @@
             { 
                 id: 106, 
                 title: "Re entrenamiento en Anexo C NTC 3833", 
-                category: "Normativa", 
-                status: "active", // ACTIVO
+                category: "NTC 3833",
+                status: "active", 
                 description: "Capacitación interactiva para la aplicación del Anexo C (Informativo) de la NTC 3833. Aprende a calcular si la suma de puntos por ganancia de cota menos pérdidas cumple el requisito de +1.0.",
                 matchScore: 99,
                 year: "2025",
@@ -108,10 +108,35 @@
                 ]
             },
             { 
+                id: 105, 
+                title: "Métodos de ventilación", 
+                category: "NTC 3631", 
+                status: "active", // ACTIVADO
+                description: "Domina los métodos de ventilación para recintos interiores según la NTC 3631. Cálculo de aberturas, rejillas y volúmenes de aire requeridos para la combustión segura.",
+                matchScore: 95,
+                year: "2025",
+                instructor: "Ing. Pedro Aire",
+                tags: ["NTC 3631", "Ventilación", "Seguridad"],
+                type: "Versión Libre", 
+                hours: 10, 
+                level: "Intermedio", 
+                enrolled: false, 
+                progress: 0,
+                imageColor: "bg-purple-900",
+                gradientColor: "from-purple-900 to-black",
+                imageUrl: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=1000&auto=format&fit=crop",
+                url: "./CursoNral4_NTC3631_V1Libre.html", // VINCULADO
+                chapters: [
+                    { title: "Principios de Ventilación", duration: "20m" },
+                    { title: "Método 1: Comunicación Directa", duration: "35m" },
+                    { title: "Método 2: Comunicación Indirecta", duration: "40m" }
+                ]
+            },
+            { 
                 id: 101, 
                 title: "Experto en Mantenimiento de Quemadores", 
                 category: "Combustión",
-                status: "coming_soon", // PRÓXIMAMENTE
+                status: "coming_soon",
                 description: "Domina el arte de la combustión industrial. Desde fundamentos hasta diagnóstico avanzado.",
                 matchScore: 98,
                 year: "2024",
@@ -174,23 +199,6 @@
                 imageColor: "bg-yellow-700",
                 gradientColor: "from-yellow-800 to-black",
                 imageUrl: "https://images.unsplash.com/photo-1599818827727-4a7b7a57acbd?q=80&w=1000&auto=format&fit=crop"
-            },
-            { 
-                id: 105, 
-                title: "Auditoría de Sistemas de Gas", 
-                category: "Normativa", 
-                status: "coming_soon",
-                description: "Conviértete en auditor certificado. Inspección y detección de no conformidades.",
-                matchScore: 95,
-                year: "2025",
-                instructor: "Dra. Elena Norma",
-                tags: ["Auditoría", "Legal"],
-                type: "Membresía", 
-                hours: 20, 
-                level: "Avanzado", 
-                imageColor: "bg-purple-900",
-                gradientColor: "from-purple-900 to-black",
-                imageUrl: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=1000&auto=format&fit=crop"
             }
         ];
 
@@ -326,11 +334,13 @@
             const [plans, setPlans] = useState(initialTrainingPlans);
             const [selectedPlan, setSelectedPlan] = useState(null);
 
-            // Separar cursos activos y próximos
+            // FILTROS POR CATEGORÍA Y ESTADO
+            // MODIFICACIÓN: Ahora filtramos por estado 'active' para mostrar AMBOS cursos en la parte superior
             const activePlans = plans.filter(p => p.status === 'active');
-            // Duplicamos los próximos para efecto de carrusel infinito si son pocos
             const upcomingPlans = plans.filter(p => p.status === 'coming_soon');
-            const carouselPlans = [...upcomingPlans, ...upcomingPlans]; // Doble para loop visual suave
+            
+            // Duplicamos los próximos para efecto de carrusel infinito
+            const carouselPlans = [...upcomingPlans, ...upcomingPlans]; 
 
             const handleRegister = (planId) => {
                 const updatedPlans = plans.map(p => {
@@ -385,48 +395,50 @@
                     <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
                         <div className="max-w-7xl mx-auto space-y-12">
                             
-                            {/* SECCIÓN 1: CURSO ACTIVO (HERO) */}
+                            {/* SECCIÓN 1: CURSOS ACTIVOS (HERO) */}
                             <section>
                                 <div className="mb-6 flex items-center gap-3">
-                                    <Icon name="Flame" className="text-orange-500" />
-                                    <h2 className="text-3xl font-bold text-white">Disponible Ahora</h2>
+                                    <Icon name="BookOpenCheck" className="text-orange-500" />
+                                    <h2 className="text-3xl font-bold text-white">Cursos Disponibles</h2>
                                 </div>
                                 
-                                {activePlans.map(plan => (
-                                    <div 
-                                        key={plan.id}
-                                        onClick={() => setSelectedPlan(plan)}
-                                        className="relative w-full h-80 rounded-2xl overflow-hidden cursor-pointer group border border-gray-800 hover:border-orange-500/50 transition-all shadow-2xl"
-                                    >
-                                        <img 
-                                            src={plan.imageUrl} 
-                                            alt={plan.title}
-                                            className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                        <div className={`absolute inset-0 bg-gradient-to-r ${plan.gradientColor} mix-blend-multiply opacity-80`}></div>
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
-                                        
-                                        <div className="absolute bottom-0 left-0 p-8 w-full md:w-2/3">
-                                            <span className="bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded mb-3 inline-block shadow-lg animate-pulse">
-                                                NUEVO CURSO
-                                            </span>
-                                            <h3 className="text-4xl font-black text-white mb-2 leading-tight drop-shadow-lg">{plan.title}</h3>
-                                            <p className="text-gray-200 mb-6 text-lg line-clamp-2 drop-shadow-md">{plan.description}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {activePlans.map(plan => (
+                                        <div 
+                                            key={plan.id}
+                                            onClick={() => setSelectedPlan(plan)}
+                                            className="relative w-full h-80 rounded-2xl overflow-hidden cursor-pointer group border border-gray-800 hover:border-orange-500/50 transition-all shadow-2xl"
+                                        >
+                                            <img 
+                                                src={plan.imageUrl} 
+                                                alt={plan.title}
+                                                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                            <div className={`absolute inset-0 bg-gradient-to-r ${plan.gradientColor} mix-blend-multiply opacity-80`}></div>
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
                                             
-                                            <button className="bg-white text-black px-6 py-3 rounded font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors">
-                                                <Icon name="Play" fill="black" /> Comenzar Ahora
-                                            </button>
+                                            <div className="absolute bottom-0 left-0 p-8 w-full md:w-5/6">
+                                                <span className="bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded mb-3 inline-block shadow-lg animate-pulse">
+                                                    DISPONIBLE
+                                                </span>
+                                                <h3 className="text-3xl font-black text-white mb-2 leading-tight drop-shadow-lg">{plan.title}</h3>
+                                                <p className="text-gray-200 mb-6 text-sm md:text-base line-clamp-2 drop-shadow-md">{plan.description}</p>
+                                                
+                                                <button className="bg-white text-black px-6 py-3 rounded font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors">
+                                                    <Icon name="Play" fill="black" /> Comenzar Ahora
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </section>
 
                             {/* SECCIÓN 2: PRÓXIMAMENTE (CARRUSEL ROTATIVO) */}
                             <section className="overflow-hidden">
                                 <div className="mb-6 flex items-center gap-3">
                                     <Icon name="CalendarClock" className="text-gray-500" />
-                                    <h2 className="text-2xl font-bold text-gray-300">Próximamente en el Hub</h2>
+                                    <h2 className="text-2xl font-bold text-gray-300">Próximamente</h2>
                                 </div>
 
                                 <div className="carousel-container w-full overflow-hidden relative pb-4">
