@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entalpia - Planes de formacion</title>
+    <title>GasEngineering Hub - Panel Principal</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -191,6 +191,32 @@
                     { title: "Listas de Chequeo", duration: "40m" },
                     { title: "Redacción de Informes", duration: "30m" }
                 ]
+            },
+            { 
+                id: 106, 
+                title: "Re entrenamiento en Anexo C NTC 3833", 
+                category: "Normativa", 
+                description: "Capacitación interactiva para la aplicación del Anexo C (Informativo) de la NTC 3833. Aprende a calcular si la suma de puntos por ganancia de cota menos pérdidas cumple el requisito de +1.0.",
+                matchScore: 99,
+                year: "2025",
+                instructor: "Ing. Ana (Virtual)",
+                tags: ["NTC 3833", "Cálculo de Tiro", "Evacuación"],
+                type: "Versión Libre", 
+                hours: 5, 
+                level: "Básico", 
+                enrolled: false, 
+                progress: 0, 
+                imageColor: "bg-orange-900",
+                gradientColor: "from-orange-900 to-black",
+                // URL de imagen local solicitada por el usuario
+                imageUrl: "./ImgCursoAnexoC_NTC3833_V1Libre.png",
+                // URL del curso local solicitada por el usuario
+                url: "./CursoAnexoC_NTC3833_V1Libre.html",
+                chapters: [
+                    { title: "Introducción y Premisa", duration: "15m" },
+                    { title: "Factor de Altitud y Puntos", duration: "25m" },
+                    { title: "Análisis de Caso y Solución", duration: "30m" }
+                ]
             }
         ];
 
@@ -232,6 +258,9 @@
                                 src={plan.imageUrl} 
                                 alt={plan.title}
                                 className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-80"
+                                onError={(e) => {
+                                    e.target.style.display = 'none'; // Fallback si la imagen no carga
+                                }}
                             />
                             
                             <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-transparent to-black/30"></div>
@@ -440,6 +469,9 @@
                                                 src={plan.imageUrl} 
                                                 alt={plan.title}
                                                 className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-75 hover:opacity-100 transition-opacity duration-500"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none'; // Fallback silencioso
+                                                }}
                                             />
 
                                             <div className="relative z-10 flex justify-between items-start">
@@ -518,4 +550,3 @@
     </script>
 </body>
 </html>
-
