@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Herramientas de Ingeniería</title>
+    <title>Portal de Acceso - Ingeniería</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -24,10 +24,6 @@
                             light: '#60a5fa', 
                             DEFAULT: '#2563eb', 
                             dark: '#1e3a8a',  
-                        },
-                        dark: {
-                            bg: '#0f172a',
-                            card: '#1e293b'
                         }
                     }
                 }
@@ -38,6 +34,7 @@
     <style>
         body {
             background-color: #000;
+            /* Fondo con LogoEntalpia.png y capa oscura */
             background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(0, 0, 0, 0.95)), url('LogoEntalpia.png');
             background-size: cover;
             background-position: center;
@@ -45,6 +42,9 @@
             background-repeat: no-repeat;
             color: #e2e8f0;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .glass-panel {
@@ -53,297 +53,195 @@
             border: 1px solid rgba(59, 130, 246, 0.15);
         }
 
-        .btn-glow:hover {
-            box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
-        }
-        
-        /* Animación suave para el login */
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* Animación de entrada */
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root" class="w-full flex justify-center p-4"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+        const { useState, useEffect } = React;
 
         // --- ICONOS ---
         const Icons = {
             Lock: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-            Cpu: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
-            Activity: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-            Box: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
-            Database: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
-            Zap: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
             Shield: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-            LogOut: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
             Eye: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
             EyeOff: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
         };
 
-        // --- CONFIGURACIÓN DE BASE DE DATOS LOCAL (Para que funcione el Login aquí mismo) ---
+        // --- BASE DE DATOS DE USUARIOS (Simulación) ---
         const MOCK_USERS = [
             { id: 1, email: 'free@user.com', password: '1234', name: 'Ana Gratuita', plan: 'free', verified: true, type: 'personal' },
-            { id: 2, email: 'unverified@user.com', password: '1234', name: 'Pepe No Verificado', plan: 'free', verified: false, type: 'personal' },
-            { id: 3, email: 'pro@user.com', password: '1234', name: 'Carlos Profesional', plan: 'pro', verified: true, type: 'personal' },
-            { id: 4, email: 'academic@plus.com', password: '1234', name: 'Prof. Diana Plus', plan: 'plus', verified: true, type: 'academic' },
-            { id: 5, email: 'corp@premium.com', password: '1234', name: 'CEO Roberto Premium', plan: 'premium', verified: true, type: 'corporate' },
+            { id: 2, email: 'pro@user.com', password: '1234', name: 'Carlos Profesional', plan: 'pro', verified: true, type: 'personal' },
+            { id: 3, email: 'academic@plus.com', password: '1234', name: 'Prof. Diana Plus', plan: 'plus', verified: true, type: 'academic' },
+            { id: 4, email: 'corp@premium.com', password: '1234', name: 'CEO Roberto Premium', plan: 'premium', verified: true, type: 'corporate' },
             { id: 6, email: 'josetangarife14@gmail.com', password: '1204', name: 'Jose Tangarife', plan: 'premium', verified: true, type: 'corporate' }
         ];
 
-        const PLAN_LEVELS = { FREE: 1, PRO: 2, PLUS: 3, PREMIUM: 4 };
-
-        const PLAN_CONFIG = {
-            free: { label: 'Free', level: 1, color: 'text-gray-400 border-gray-400' },
-            pro: { label: 'Pro', level: 2, color: 'text-blue-400 border-blue-400' },
-            plus: { label: 'Plus', level: 3, color: 'text-purple-400 border-purple-400' },
-            premium: { label: 'Premium', level: 4, color: 'text-yellow-400 border-yellow-400' },
-        };
-
-        const TOOLS_DB = [
-            { id: 1, name: 'Calculadora de Vigas', desc: 'Cálculo básico de cargas y momentos.', minPlan: 'free', icon: Icons.Activity },
-            { id: 2, name: 'Conversor de Unidades', desc: 'Conversiones estándar ISO/Imperial.', minPlan: 'free', icon: Icons.Box },
-            { id: 3, name: 'Simulador de Circuitos', desc: 'Diseño y prueba de PCBs en tiempo real.', minPlan: 'pro', icon: Icons.Cpu },
-            { id: 4, name: 'Analizador Estructural 3D', desc: 'Renderizado y análisis de estrés.', minPlan: 'pro', icon: Icons.Box },
-            { id: 5, name: 'Librería de Materiales', desc: 'Base de datos académica de polímeros.', minPlan: 'plus', restrictedToType: 'academic', icon: Icons.Database },
-            { id: 6, name: 'Gestor de Obras', desc: 'Control de recursos y tiempos.', minPlan: 'plus', icon: Icons.Activity },
-            { id: 7, name: 'Simulación de Fluidos CFD', desc: 'Dinámica de fluidos computacional.', minPlan: 'premium', icon: Icons.Zap },
-            { id: 8, name: 'Panel Industrial IoT', desc: 'Monitoreo de sensores corporativos.', minPlan: 'premium', restrictedToType: 'corporate', icon: Icons.Shield }
-        ];
-
-        // --- COMPONENTE DE LOGIN (Integrado para evitar redirecciones) ---
-        const Login = ({ onLogin, warningMessage }) => {
+        // --- COMPONENTE LOGIN ---
+        const LoginApp = () => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [showPassword, setShowPassword] = useState(false);
             const [error, setError] = useState('');
+            const [sessionMessage, setSessionMessage] = useState('');
+            const [isRedirecting, setIsRedirecting] = useState(false);
 
-            const handleSubmit = (e) => {
+            useEffect(() => {
+                // Verificar si venimos redirigidos por expiración de sesión
+                // (Si la URL termina en #expired, mostramos el mensaje)
+                if (window.location.hash === '#expired') {
+                    setSessionMessage('Tu sesión ha expirado por inactividad (2h).');
+                    // Limpiar hash para que no se quede ahí siempre
+                    history.replaceState(null, null, ' ');
+                }
+                
+                // Limpiar cualquier sesión previa al cargar el login
+                localStorage.removeItem('mockSessionUser');
+                localStorage.removeItem('lastActivity');
+            }, []);
+
+            const handleLogin = (e) => {
                 e.preventDefault();
+                setError('');
+                setSessionMessage('');
+
                 const user = MOCK_USERS.find(u => u.email === email);
                 
+                // Validaciones
                 if (!user) { setError('Usuario no encontrado.'); return; }
                 if (user.password !== password) { setError('Contraseña incorrecta.'); return; }
-                if (!user.verified) { setError('Tu cuenta existe pero no ha sido verificada.'); return; }
+                if (!user.verified) { setError('Cuenta no verificada.'); return; }
 
-                onLogin(user);
+                // Login Exitoso
+                setIsRedirecting(true);
+                
+                // 1. Guardar sesión
+                localStorage.setItem('mockSessionUser', JSON.stringify(user));
+                // 2. Guardar timestamp de inicio (para el timeout de 2h)
+                localStorage.setItem('lastActivity', Date.now().toString());
+
+                // 3. Redirigir al Panel de Control
+                setTimeout(() => {
+                    window.location.href = 'AppHerramientasDeIngenieria.html';
+                }, 500); // Pequeño delay para feedback visual
             };
 
-            const fillCredentials = (u) => { setEmail(u.email); setPassword(u.password); };
+            const fillDebug = (u) => {
+                setEmail(u.email);
+                setPassword(u.password);
+            };
 
             return (
-                <div className="min-h-screen flex flex-col items-center justify-center p-4 fade-in">
-                    <div className="max-w-md w-full glass-panel rounded-xl shadow-2xl p-8 border border-slate-700">
-                        <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-900/50">
-                                <Icons.Shield className="text-white w-8 h-8" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-white">Acceso a Ingeniería</h2>
-                            <p className="text-slate-400 text-sm">Plataforma SaaS Corporativa</p>
+                <div className="max-w-md w-full glass-panel rounded-xl shadow-2xl p-8 border border-slate-700 fade-in relative">
+                    
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-900/50">
+                            <Icons.Shield className="text-white w-8 h-8" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-white tracking-tight">Portal de Ingeniería</h1>
+                        <p className="text-slate-400 text-sm mt-1">Acceso seguro a herramientas</p>
+                    </div>
+
+                    {/* Formulario */}
+                    <form onSubmit={handleLogin} className="space-y-5">
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Email Corporativo</label>
+                            <input 
+                                type="email" 
+                                required 
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full px-4 py-3 bg-slate-900/60 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                                placeholder="usuario@entalpia.com"
+                                disabled={isRedirecting}
+                            />
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Email</label>
-                                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 bg-slate-900/80 text-white border border-slate-700 rounded focus:border-blue-500 focus:outline-none placeholder-slate-600" placeholder="usuario@empresa.com" />
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Contraseña</label>
+                            <div className="relative">
+                                <input 
+                                    type={showPassword ? "text" : "password"} 
+                                    required 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all pr-10"
+                                    placeholder="••••••••"
+                                    disabled={isRedirecting}
+                                />
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-3 text-slate-500 hover:text-white transition-colors"
+                                >
+                                    {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
+                                </button>
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase">Contraseña</label>
-                                <div className="relative">
-                                    <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 bg-slate-900/80 text-white border border-slate-700 rounded focus:border-blue-500 focus:outline-none placeholder-slate-600 pr-10" placeholder="••••••••" />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2 text-slate-500 hover:text-white"><Icons.Eye className="w-5 h-5" /></button>
-                                </div>
-                            </div>
-                            
-                            {error && <div className="p-3 bg-red-900/20 border border-red-800 text-red-400 text-sm rounded flex items-center gap-2"><Icons.Lock className="w-4 h-4" /> {error}</div>}
+                        </div>
 
-                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded shadow-lg shadow-blue-900/30 transition-all transform hover:scale-[1.01]">Ingresar</button>
-                        </form>
-
-                        <div className="mt-6 pt-6 border-t border-slate-700/50">
-                            <p className="text-xs text-slate-500 text-center mb-3">ACCESO RÁPIDO (DEBUG)</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                {MOCK_USERS.map(u => (
-                                    <button key={u.id} onClick={() => fillCredentials(u)} className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 p-1.5 rounded truncate border border-slate-700 text-left">
-                                        <span className="font-bold text-blue-400">{u.name.split(' ')[0]}</span> - {u.plan}
-                                    </button>
-                                ))}
+                        {/* Mensajes de Error */}
+                        {error && (
+                            <div className="p-3 bg-red-900/30 border border-red-800/50 rounded-lg flex items-center gap-3 text-red-300 text-sm animate-pulse">
+                                <Icons.Lock className="w-4 h-4 shrink-0" />
+                                <span>{error}</span>
                             </div>
+                        )}
+
+                        <button 
+                            type="submit" 
+                            disabled={isRedirecting}
+                            className={`w-full py-3.5 rounded-lg font-bold text-white shadow-lg transition-all transform hover:-translate-y-0.5 ${
+                                isRedirecting 
+                                ? 'bg-blue-700 cursor-wait opacity-80' 
+                                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-blue-900/30'
+                            }`}
+                        >
+                            {isRedirecting ? 'Autenticando...' : 'Iniciar Sesión'}
+                        </button>
+                    </form>
+
+                    {/* Mensaje de Sesión Expirada (Abajo, Rojo, Letra pequeña) */}
+                    {sessionMessage && (
+                        <div className="mt-6 text-center">
+                            <span className="inline-block px-3 py-1 bg-red-950 border border-red-900 rounded text-[10px] font-bold text-red-400 uppercase tracking-wide">
+                                ⚠️ {sessionMessage}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Debug Tools (Opcional, para facilitar pruebas) */}
+                    <div className="mt-8 pt-6 border-t border-slate-700/50">
+                        <p className="text-[10px] text-slate-600 text-center uppercase tracking-widest mb-3">Cuentas de Prueba</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            {MOCK_USERS.slice(0, 4).map(u => (
+                                <button 
+                                    key={u.id} 
+                                    onClick={() => fillDebug(u)}
+                                    className="text-[10px] p-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors text-left truncate border border-transparent hover:border-slate-600"
+                                >
+                                    {u.plan.toUpperCase()}
+                                </button>
+                            ))}
+                            <button 
+                                onClick={() => fillDebug(MOCK_USERS[4])} // Jose
+                                className="col-span-2 text-[10px] p-2 rounded bg-blue-900/20 hover:bg-blue-900/40 text-blue-300 hover:text-blue-200 transition-colors text-center border border-blue-900/30"
+                            >
+                                PREMIUM CORP (Jose Tangarife)
+                            </button>
                         </div>
                     </div>
 
-                    {/* AVISO DE SESIÓN REQUERIDA (Resaltado en rojo abajo) */}
-                    {warningMessage && (
-                        <div className="mt-8 bg-red-950/80 border border-red-600/50 text-red-200 px-6 py-2 rounded-full text-xs font-semibold tracking-wide shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-pulse">
-                            ⚠️ {warningMessage}
-                        </div>
-                    )}
                 </div>
             );
         };
 
-        // --- COMPONENTE DASHBOARD ---
-        const Dashboard = ({ user, onLogout, userLevel }) => (
-            <div className="min-h-screen flex flex-col fade-in">
-                <nav className="border-b border-slate-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.5)]"><span className="font-bold text-white">E</span></div>
-                            <span className="font-bold text-xl text-white hidden sm:block">Engineering<span className="text-blue-500">Hub</span></span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-right hidden sm:block">
-                                <div className="text-sm font-medium text-white">{user.name}</div>
-                                <div className="text-xs text-blue-400 uppercase">{user.plan} • {user.type}</div>
-                            </div>
-                            <button onClick={onLogout} className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800"><Icons.LogOut className="w-5 h-5" /></button>
-                        </div>
-                    </div>
-                </nav>
-
-                <main className="flex-1 max-w-7xl mx-auto px-4 py-10 w-full">
-                    <div className="mb-10">
-                        <h1 className="text-3xl font-bold text-white mb-2">Panel de Control</h1>
-                        <p className="text-slate-400">Herramientas disponibles para nivel <span className="text-blue-400 font-bold uppercase">{user.plan}</span>.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {TOOLS_DB.map(tool => {
-                            const reqLevel = PLAN_LEVELS[tool.minPlan.toUpperCase()];
-                            const isLocked = userLevel < reqLevel || (tool.restrictedToType && tool.restrictedToType !== user.type);
-                            const config = PLAN_CONFIG[tool.minPlan];
-
-                            return (
-                                <div key={tool.id} className={`relative rounded-xl p-6 border transition-all duration-300 group overflow-hidden ${isLocked ? 'bg-slate-900/50 border-slate-800 opacity-60' : 'glass-panel border-blue-500/30 hover:border-blue-400 hover:-translate-y-1'}`}>
-                                    {!isLocked && <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
-                                    {isLocked && (
-                                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-                                            <div className="bg-slate-800 p-2 rounded-full mb-2"><Icons.Lock className="w-5 h-5 text-red-400" /></div>
-                                            <span className="text-[10px] font-bold uppercase text-slate-400 bg-black/50 px-2 py-1 rounded border border-slate-700">Bloqueado</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className={`p-3 rounded-lg ${isLocked ? 'bg-slate-800 text-slate-500' : 'bg-blue-900/30 text-blue-400'}`}><tool.icon className="w-6 h-6" /></div>
-                                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${config.color}`}>{config.label}</div>
-                                    </div>
-                                    <h3 className={`text-lg font-bold mb-1 ${isLocked ? 'text-slate-500' : 'text-white'}`}>{tool.name}</h3>
-                                    <p className={`text-sm mb-6 line-clamp-2 ${isLocked ? 'text-slate-600' : 'text-slate-400'}`}>{tool.desc}</p>
-                                    <button disabled={isLocked} className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${isLocked ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg btn-glow'}`}>{isLocked ? 'Restringido' : 'Acceder'}</button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </main>
-            </div>
-        );
-
-        // --- APP PRINCIPAL (LÓGICA DE SESIÓN Y TIMEOUT) ---
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [sessionWarning, setSessionWarning] = useState('');
-            const TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 Horas en milisegundos
-
-            // Función para actualizar la "última actividad"
-            const updateActivity = useCallback(() => {
-                if (user) {
-                    localStorage.setItem('lastActivity', Date.now().toString());
-                }
-            }, [user]);
-
-            // Chequeo de sesión
-            const checkSession = () => {
-                const storedUser = localStorage.getItem('mockSessionUser');
-                const lastActivity = localStorage.getItem('lastActivity');
-                
-                if (!storedUser) {
-                    setUser(null);
-                    setSessionWarning('Debes iniciar sesión para acceder.');
-                    return;
-                }
-
-                if (lastActivity) {
-                    const timeDiff = Date.now() - parseInt(lastActivity);
-                    if (timeDiff > TIMEOUT_MS) {
-                        // Sesión expirada
-                        handleLogout('Tu sesión ha expirado por inactividad (2 horas).');
-                        return;
-                    }
-                }
-
-                // Sesión válida
-                setUser(JSON.parse(storedUser));
-                // Actualizar timestamp inicial
-                localStorage.setItem('lastActivity', Date.now().toString());
-            };
-
-            // Login exitoso
-            const handleLogin = (userData) => {
-                localStorage.setItem('mockSessionUser', JSON.stringify(userData));
-                localStorage.setItem('lastActivity', Date.now().toString());
-                setUser(userData);
-                setSessionWarning(''); // Limpiar advertencias
-            };
-
-            // Logout
-            const handleLogout = (msg = '') => {
-                localStorage.removeItem('mockSessionUser');
-                localStorage.removeItem('lastActivity');
-                setUser(null);
-                setSessionWarning(msg);
-            };
-
-            // Efecto al montar: Revisar sesión
-            useEffect(() => {
-                checkSession();
-            }, []);
-
-            // Efecto para monitorear actividad (clics, teclas)
-            useEffect(() => {
-                if (!user) return;
-
-                const events = ['click', 'keypress', 'mousemove', 'scroll'];
-                // Usamos un debounce simple para no saturar localStorage
-                let timeoutId;
-                
-                const handleUserActivity = () => {
-                    clearTimeout(timeoutId);
-                    timeoutId = setTimeout(updateActivity, 1000); // Guardar solo 1 vez por segundo máx
-                };
-
-                events.forEach(e => window.addEventListener(e, handleUserActivity));
-                
-                // Intervalo para chequear expiración periódicamente (cada minuto)
-                const intervalId = setInterval(() => {
-                    const lastActivity = localStorage.getItem('lastActivity');
-                    if (lastActivity && (Date.now() - parseInt(lastActivity) > TIMEOUT_MS)) {
-                        handleLogout('Tu sesión ha expirado por inactividad.');
-                    }
-                }, 60000);
-
-                return () => {
-                    events.forEach(e => window.removeEventListener(e, handleUserActivity));
-                    clearInterval(intervalId);
-                    clearTimeout(timeoutId);
-                };
-            }, [user, updateActivity]);
-
-            // RENDERIZADO CONDICIONAL SIMPLE
-            if (!user) {
-                return <Login onLogin={handleLogin} warningMessage={sessionWarning} />;
-            }
-
-            return <Dashboard user={user} onLogout={() => handleLogout('')} userLevel={PLAN_LEVELS[user.plan.toUpperCase()]} />;
-        };
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<LoginApp />);
     </script>
 </body>
 </html>
