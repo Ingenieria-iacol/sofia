@@ -76,7 +76,8 @@
             EyeOff: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>,
             ArrowRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
             Play: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            CreditCard: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         };
 
         // --- BASE DE DATOS DE USUARIOS ---
@@ -141,6 +142,11 @@
                 }, 800); 
             };
 
+            const handlePlaceholderClick = (e, featureName) => {
+                e.preventDefault();
+                alert(`Funcionalidad "${featureName}" pendiente de implementación.`);
+            };
+
             return (
                 <>
                     <div className="max-w-md w-full glass-panel rounded-xl shadow-2xl p-8 border border-slate-700 fade-in relative z-10">
@@ -188,6 +194,15 @@
                                             {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
                                         </button>
                                     </div>
+                                    <div className="flex justify-end pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handlePlaceholderClick(e, 'Recuperar Contraseña')}
+                                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                        >
+                                            He olvidado mi contraseña
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {error && (
@@ -208,6 +223,16 @@
                                 >
                                     {isRedirecting ? 'Autenticando...' : 'Iniciar Sesión'}
                                 </button>
+                                
+                                <div className="text-center pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handlePlaceholderClick(e, 'Crear Cuenta')}
+                                        className="text-sm text-slate-400 hover:text-white transition-colors"
+                                    >
+                                        ¿No tienes cuenta? <span className="text-blue-400 font-semibold">Crear cuenta</span>
+                                    </button>
+                                </div>
                             </form>
                         ) : (
                             <div className="text-center animate-pulse space-y-4">
@@ -232,19 +257,26 @@
                         )}
 
                         {!loginSuccess && (
-                            <div className="mt-8 pt-6 border-t border-slate-700/50">
+                            <div className="mt-8 pt-6 border-t border-slate-700/50 grid grid-cols-2 gap-3">
                                 <button 
                                     onClick={() => setShowVideoModal(true)}
-                                    className="w-full group flex items-center justify-center gap-3 py-3 rounded-lg bg-slate-800/50 hover:bg-blue-900/20 border border-slate-700 hover:border-blue-500/50 transition-all duration-300"
+                                    className="col-span-1 group flex flex-col items-center justify-center gap-2 py-3 rounded-lg bg-slate-800/50 hover:bg-blue-900/20 border border-slate-700 hover:border-blue-500/50 transition-all duration-300"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-blue-600 group-hover:bg-blue-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                                         <Icons.Play className="w-4 h-4 text-white fill-current ml-0.5" />
                                     </div>
-                                    <div className="text-left">
-                                        <div className="text-xs font-bold text-slate-300 group-hover:text-white uppercase tracking-wider">Conoce la Plataforma</div>
-                                        <div className="text-[10px] text-slate-500 group-hover:text-blue-300">Ver video de presentación</div>
-                                    </div>
+                                    <span className="text-xs font-bold text-slate-300 group-hover:text-white uppercase tracking-wider">Conoce más</span>
                                 </button>
+
+                                <a 
+                                    href="Planes.html"
+                                    className="col-span-1 group flex flex-col items-center justify-center gap-2 py-3 rounded-lg bg-slate-800/50 hover:bg-purple-900/20 border border-slate-700 hover:border-purple-500/50 transition-all duration-300 text-center"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-purple-600 group-hover:bg-purple-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                        <Icons.CreditCard className="w-4 h-4 text-white" />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-300 group-hover:text-white uppercase tracking-wider">Ver Planes</span>
+                                </a>
                             </div>
                         )}
                     </div>
