@@ -194,45 +194,122 @@
         /* --- MODALES --- */
         .modal-base { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); z-index: 6000; justify-content: center; align-items: center; animation: fadeIn 0.3s; overflow-y: auto; padding: 20px; }
         
-        /* ESTILOS DEL MODAL "VER TODAS" */
+        /* ESTILOS DEL CATÁLOGO "NETFLIX BLUE" */
         .all-tools-box {
-            background: #181818;
-            width: 90%; max-width: 1000px; height: 85vh;
-            border-radius: 12px; padding: 30px;
+            background: #0b0b0b; /* Fondo muy oscuro, casi negro */
+            width: 95%; max-width: 1400px; height: 90vh;
+            border-radius: 12px; padding: 0; /* Sin padding global para aprovechar bordes */
             position: relative; display: flex; flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            border: 1px solid #333;
+            box-shadow: 0 0 50px rgba(0, 113, 235, 0.1); /* Resplandor azul tenue */
+            border: 1px solid #222;
+            overflow: hidden;
         }
-        .all-tools-scroll-area { overflow-y: auto; flex: 1; padding-right: 10px; }
+        
+        /* Marca de agua interna del catálogo */
+        .all-tools-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url('LogoEntalpia.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 60%;
+            opacity: 0.03; /* Muy tenue */
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .all-tools-header-area {
+            padding: 20px 30px;
+            background: linear-gradient(to bottom, #141414 0%, transparent 100%);
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 2;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .all-tools-search-container {
+            flex: 1; max-width: 500px; margin: 0 20px;
+            position: relative;
+        }
+        .all-tools-search {
+            width: 100%; padding: 12px 15px 12px 45px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            border-radius: 4px; color: white; font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .all-tools-search:focus {
+            border-color: var(--primary-blue);
+            background: black;
+            box-shadow: 0 0 15px rgba(0, 113, 235, 0.3);
+            outline: none;
+        }
+        .search-icon-modal {
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #666;
+        }
+
+        .all-tools-scroll-area { 
+            overflow-y: auto; flex: 1; padding: 20px 30px; z-index: 1; 
+        }
         .all-tools-scroll-area::-webkit-scrollbar { width: 8px; }
-        .all-tools-scroll-area::-webkit-scrollbar-track { background: #111; border-radius: 4px; }
-        .all-tools-scroll-area::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        .all-tools-scroll-area::-webkit-scrollbar-track { background: #0b0b0b; }
+        .all-tools-scroll-area::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
         
         .all-tools-category-header {
-            color: var(--primary-blue); font-size: 1.1rem; font-weight: 700;
-            margin: 25px 0 15px 0; border-bottom: 1px solid #333; padding-bottom: 8px;
-            text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px;
+            color: white; font-size: 1.3rem; font-weight: 700;
+            margin: 30px 0 15px 0;
+            text-shadow: 0 2px 4px black;
+            display: flex; align-items: center; gap: 10px;
         }
-        
-        .tool-list-item {
-            display: flex; align-items: center; background: #222;
-            margin-bottom: 8px; padding: 12px; border-radius: 8px;
-            transition: all 0.2s; cursor: pointer; border: 1px solid transparent;
+        .all-tools-category-header:first-child { margin-top: 0; }
+
+        /* Grid del catálogo */
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
         }
-        .tool-list-item:hover { background: #333; border-color: rgba(255,255,255,0.1); transform: translateX(5px); }
-        
-        .tool-list-thumb { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; margin-right: 15px; background: #111; }
-        .tool-list-details { flex: 1; }
-        .tool-list-name { font-weight: 700; color: white; font-size: 0.95rem; display: flex; align-items: center; gap: 10px; margin-bottom: 3px; }
-        .tool-list-sub { font-size: 0.8rem; color: #888; }
-        .tool-list-valia { font-size: 0.7rem; color: var(--star-gold); display: inline-flex; gap: 1px; }
+
+        /* Tarjeta de Catálogo (Poster Style) */
+        .catalog-card {
+            position: relative;
+            background: #1a1a1a;
+            border-radius: 6px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            aspect-ratio: 16/9; /* Formato panorámico */
+        }
+        .catalog-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 113, 235, 0.5); /* Resplandor azul */
+            z-index: 10;
+            border: 1px solid var(--primary-blue);
+        }
+        .catalog-card img {
+            width: 100%; height: 100%; object-fit: cover;
+            opacity: 0.8; transition: opacity 0.3s;
+        }
+        .catalog-card:hover img { opacity: 0.4; }
+
+        .catalog-card-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+            opacity: 0; transition: opacity 0.3s;
+            display: flex; flex-direction: column; justify-content: flex-end; padding: 15px;
+        }
+        .catalog-card:hover .catalog-card-overlay { opacity: 1; }
+
+        .catalog-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 5px; color: white; }
+        .catalog-meta { font-size: 0.75rem; color: #aaa; display: flex; justify-content: space-between; align-items: center; }
         
         .close-modal-btn {
-            position: absolute; top: 15px; right: 20px;
-            background: none; border: none; color: #888;
+            background: none; border: none; color: white;
             font-size: 2rem; cursor: pointer; transition: color 0.2s;
+            line-height: 1;
         }
-        .close-modal-btn:hover { color: white; }
+        .close-modal-btn:hover { color: var(--primary-blue); text-shadow: 0 0 10px var(--primary-blue); }
 
         #video-modal { display: none; position: fixed; inset: 0; background: black; z-index: 5000; justify-content: center; align-items: center; flex-direction: column; }
         #viewer { display: none; position: fixed; inset: 0; background: black; z-index: 5500; flex-direction: column; }
@@ -293,8 +370,11 @@
             .btn-play { width: 100%; justify-content: center; }
             
             /* Modal Todos - Móvil */
-            .all-tools-box { width: 100%; height: 100vh; border-radius: 0; border: none; padding: 20px 15px; }
-            .close-modal-btn { top: 10px; right: 15px; }
+            .all-tools-box { width: 100%; height: 100vh; border-radius: 0; border: none; padding: 0; }
+            .all-tools-header-area { padding: 15px; }
+            .all-tools-scroll-area { padding: 10px 15px 100px 15px; }
+            .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } /* 2 columnas en móvil */
+            .catalog-card { aspect-ratio: 1/1; }
 
             /* Espacio para navbar inferior */
             .content-container { padding-bottom: 80px; }
@@ -380,12 +460,20 @@
         </div>
     </div>
 
-    <!-- MODAL "VER TODAS" -->
+    <!-- MODAL "VER TODAS" / CATÁLOGO -->
     <div id="all-tools-modal" class="modal-base">
         <div class="all-tools-box">
-            <button class="close-modal-btn" onclick="cerrarTodasLasHerramientas()">&times;</button>
-            <h2 style="color:white; margin-bottom:5px; font-weight:800; font-size:1.8rem;">Catálogo</h2>
-            <p style="color:#888; margin-bottom:25px; font-size:0.9rem;">Índice completo de aplicaciones disponibles.</p>
+            <!-- Header con Título y Buscador -->
+            <div class="all-tools-header-area">
+                <h2 style="color:white; margin:0; font-weight:800; font-size:1.8rem; text-transform:uppercase;">Catálogo</h2>
+                <div class="all-tools-search-container">
+                    <i class="fas fa-search search-icon-modal"></i>
+                    <input type="text" class="all-tools-search" placeholder="Buscar en el catálogo..." oninput="filtrarCatalogo(this.value)">
+                </div>
+                <button class="close-modal-btn" onclick="cerrarTodasLasHerramientas()">&times;</button>
+            </div>
+            
+            <!-- Área de Scroll de Contenido -->
             <div id="all-tools-container" class="all-tools-scroll-area">
                 <!-- Contenido inyectado por JS -->
             </div>
@@ -611,57 +699,83 @@
 
         // --- FUNCIONES MODAL TODAS LAS HERRAMIENTAS ---
         function mostrarTodasLasHerramientas() {
-            const container = document.getElementById('all-tools-container');
-            container.innerHTML = '';
-            
-            // Obtener categorías únicas ordenadas alfabéticamente
-            const cats = [...new Set(HERRAMIENTAS.map(h => h.categoria))].sort();
-            
-            cats.forEach(cat => {
-                // Crear encabezado de categoría
-                const header = document.createElement('div');
-                header.className = 'all-tools-category-header';
-                // Icono para la categoría (genérico)
-                header.innerHTML = `<i class="fas fa-layer-group" style="font-size:0.9rem;"></i> ${cat}`;
-                container.appendChild(header);
-                
-                // Filtrar herramientas de esta categoría
-                const tools = HERRAMIENTAS.filter(h => h.categoria === cat);
-                
-                tools.forEach(tool => {
-                    const item = document.createElement('div');
-                    item.className = 'tool-list-item';
-                    item.onclick = () => { cerrarTodasLasHerramientas(); verDetalles(tool.id); };
-                    
-                    const imgUrl = tool.imagen.includes('.') ? tool.imagen : tool.imagen + '.jpg';
-                    
-                    // Estrellas de Valía
-                    let stars = '';
-                    if(tool.valia === 'Libre') stars = '<i class="fas fa-star"></i>';
-                    else if(tool.valia === 'Plus') stars = '<i class="fas fa-star"></i><i class="fas fa-star"></i>';
-                    else if(tool.valia === 'Premium') stars = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>';
-                    
-                    item.innerHTML = `
-                        <img src="${imgUrl}" class="tool-list-thumb" onerror="this.src='${fallbackImg}'">
-                        <div class="tool-list-details">
-                            <div class="tool-list-name">${tool.nombre} <span class="tool-list-valia">${stars}</span></div>
-                            <div class="tool-list-sub">${tool.subtitulo || tool.descripcion}</div>
-                        </div>
-                        <div style="margin-left:10px;">
-                            <button class="btn" style="background:var(--primary-blue); color:white; padding:8px 15px; border-radius:6px; font-size:0.9rem;" onclick="abrirApp(${tool.id}, '${tool.nombre}', '${tool.url}'); event.stopPropagation(); cerrarTodasLasHerramientas();">
-                                <i class="fas fa-play"></i>
-                            </button>
-                        </div>
-                    `;
-                    container.appendChild(item);
-                });
-            });
-            
+            renderizarCatalogoCompleto(HERRAMIENTAS);
             document.getElementById('all-tools-modal').style.display = 'flex';
         }
 
         function cerrarTodasLasHerramientas() {
             document.getElementById('all-tools-modal').style.display = 'none';
+        }
+
+        function filtrarCatalogo(texto) {
+            if (!texto) {
+                renderizarCatalogoCompleto(HERRAMIENTAS);
+                return;
+            }
+            const termino = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const filtradas = HERRAMIENTAS.filter(h => {
+                const nombre = h.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const desc = h.descripcion.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const cat = h.categoria.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return nombre.includes(termino) || desc.includes(termino) || cat.includes(termino);
+            });
+            renderizarCatalogoCompleto(filtradas);
+        }
+
+        function renderizarCatalogoCompleto(items) {
+            const container = document.getElementById('all-tools-container');
+            container.innerHTML = '';
+            
+            if (items.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:40px; color:#666;">Sin resultados</div>`;
+                return;
+            }
+
+            // Obtener categorías únicas de los items filtrados
+            const cats = [...new Set(items.map(h => h.categoria))].sort();
+            
+            cats.forEach(cat => {
+                const tools = items.filter(h => h.categoria === cat);
+                if (tools.length === 0) return;
+
+                // Header de categoría
+                const header = document.createElement('div');
+                header.className = 'all-tools-category-header';
+                header.innerHTML = `<span>${cat}</span><span style="font-size:0.8rem; color:#666; font-weight:400; margin-left:10px;">(${tools.length})</span>`;
+                container.appendChild(header);
+
+                // Grid de tarjetas
+                const grid = document.createElement('div');
+                grid.className = 'catalog-grid';
+
+                tools.forEach(tool => {
+                    const card = document.createElement('div');
+                    card.className = 'catalog-card';
+                    card.onclick = () => { cerrarTodasLasHerramientas(); verDetalles(tool.id); };
+
+                    const imgUrl = tool.imagen.includes('.') ? tool.imagen : tool.imagen + '.jpg';
+                    
+                    // Estrellas
+                    let stars = '';
+                    if(tool.valia === 'Libre') stars = '<i class="fas fa-star"></i>';
+                    else if(tool.valia === 'Plus') stars = '<i class="fas fa-star"></i><i class="fas fa-star"></i>';
+                    else if(tool.valia === 'Premium') stars = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>';
+
+                    card.innerHTML = `
+                        <img src="${imgUrl}" onerror="this.src='${fallbackImg}'">
+                        <div class="valia-badge" style="top:5px; right:5px; font-size:0.6rem;">${stars}</div>
+                        <div class="catalog-card-overlay">
+                            <div class="catalog-title">${tool.nombre}</div>
+                            <div class="catalog-meta">
+                                <span>${tool.subtitulo || "Herramienta"}</span>
+                                <i class="fas fa-play-circle" style="font-size:1.2rem; color:var(--primary-blue);"></i>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+                container.appendChild(grid);
+            });
         }
 
         // --- INICIALIZACIÓN ---
