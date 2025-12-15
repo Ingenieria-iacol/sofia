@@ -92,8 +92,18 @@
             <h1 class="text-3xl font-extrabold tracking-tight accent-text">
                 <span class="text-white">ENTALPÍA</span> HUB
             </h1>
+            
+            <!-- Buscador (Search Bar) -->
+            <div class="relative flex-grow mx-4 max-w-md hidden sm:block">
+                <input type="text" id="search-input" placeholder="Buscar por título o expositor..." 
+                       class="w-full bg-slate-700/50 text-white border border-slate-600 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue transition duration-200">
+                <!-- Icono de Búsqueda (Lucide) -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+
             <nav class="hidden md:flex space-x-6 text-sm font-medium">
-                <a href="#inicio" class="hover:accent-text transition duration-200">Inicio</a>
+                <!-- Se ha modificado el href para que apunte directamente a index.html y recargue la página -->
+                <a href="index.html" class="hover:accent-text transition duration-200">Inicio</a>
                 <a href="#capacitaciones" class="hover:accent-text transition duration-200">Capacitaciones</a>
                 <a href="#presentaciones" class="hover:accent-text transition duration-200">Presentaciones</a>
                 <a href="#recursos" class="hover:accent-text transition duration-200">Otros Recursos</a>
@@ -102,13 +112,14 @@
     </header>
 
     <!-- Contenido Principal -->
-    <main class="py-10 px-4 md:px-8 relative z-10 max-w-7xl mx-auto" id="resource-shelf">
+    <main class="py-10 px-4 md:px-8 relative z-10 max-w-7xl mx-auto">
 
-        <!-- Banner Promocional Principal (Simulando el contenido destacado de Netflix) -->
+        <!-- Banner Promocional Principal (Recurso Destacado: Manual de GLP) - SECCIÓN FIJA -->
         <section class="mb-12 p-8 rounded-lg" style="background: linear-gradient(90deg, #1e3a8a 0%, rgba(30, 58, 138, 0.3) 100%);">
-            <h2 class="text-4xl md:text-5xl font-bold mb-4">El Recurso Destacado del Mes</h2>
-            <p class="text-lg mb-6 max-w-3xl">"Fundamentos de la Transformación Digital en la Cadena de Suministro." Accede a la presentación completa del expositor principal.</p>
-            <button onclick="window.location.href='contenido-destacado.pdf'" class="play-button bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full transition duration-300 flex items-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4">Capacitación "Manual de uso seguro del GLP en tanques estacionarios"</h2>
+            <p class="text-lg mb-6 max-w-3xl">Acceda al manual de capacitación completo del expositor.</p>
+            <!-- FIX: Cambiado window.location.href por window.open(..., '_blank') para evitar el error de URL no válida y abrir el PDF en una nueva pestaña. -->
+            <button onclick="window.open('ManualUsoGLP.pdf', '_blank')" class="play-button bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full transition duration-300 flex items-center">
                 <!-- Icono de Play/Abrir (SVG de Lucide) -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -117,7 +128,10 @@
             </button>
         </section>
 
-        <!-- Contenedor para las categorías y recursos generados por JS -->
+        <!-- Contenedor para las categorías y recursos generados por JS - CONTENIDO DINÁMICO -->
+        <div id="resource-content">
+            <!-- Las categorías y los resultados de búsqueda se inyectarán aquí -->
+        </div>
     </main>
 
     <footer class="text-center py-6 border-t border-slate-800 text-sm text-slate-400">
@@ -125,8 +139,8 @@
     </footer>
 
     <script>
-        // --- MOCK DATA: Estructura de Contenido ---
-        const resourcesData = [
+        // --- MOCK DATA: Estructura de Contenido Original ---
+        const originalResourcesData = [
             {
                 id: 'capacitaciones',
                 title: 'Capacitaciones Clave',
@@ -158,11 +172,23 @@
                 ]
             }
         ];
+        
+        // Contenedor dinámico donde se inyectan las secciones (actualizado a 'resource-content')
+        const shelfContainer = document.getElementById('resource-content');
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const shelfContainer = document.getElementById('resource-shelf');
+        /**
+         * Renders the resource shelf based on the provided data structure.
+         * @param {Array<Object>} dataToRender - Array of category objects.
+         */
+        function renderResources(dataToRender) {
+            shelfContainer.innerHTML = ''; // Limpia solo el contenido dinámico (debajo del banner)
+            
+            // El banner ya no se manipula aquí, ya que es estático en el HTML.
 
-            resourcesData.forEach(category => {
+            dataToRender.forEach(category => {
+                // Si la categoría está vacía, no la mostramos (importante para los resultados de búsqueda vacíos)
+                if (category.resources.length === 0) return; 
+
                 // 1. Crear el contenedor de la categoría
                 const categorySection = document.createElement('section');
                 categorySection.id = category.id;
@@ -176,20 +202,17 @@
 
                 // 3. Contenedor de scroll horizontal
                 const scrollWrapper = document.createElement('div');
-                // Aplica el estilo de scroll horizontal y lo hace responsivo
                 scrollWrapper.className = 'scroll-container flex space-x-4 pb-4 overflow-x-auto';
 
                 // 4. Llenar con tarjetas de recursos
                 category.resources.forEach(resource => {
-                    const card = document.createElement('a');
-                    card.href = resource.url; // Enlace al contenido
-                    card.target = '_blank'; // Abrir en nueva pestaña
-                    // Estilo de la tarjeta (Netflix/Póster)
+                    // Usar window.open directamente en la tarjeta para abrir el recurso en una nueva pestaña
+                    const card = document.createElement('div'); 
+                    card.onclick = () => window.open(resource.url, '_blank'); // Usar onclick en div en lugar de <a> para evitar problemas de URL
                     card.className = 'card-item flex-shrink-0 w-48 md:w-56 h-72 rounded-lg p-4 transition-all duration-300 ease-in-out cursor-pointer card-bg relative overflow-hidden flex flex-col justify-end';
 
-                    // Simulación de imagen (póster genérico)
+                    // Simulación de imagen/placeholder
                     const placeholder = document.createElement('div');
-                    // Usamos un color de relleno para simular el póster y centrar el ícono
                     placeholder.className = 'absolute inset-0 bg-blue-900/40 flex items-center justify-center';
                     
                     // Icono para la tarjeta
@@ -235,11 +258,67 @@
                 categorySection.appendChild(scrollWrapper);
                 shelfContainer.appendChild(categorySection);
             });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar la vista con todos los recursos
+            renderResources(originalResourcesData);
+
+            // --- Lógica del Buscador ---
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keyup', (e) => {
+                    const query = e.target.value.trim().toLowerCase();
+                    
+                    if (query === '') {
+                        // Si está vacío, volvemos a mostrar la estructura original
+                        renderResources(originalResourcesData);
+                        return;
+                    }
+
+                    // Aplanar y filtrar todos los recursos
+                    const allResources = originalResourcesData.flatMap(cat => cat.resources);
+                    
+                    const filteredResources = allResources.filter(resource => 
+                        resource.title.toLowerCase().includes(query) || 
+                        resource.speaker.toLowerCase().includes(query)
+                    );
+
+                    // Reestructurar los resultados para la función de renderizado
+                    const searchResultsData = [{
+                        id: 'busqueda',
+                        title: `Resultados de Búsqueda (${filteredResources.length})`,
+                        resources: filteredResources
+                    }];
+
+                    renderResources(searchResultsData);
+                });
+            }
+
+
+            // --- Lógica de Navegación por Scroll Suave (Mantenida) ---
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        // Se ajusta el scroll al elemento de destino
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 70, // Ajuste para la cabecera fija
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
         });
+
+        // --- Funciones Auxiliares (Íconos y Colores) ---
 
         /**
          * Función para determinar el path del ícono basado en la extensión del archivo.
-         * Usa iconos de Lucide (ejemplo para archivos comunes).
          */
         function getIconPath(url) {
             const extension = url.split('.').pop().toLowerCase();
@@ -278,21 +357,6 @@
                     return '#93C5FD'; // Azul Claro
             }
         }
-
-        // Manejo de la navegación para scroll suave
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 70, // Ajuste para la cabecera fija
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
 
     </script>
 </body>
