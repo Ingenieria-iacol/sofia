@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso a Mis Aplicaciones</title>
+    <title>Portal de Ingreso ERP&CRM</title>
     <style>
         /* --- ESTILOS GENERALES --- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -68,34 +68,19 @@
             border-radius: 4px;
             color: #fff;
             height: 50px;
-            padding: 16px 20px 0;
+            /* Padding ajustado para texto centrado sin label flotante */
+            padding: 0 20px; 
             font-size: 16px;
             outline: none;
+        }
+
+        .input-field::placeholder {
+            color: #8c8c8c;
         }
 
         .input-field:focus {
             background: #454545;
             border-bottom: 2px solid #2980b9; /* Azul metálico al enfocar */
-        }
-
-        .input-label {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #8c8c8c;
-            font-size: 16px;
-            pointer-events: none;
-            transition: all 0.1s ease;
-        }
-
-        /* Efecto flotante del label */
-        .input-field:focus ~ .input-label,
-        .input-field:not(:placeholder-shown) ~ .input-label {
-            top: 7px;
-            transform: translateY(0);
-            font-size: 11px;
-            font-weight: 700;
         }
 
         /* BOTÓN DE ACCESO */
@@ -140,20 +125,6 @@
             animation: shake 0.4s ease-in-out;
         }
 
-        /* PISTAS DE USUARIO (SOLO DEMO) */
-        .demo-users {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            padding: 15px;
-            border: 1px solid #1c5294;
-            border-radius: 8px;
-            font-size: 12px;
-            z-index: 100;
-        }
-        .demo-users code { display: block; color: #a1c4fd; margin-top: 5px; }
-
         /* Media Query para móviles */
         @media (max-width: 740px) {
             .login-box {
@@ -171,15 +142,7 @@
 <body>
 
     <!-- Logo / Header -->
-    <div class="logo">MIS APLICACIONES</div>
-
-    <!-- Pistas de acceso para pruebas -->
-    <div class="demo-users">
-        <strong>Credenciales disponibles:</strong>
-        <code>User: comservicios@gmail.com</code>
-        <code>User: inse@gmail.com</code>
-        <code>Pass: 1234 (para ambos)</code>
-    </div>
+    <div class="logo">PORTAL DE INGRESO ERP&CRM</div>
 
     <!-- PANTALLA DE LOGIN -->
     <div class="login-box" id="loginBox">
@@ -191,13 +154,11 @@
 
         <form id="loginForm">
             <div class="input-wrapper">
-                <input type="text" id="username" class="input-field" placeholder=" " required>
-                <label for="username" class="input-label">Email o número de usuario</label>
+                <input type="text" id="username" class="input-field" placeholder="Usuario" autocomplete="off" required>
             </div>
             
             <div class="input-wrapper">
-                <input type="password" id="password" class="input-field" placeholder=" " required>
-                <label for="password" class="input-label">Contraseña</label>
+                <input type="password" id="password" class="input-field" placeholder="Contraseña" required>
             </div>
 
             <button type="submit" class="btn-login">Iniciar Sesión</button>
@@ -220,9 +181,10 @@
                 pass: '1234',
                 url: 'PortalComservicios.html'
             },
-            'inse@gmail.com': {
-                pass: '1234',
-                url: 'PortalInse.html'
+            'servicios@inse.net.co': {
+                pass: '1511',
+                // URL de AppSheet actualizada
+                url: 'https://www.appsheet.com/start/80829734-e104-4186-aaac-9ee4dd3c72ec?platform=desktop#appName=ION-3612435&vss=H4sIAAAAAAAAA6WOOw7CMBAF7_Jqn8AtSoEQNCAaTGHijWSR2FHsQCLLd2fNR9AC5b7VjCbhYum6jbo-Qx7S-1rRDImksJt7UpAKC-_i4FsFobDR3WOspkguWO8oKGTko3gpIgXI9LVB_t0gYA25aBtLQ9EVmDVPlN8F5OEDQxboxqhPLd3LGcuZt8bXYyCz56DfQsLSVVOvnVl7w9ZGt4HyDfd8HuV0AQAA&view=Extensiones'
             }
         };
 
@@ -240,7 +202,6 @@
             // Validación
             if (accessControl[user] && accessControl[user].pass === pass) {
                 // Éxito: Redirigir a la URL configurada
-                // Usamos window.location.href para navegar al archivo en el mismo repo
                 window.location.href = accessControl[user].url;
             } else {
                 // Error: Mostrar mensaje y animar
