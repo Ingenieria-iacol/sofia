@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluador NTC 3833 - Sistemas de Evacuación</title>
+    <!-- Tailwind CSS para estructura y responsividad -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF para generación de reportes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Estilos personalizados para el tema Oscuro/Metalizado */
+        body {
+            background-color: #0f172a; /* Slate 900 muy oscuro */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e2e8f0;
+            position: relative; /* Necesario para la marca de agua */
+            min-height: 100vh;
+        }
+
+        /* Marca de Agua */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('LogoEntalpia.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 50%; /* Ajusta el tamaño del logo según necesites */
+            opacity: 0.05; /* Muy sutil para no molestar la lectura */
+            z-index: -1; /* Se asegura de quedar detrás del contenido */
+            pointer-events: none; /* Permite hacer clic a través de la imagen */
+            filter: grayscale(100%); /* Opcional: hace que el logo sea monocromático para combinar mejor */
+        }
+
+        /* Efecto de texto Azul Metalizado */
+        .metallic-text {
+            background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #2563eb 51%, #1d4ed8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 1px 2px rgba(0,0,0,0.5);
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .metallic-border {
+            border: 1px solid #3b82f6;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3), inset 0 0 5px rgba(59, 130, 246, 0.1);
+        }
+
+        .card-bg {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 12px;
+        }
+
+        /* Estilo de Inputs */
+        input[type="text"], input[type="number"], select {
+            background-color: #0f172a;
+            border: 1px solid #475569;
+            color: #38bdf8; /* Sky 400 */
+            transition: all 0.3s ease;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+        }
+
+        /* Estilo Checkbox personalizado */
+        .custom-checkbox {
+            appearance: none;
+            background-color: #0f172a;
+            margin: 0;
+            font: inherit;
+            color: #3b82f6;
+            width: 1.25em;
+            height: 1.25em;
+            border: 1px solid #3b82f6;
+            border-radius: 0.15em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+        }
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #38bdf8; /* Check color */
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+
+        /* Botones Metalizados */
+        .btn-metal {
+            background: linear-gradient(to bottom, #38bdf8 0%, #0284c7 100%);
+            color: #ffffff;
+            border: 1px solid #0ea5e9;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-metal:hover {
+            background: linear-gradient(to bottom, #7dd3fc 0%, #0369a1 100%);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+        }
+        .btn-metal:active {
+            transform: translateY(2px);
+        }
+
+        /* Etiquetas */
+        label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .section-title {
+            color: #38bdf8;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Encabezado -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-5xl metallic-text mb-2">AUDITOR NTC 3833</h1>
+            <p class="text-slate-400">Verificación de Dimensionamiento y Construcción de Sistemas de Evacuación</p>
+        </header>
+
+        <!-- Formulario Principal -->
+        <div class="card-bg metallic-border p-6 md:p-8 shadow-2xl mb-8">
+            
+            <!-- 1. Trazabilidad -->
+            <div class="mb-8">
+                <h3 class="section-title">1. Trazabilidad del Proyecto</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-1">Nombre del Proyecto / Cliente</label>
+                        <input type="text" id="project_name" class="w-full p-2 rounded" placeholder="Ej: Residencia Familia Pérez">
+                    </div>
+                    <div>
+                        <label class="block mb-1">Nombre del Inspector</label>
+                        <input type="text" id="inspector_name" class="w-full p-2 rounded" placeholder="Ing. Juan Técnico">
+                    </div>
+                    <div>
+                        <label class="block mb-1">Dirección / Ubicación</label>
+                        <input type="text" id="location" class="w-full p-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block mb-1">Fecha de Inspección</label>
+                        <input type="date" id="date" class="w-full p-2 rounded">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Requisitos Generales (Literal a, b, d) -->
+            <div class="mb-8">
+                <h3 class="section-title">2. Requisitos Generales y Materiales</h3>
+                <div class="space-y-4">
+                    
+                    <!-- Literal A -->
+                    <div class="flex items-start space-x-3 p-3 bg-slate-800/50 rounded border border-slate-700">
+                        <input type="checkbox" id="req_a_vent" class="custom-checkbox mt-1">
+                        <div>
+                            <span class="block text-sky-300 font-bold">Literal A: Ventilación (NTC 3631)</span>
+                            <p class="text-sm text-slate-400">¿El recinto dispone de ventilación (aire de combustión, renovación y dilución) proveniente directamente del exterior proporcional a la potencia instalada?</p>
+                        </div>
+                    </div>
+
+                    <!-- Literal B -->
+                    <div class="flex items-start space-x-3 p-3 bg-slate-800/50 rounded border border-slate-700">
+                        <input type="checkbox" id="req_b_mat" class="custom-checkbox mt-1">
+                        <div>
+                            <span class="block text-sky-300 font-bold">Literal B: Materiales</span>
+                            <p class="text-sm text-slate-400">¿Materiales NO combustibles, NO quebradizos, superficie interior lisa y resistencia al fuego ≥ 2 horas?</p>
+                        </div>
+                    </div>
+
+                    <!-- Literal D -->
+                    <div class="flex items-start space-x-3 p-3 bg-slate-800/50 rounded border border-slate-700">
+                        <input type="checkbox" id="req_d_indep" class="custom-checkbox mt-1">
+                        <div>
+                            <span class="block text-sky-300 font-bold">Literal D: Independencia</span>
+                            <p class="text-sm text-slate-400">¿El sistema es independiente y NO pasa a través ni desfoga en sistemas de ventilación de aire?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Geometría (Literal C) -->
+            <div class="mb-8">
+                <h3 class="section-title">3. Verificación Geométrica (Literal C)</h3>
+                <p class="text-sm text-slate-400 mb-4">Seleccione la geometría del ducto instalado para validar equivalencias.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block mb-1">Geometría Instalada</label>
+                        <select id="geometry_type" class="w-full p-2 rounded" onchange="toggleGeometryInputs()">
+                            <option value="circular">Circular (Preferido)</option>
+                            <option value="rectangular">Rectangular / Cuadrada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Inputs Circular -->
+                <div id="circular_inputs" class="p-4 bg-slate-800/50 rounded border border-slate-700">
+                    <p class="text-green-400 text-sm">✓ Geometría preferida por la norma.</p>
+                </div>
+
+                <!-- Inputs Rectangular -->
+                <div id="rectangular_inputs" class="hidden p-4 bg-slate-800/50 rounded border border-slate-700">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="col-span-1 md:col-span-2 text-yellow-500 text-sm mb-2">
+                            ⚠ Para ductos rectangulares, el área debe ser un 10% mayor a la del ducto circular equivalente por cálculo, y la relación de lados ≤ 1.5.
+                        </div>
+                        
+                        <div>
+                            <label class="block mb-1 text-sky-300">Lado Mayor (cm)</label>
+                            <input type="number" id="rect_long" class="w-full p-2 rounded" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="block mb-1 text-sky-300">Lado Menor (cm)</label>
+                            <input type="number" id="rect_short" class="w-full p-2 rounded" placeholder="0.00">
+                        </div>
+                        
+                        <div class="col-span-1 md:col-span-2 pt-2 border-t border-slate-600 mt-2">
+                            <label class="block mb-1 text-slate-300">Diámetro Circular Teórico Requerido (cm)</label>
+                            <p class="text-xs text-slate-500 mb-1">Ingrese el diámetro que hubiera requerido el sistema si fuera circular (según tablas de diseño).</p>
+                            <input type="number" id="ref_diameter" class="w-full p-2 rounded" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex flex-col md:flex-row gap-4 mt-8">
+                <button onclick="evaluateSystem()" class="flex-1 btn-metal py-3 px-6 rounded font-bold text-lg uppercase tracking-wider">
+                    Evaluar Cumplimiento
+                </button>
+                <button onclick="generatePDF()" id="btn_pdf" disabled class="flex-1 bg-slate-700 text-slate-400 py-3 px-6 rounded font-bold text-lg uppercase tracking-wider cursor-not-allowed transition-colors">
+                    Descargar PDF
+                </button>
+            </div>
+
+            <!-- Resultados -->
+            <div id="result_area" class="mt-8 hidden p-4 rounded border">
+                <!-- El contenido se llena con JS -->
+            </div>
+
+        </div>
+        
+        <footer class="text-center text-slate-600 text-sm">
+            <p>Herramienta de soporte para NTC 3833 Numeral 4 | Diseño y Desarrollo Web</p>
+        </footer>
+    </div>
+
+    <script>
+        // Inicializar fecha
+        document.getElementById('date').valueAsDate = new Date();
+
+        function toggleGeometryInputs() {
+            const type = document.getElementById('geometry_type').value;
+            if (type === 'circular') {
+                document.getElementById('circular_inputs').classList.remove('hidden');
+                document.getElementById('rectangular_inputs').classList.add('hidden');
+            } else {
+                document.getElementById('circular_inputs').classList.add('hidden');
+                document.getElementById('rectangular_inputs').classList.remove('hidden');
+            }
+        }
+
+        let evaluationResult = null;
+
+        function evaluateSystem() {
+            // Recoger datos
+            const reqA = document.getElementById('req_a_vent').checked;
+            const reqB = document.getElementById('req_b_mat').checked;
+            const reqD = document.getElementById('req_d_indep').checked;
+            const geoType = document.getElementById('geometry_type').value;
+
+            let errors = [];
+            let warnings = [];
+            let calculations = "";
+
+            // Evaluar Literales Básicos
+            if (!reqA) errors.push("Literal A: Ventilación inadecuada según NTC 3631.");
+            if (!reqB) errors.push("Literal B: Materiales no cumplen requisitos de fuego/resistencia.");
+            if (!reqD) errors.push("Literal D: El sistema no es independiente o cruza ventilaciones.");
+
+            // Evaluar Geometría (Literal C)
+            if (geoType === 'rectangular') {
+                const longSide = parseFloat(document.getElementById('rect_long').value);
+                const shortSide = parseFloat(document.getElementById('rect_short').value);
+                const refDiam = parseFloat(document.getElementById('ref_diameter').value);
+
+                if (!longSide || !shortSide || !refDiam) {
+                    alert("Por favor ingrese todas las dimensiones para el cálculo rectangular.");
+                    return;
+                }
+
+                // Validación relación de lados
+                const maxSide = Math.max(longSide, shortSide);
+                const minSide = Math.min(longSide, shortSide);
+                const ratio = maxSide / minSide;
+                
+                calculations += `Relación Lados: ${ratio.toFixed(2)} (Máx 1.5)\n`;
+
+                if (ratio > 1.5) {
+                    errors.push(`Literal C: La relación de lados (${ratio.toFixed(2)}) excede el máximo permitido de 1.5.`);
+                }
+
+                // Validación Área + 10%
+                const rectArea = longSide * shortSide;
+                const circleArea = Math.PI * Math.pow((refDiam / 2), 2);
+                const requiredRectArea = circleArea * 1.10; // Incrementado en 10%
+
+                calculations += `Área Real: ${rectArea.toFixed(2)} cm²\n`;
+                calculations += `Área Circular Ref: ${circleArea.toFixed(2)} cm²\n`;
+                calculations += `Área Mínima Req (+10%): ${requiredRectArea.toFixed(2)} cm²\n`;
+
+                if (rectArea < requiredRectArea) {
+                    errors.push(`Literal C: El área rectangular (${rectArea.toFixed(2)} cm²) es menor al área circular equivalente + 10% (${requiredRectArea.toFixed(2)} cm²).`);
+                } else {
+                    calculations += ">> Área cumple requisito (+10%).\n";
+                }
+            } else {
+                calculations += "Geometría Circular: Cumple preferencia normativa.";
+            }
+
+            // Mostrar Resultados
+            const resultDiv = document.getElementById('result_area');
+            const btnPdf = document.getElementById('btn_pdf');
+            resultDiv.classList.remove('hidden');
+
+            const isSuccess = errors.length === 0;
+            
+            // Guardar estado para el PDF
+            evaluationResult = {
+                status: isSuccess ? "APROBADO" : "RECHAZADO",
+                details: errors.length > 0 ? errors : ["Todos los requisitos del Numeral 4 verificados correctamente."],
+                calc: calculations,
+                color: isSuccess ? [0, 180, 0] : [200, 0, 0] // RGB para PDF
+            };
+
+            if (isSuccess) {
+                resultDiv.className = "mt-8 p-6 rounded border bg-green-900/30 border-green-500 text-green-400";
+                resultDiv.innerHTML = `
+                    <h4 class="text-xl font-bold mb-2">RESULTADO: CUMPLE NORMATIVA</h4>
+                    <p>El sistema cumple con los requisitos evaluados del Numeral 4 de la NTC 3833.</p>
+                    <pre class="mt-4 text-xs bg-black/30 p-2 rounded">${calculations}</pre>
+                `;
+                btnPdf.disabled = false;
+                btnPdf.classList.remove('bg-slate-700', 'text-slate-400', 'cursor-not-allowed');
+                btnPdf.classList.add('btn-metal', 'text-white', 'cursor-pointer');
+            } else {
+                resultDiv.className = "mt-8 p-6 rounded border bg-red-900/30 border-red-500 text-red-400";
+                resultDiv.innerHTML = `
+                    <h4 class="text-xl font-bold mb-2">RESULTADO: NO CUMPLE</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        ${errors.map(e => `<li>${e}</li>`).join('')}
+                    </ul>
+                    <pre class="mt-4 text-xs bg-black/30 p-2 rounded">${calculations}</pre>
+                `;
+                btnPdf.disabled = false; // Permitir descargar reporte de fallo
+                btnPdf.classList.remove('bg-slate-700', 'text-slate-400', 'cursor-not-allowed');
+                btnPdf.classList.add('btn-metal', 'text-white', 'cursor-pointer');
+            }
+        }
+
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Colores
+            const primaryColor = [29, 78, 216]; // Azul
+            const darkColor = [30, 41, 59]; // Slate oscuro
+
+            // Datos del form
+            const project = document.getElementById('project_name').value || "Sin nombre";
+            const inspector = document.getElementById('inspector_name').value || "No especificado";
+            const location = document.getElementById('location').value || "No especificada";
+            const date = document.getElementById('date').value;
+
+            // Encabezado
+            doc.setFillColor(...darkColor);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            doc.setFontSize(22);
+            doc.setTextColor(255, 255, 255);
+            doc.text("REPORTE DE CONFORMIDAD", 105, 20, { align: "center" });
+            doc.setFontSize(12);
+            doc.setTextColor(100, 200, 255);
+            doc.text("NTC 3833 - Numeral 4: Sistemas de Evacuación", 105, 30, { align: "center" });
+
+            // Información Trazabilidad
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.text(`Proyecto: ${project}`, 20, 55);
+            doc.text(`Ubicación: ${location}`, 20, 62);
+            doc.text(`Inspector: ${inspector}`, 20, 69);
+            doc.text(`Fecha: ${date}`, 140, 55);
+            doc.text(`ID Reporte: ${Date.now().toString().slice(-6)}`, 140, 62);
+
+            // Línea separadora
+            doc.setDrawColor(...primaryColor);
+            doc.setLineWidth(0.5);
+            doc.line(20, 75, 190, 75);
+
+            // Estado Final
+            doc.setFontSize(16);
+            doc.setTextColor(...evaluationResult.color); // Verde o Rojo
+            doc.text(`ESTADO: ${evaluationResult.status}`, 20, 90);
+
+            // Detalles de la evaluación
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Detalles de la Inspección:", 20, 105);
+
+            let yPos = 115;
+            
+            // Lista de verificaciones
+            doc.setFontSize(10);
+            
+            // Función auxiliar para dibujar check
+            const drawCheck = (txt, passed, y) => {
+                doc.setTextColor(passed ? 0 : 200, passed ? 150 : 0, 0);
+                doc.text(passed ? "[CUMPLE]" : "[FALLA]", 20, y);
+                doc.setTextColor(50, 50, 50);
+                doc.text(txt, 45, y);
+            };
+
+            const reqA = document.getElementById('req_a_vent').checked;
+            const reqB = document.getElementById('req_b_mat').checked;
+            const reqD = document.getElementById('req_d_indep').checked;
+
+            drawCheck("Ventilación (NTC 3631) y Aire Exterior", reqA, yPos); yPos += 7;
+            drawCheck("Materiales (No combustibles, lisos, resistencia 2h)", reqB, yPos); yPos += 7;
+            drawCheck("Independencia de sistemas de ventilación", reqD, yPos); yPos += 7;
+            
+            // Geometría
+            const geoType = document.getElementById('geometry_type').value;
+            let geoText = geoType === 'circular' ? "Geometría Circular (Preferida)" : "Geometría Rectangular";
+            
+            // Verificar si hubo error específico de geometría
+            const geoError = evaluationResult.details.some(d => d.includes("Literal C"));
+            drawCheck(geoText, !geoError, yPos); 
+            yPos += 10;
+
+            // Datos técnicos / Cálculos
+            doc.setFillColor(240, 240, 240);
+            doc.rect(20, yPos, 170, 40, 'F');
+            doc.setFont("courier", "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(0,0,0);
+            
+            const calcLines = doc.splitTextToSize(evaluationResult.calc || "Sin cálculos adicionales.", 160);
+            doc.text(calcLines, 25, yPos + 10);
+
+            // Observaciones de fallos
+            if (evaluationResult.status === "RECHAZADO") {
+                yPos += 50;
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(200, 0, 0);
+                doc.text("Observaciones / No Conformidades:", 20, yPos);
+                yPos += 7;
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(0, 0, 0);
+                
+                evaluationResult.details.forEach(item => {
+                    const lines = doc.splitTextToSize(`- ${item}`, 170);
+                    doc.text(lines, 20, yPos);
+                    yPos += (lines.length * 5);
+                });
+            }
+
+            // Pie de página
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Este documento es un reporte generado electrónicamente basado en la NTC 3833.", 105, 280, { align: "center" });
+
+            doc.save(`Reporte_NTC3833_${Date.now()}.pdf`);
+        }
+    </script>
+</body>
+</html>
