@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal de Ingreso ERP&CRM</title>
+    <title>Corporativos Entalpia</title>
     <style>
         /* --- ESTILOS GENERALES --- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,10 +17,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Imagen de fondo técnica/tecnológica */
-            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
+            
+            /* CONFIGURACIÓN DE FONDO TIPO MARCA DE AGUA */
+            /* Capa oscura (0.8) sobre el logo para que sea sutil y el texto resalte */
+            background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('LogoEntalpia.png');
+            background-repeat: no-repeat;
             background-position: center;
+            /* El logo ocupará máximo el 50% del ancho de la pantalla para verse elegante */
+            background-size: clamp(300px, 50vw, 600px); 
+            
             overflow: hidden;
         }
 
@@ -51,6 +56,8 @@
             box-shadow: 0 0 20px rgba(28, 82, 148, 0.2);
             position: relative;
             z-index: 5;
+            /* Fondo desenfocado detrás de la caja para mejorar lectura sobre el logo */
+            backdrop-filter: blur(5px);
         }
 
         h1 { margin-bottom: 28px; color: white; font-size: 32px; font-weight: 500; }
@@ -135,14 +142,17 @@
                 border: none;
                 padding-top: 100px; /* Espacio para el header */
             }
-            body { background: black; }
+            body { 
+                background-color: black;
+                background-size: 80%; /* Logo más pequeño en móviles */
+            }
         }
     </style>
 </head>
 <body>
 
     <!-- Logo / Header -->
-    <div class="logo">PORTAL DE INGRESO ERP&CRM</div>
+    <div class="logo">CORPORATIVOS ENTALPIA</div>
 
     <!-- PANTALLA DE LOGIN -->
     <div class="login-box" id="loginBox">
@@ -183,7 +193,6 @@
             },
             'servicios@inse.net.co': {
                 pass: '1511',
-                // URL de AppSheet actualizada
                 url: 'https://www.appsheet.com/start/80829734-e104-4186-aaac-9ee4dd3c72ec?platform=desktop#appName=ION-3612435&vss=H4sIAAAAAAAAA6WOOw7CMBAF7_Jqn8AtSoEQNCAaTGHijWSR2FHsQCLLd2fNR9AC5b7VjCbhYum6jbo-Qx7S-1rRDImksJt7UpAKC-_i4FsFobDR3WOspkguWO8oKGTko3gpIgXI9LVB_t0gYA25aBtLQ9EVmDVPlN8F5OEDQxboxqhPLd3LGcuZt8bXYyCz56DfQsLSVVOvnVl7w9ZGt4HyDfd8HuV0AQAA&view=Extensiones'
             }
         };
