@@ -20,9 +20,9 @@
 
     <style>
         body { background-color: #0b0b0b; color: #e5e5e5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; } /* Altura para scroll horizontal */
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
         
         /* Animaciones */
@@ -35,7 +35,7 @@
         }
         .animate-modal { animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         
-        /* Animación de Rotación (Scroll Infinito) */
+        /* Animación de Rotación (Scroll Infinito para Próximamente) */
         @keyframes scrollLeft {
             0% { transform: translateX(0); }
             100% { transform: translateX(calc(-280px * 5)); } /* Ajustar según cantidad/ancho */
@@ -86,7 +86,7 @@
                 id: 107, 
                 title: "Trabajo Seguro En Alturas Resol. 4272:2021", 
                 category: "Seguridad Industrial", 
-                status: "active", // NUEVO CURSO ACTIVO
+                status: "active", 
                 description: "Curso completo sobre los requisitos mínimos de seguridad para el desarrollo de trabajo en alturas según la Resolución 4272 de 2021. Aprende sobre medidas de prevención, protección y rescate.",
                 matchScore: 98,
                 year: "2025",
@@ -441,19 +441,28 @@
                     <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
                         <div className="max-w-7xl mx-auto space-y-12">
                             
-                            {/* SECCIÓN 1: CURSOS DISPONIBLES (ACTIVOS Y MEZCLADOS) */}
+                            {/* SECCIÓN 1: CURSOS DISPONIBLES (ACTIVOS Y MEZCLADOS - SCROLL HORIZONTAL) */}
                             <section>
-                                <div className="mb-6 flex items-center gap-3">
-                                    <Icon name="BookOpenCheck" className="text-orange-500" />
-                                    <h2 className="text-3xl font-bold text-white">Cursos Disponibles</h2>
+                                <div className="mb-6 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Icon name="BookOpenCheck" className="text-orange-500" />
+                                        <h2 className="text-3xl font-bold text-white">Cursos Disponibles</h2>
+                                    </div>
+                                    <div className="hidden md:flex gap-2 text-gray-500 text-sm items-center animate-pulse">
+                                        <Icon name="ArrowLeft" size={16} />
+                                        <span>Desliza para ver más</span>
+                                        <Icon name="ArrowRight" size={16} />
+                                    </div>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Contenedor Scroll Horizontal */}
+                                <div className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory custom-scrollbar">
                                     {activePlans.map(plan => (
                                         <div 
                                             key={plan.id}
                                             onClick={() => setSelectedPlan(plan)}
-                                            className="relative w-full h-80 rounded-2xl overflow-hidden cursor-pointer group border border-gray-800 hover:border-orange-500/50 transition-all shadow-2xl"
+                                            // Ajuste de ancho: 85% en móvil, 45% en tablet, 35% en desktop para ver varios
+                                            className="relative min-w-[85vw] md:min-w-[45vw] lg:min-w-[35vw] h-[400px] rounded-2xl overflow-hidden cursor-pointer group border border-gray-800 hover:border-orange-500/50 transition-all shadow-2xl snap-center flex-shrink-0"
                                         >
                                             <img 
                                                 src={plan.imageUrl} 
@@ -464,11 +473,11 @@
                                             <div className={`absolute inset-0 bg-gradient-to-r ${plan.gradientColor} mix-blend-multiply opacity-80`}></div>
                                             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
                                             
-                                            <div className="absolute bottom-0 left-0 p-8 w-full md:w-5/6">
+                                            <div className="absolute bottom-0 left-0 p-8 w-full">
                                                 <span className="bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded mb-3 inline-block shadow-lg animate-pulse">
                                                     DISPONIBLE
                                                 </span>
-                                                <h3 className="text-3xl font-black text-white mb-2 leading-tight drop-shadow-lg">{plan.title}</h3>
+                                                <h3 className="text-3xl font-black text-white mb-2 leading-tight drop-shadow-lg line-clamp-2">{plan.title}</h3>
                                                 <p className="text-gray-200 mb-6 text-sm md:text-base line-clamp-2 drop-shadow-md">{plan.description}</p>
                                                 
                                                 <button className="bg-white text-black px-6 py-3 rounded font-bold flex items-center gap-2 hover:bg-gray-200 transition-colors">
