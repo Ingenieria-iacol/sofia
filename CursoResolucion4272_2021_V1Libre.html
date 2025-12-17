@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curso Avanzado NTC 4272 | Trabajo en Alturas</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        body { 
+            background-color: #0f0f0f; 
+            color: #e5e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        .app-background {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background-image: url('LogoEntalpia.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 50%;
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        .login-watermark {
+            background-image: url('LogoEntalpia.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.08;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .slide-enter { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Estilos para tablas técnicas */
+        .tech-table th { background-color: #451a03; color: #fbbf24; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 2px solid #78350f; }
+        .tech-table td { border-bottom: 1px solid #3f3f46; color: #d4d4d8; padding: 12px; }
+        .tech-table tr:hover { background-color: #271a0c; }
+    </style>
+</head>
+<body>
+    <img id="logo-entalpia" src="LogoEntalpia.png" style="display: none;" alt="Logo Entalpia" crossorigin="anonymous" />
+    <div class="app-background"></div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { jsPDF } = window.jspdf;
+
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const iconData = lucide.icons[name];
+            if (!iconData) return null;
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width={size} height={size} viewBox="0 0 24 24" 
+                    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+                    className={className}
+                    dangerouslySetInnerHTML={{ __html: iconData.map(i => `<${i[0]} ${Object.entries(i[1]).map(([k,v]) => `${k}="${v}"`).join(' ')} />`).join('') }}
+                />
+            );
+        };
+
+        // --- COMPONENTE DE ONDA SONORA (AMBAR/ALERTA) ---
+        const VoiceWaveform = ({ isPlaying, height = 100 }) => {
+            const canvasRef = useRef(null);
+            
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationFrameId;
+                let phase = 0;
+                
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+                
+                const draw = () => {
+                    const w = rect.width;
+                    const h = rect.height;
+                    const centerY = h / 2;
+                    
+                    ctx.clearRect(0, 0, w, h);
+                    
+                    const lines = 6; 
+                    const baseAmplitude = isPlaying ? h * 0.35 : h * 0.03;
+                    const speed = isPlaying ? 0.04 : 0.01; 
+                    
+                    phase += speed;
+                    
+                    // Paleta Ámbar/Amarillo para Seguridad Industrial
+                    const colors = ["#fbbf24", "#d97706", "#f59e0b", "#fffbeb", "#fbbf24", "#b45309"];
+
+                    for (let i = 0; i < lines; i++) {
+                        ctx.beginPath();
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = colors[i % colors.length];
+                        ctx.globalAlpha = 0.6 - (i * 0.08); 
+                        
+                        ctx.shadowBlur = 12;
+                        ctx.shadowColor = colors[i % colors.length];
+
+                        for (let x = 0; x < w; x++) {
+                            const frequency = 0.01 + (i * 0.003);
+                            const amplitudeVariation = Math.sin(x * 0.03 + phase) * 0.4 + 0.6; 
+
+                            const y = centerY + 
+                                Math.sin(x * frequency + phase + i) * (baseAmplitude * amplitudeVariation) +
+                                Math.cos(x * (frequency * 1.2) - phase * 0.8) * (baseAmplitude * 0.3);
+                            
+                            if (x === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                    
+                    ctx.shadowBlur = 0;
+                    animationFrameId = requestAnimationFrame(draw);
+                };
+                
+                draw();
+                
+                return () => cancelAnimationFrame(animationFrameId);
+            }, [isPlaying]);
+            
+            return <canvas ref={canvasRef} style={{ width: '100%', height: `${height}px` }} />;
+        };
+
+        // --- DIAGRAMAS SVG DE SEGURIDAD EN ALTURAS ---
+
+        const FallProtectionDiagram = () => (
+            <div className="bg-white p-4 rounded-lg w-full max-w-md mx-auto shadow-lg opacity-90 my-6">
+                <p className="text-black text-xs font-bold text-center mb-2">Sistema de Protección Contra Caídas (A-B-C)</p>
+                <svg viewBox="0 0 300 250" className="w-full h-auto border border-gray-200">
+                    {/* Estructura / Viga */}
+                    <rect x="50" y="20" width="200" height="20" fill="#333" />
+                    <text x="150" y="15" fontSize="10" textAnchor="middle" fill="#333">Estructura Certificada (5000 lbs)</text>
+
+                    {/* A - Anclaje */}
+                    <circle cx="150" cy="45" r="5" fill="#ef4444" stroke="black" strokeWidth="1" />
+                    <text x="170" y="48" fontSize="12" fontWeight="bold" fill="#ef4444">A. Anclaje</text>
+
+                    {/* B - Arnés (Trabajador) */}
+                    <g transform="translate(135, 120)">
+                        {/* Cuerpo */}
+                        <rect x="0" y="0" width="30" height="60" rx="5" fill="#fbbf24" stroke="#d97706" strokeWidth="2" />
+                        {/* Correas Arnés */}
+                        <line x1="0" y1="0" x2="30" y2="60" stroke="#333" strokeWidth="2" />
+                        <line x1="30" y1="0" x2="0" y2="60" stroke="#333" strokeWidth="2" />
+                        <line x1="0" y1="20" x2="30" y2="20" stroke="#333" strokeWidth="2" />
+                        <circle cx="15" cy="-10" r="10" fill="#fcd34d" stroke="#333" />
+                    </g>
+                    <text x="180" y="150" fontSize="12" fontWeight="bold" fill="#fbbf24">B. Arnés</text>
+
+                    {/* C - Conector (Eslinga) */}
+                    <line x1="150" y1="45" x2="150" y2="120" stroke="#3b82f6" strokeWidth="4" strokeDasharray="5,2" />
+                    <text x="170" y="90" fontSize="12" fontWeight="bold" fill="#3b82f6">C. Conector</text>
+                    
+                    {/* Absorbedor */}
+                    <rect x="145" y="70" width="10" height="20" fill="#3b82f6" />
+                    <text x="90" y="85" fontSize="8" fill="#3b82f6">Absorbedor</text>
+                </svg>
+            </div>
+        );
+
+        const HierarchyControlDiagram = () => (
+            <div className="bg-white p-4 rounded-lg w-full max-w-md mx-auto shadow-lg opacity-90 my-6">
+                <p className="text-black text-xs font-bold text-center mb-2">Jerarquía de Controles NTC 4272</p>
+                <svg viewBox="0 0 300 200" className="w-full h-auto">
+                    {/* Triángulo Invertido */}
+                    <polygon points="10,10 290,10 150,190" fill="#f3f4f6" stroke="#333" strokeWidth="1" />
+                    
+                    {/* Niveles */}
+                    <path d="M 10 10 L 290 10 L 265 45 L 35 45 Z" fill="#3b82f6" /> 
+                    <text x="150" y="32" fontSize="10" textAnchor="middle" fill="white" fontWeight="bold">1. ELIMINACIÓN / SUSTITUCIÓN</text>
+                    
+                    <path d="M 35 45 L 265 45 L 240 80 L 60 80 Z" fill="#22c55e" />
+                    <text x="150" y="67" fontSize="10" textAnchor="middle" fill="white" fontWeight="bold">2. CONTROLES DE INGENIERÍA</text>
+                    
+                    <path d="M 60 80 L 240 80 L 215 115 L 85 115 Z" fill="#eab308" />
+                    <text x="150" y="102" fontSize="10" textAnchor="middle" fill="black" fontWeight="bold">3. MEDIDAS ADMINISTRATIVAS</text>
+                    
+                    <path d="M 85 115 L 215 115 L 150 190 Z" fill="#ef4444" />
+                    <text x="150" y="145" fontSize="10" textAnchor="middle" fill="white" fontWeight="bold">4. EPP / EQUIPOS</text>
+                </svg>
+            </div>
+        );
+
+        // --- CONTENIDO DEL CURSO (12 MÓDULOS) ---
+        const courseModules = [
+            {
+                id: 1,
+                title: "Marco Legal: Resolución 4272 de 2021",
+                speech: "Bienvenido al curso avanzado sobre Trabajo en Alturas. Todo lo que veremos se basa en la Resolución 4272 de 2021, la norma vigente en Colombia que establece los requisitos mínimos de seguridad. Su objetivo es claro: salvar vidas mediante la prevención y protección contra caídas.",
+                content: (
+                    <div className="space-y-6">
+                        <div className="border-l-4 border-yellow-500 pl-4 bg-yellow-900/10 p-4 rounded-r">
+                            <h2 className="text-2xl font-bold text-white mb-2">Objeto de la Norma</h2>
+                            <p className="text-gray-300 text-sm">Establecer los requisitos mínimos de seguridad para el desarrollo de trabajo en alturas (TA) y lo concerniente a la capacitación y formación de trabajadores y aprendices.</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-[#1f2937] p-4 rounded-lg border border-gray-700">
+                                <h3 className="font-bold text-yellow-400 flex items-center gap-2"><Icon name="ScrollText" size={18}/> Ámbito de Aplicación</h3>
+                                <p className="text-xs text-gray-400 mt-2">Aplica a todos: empleadores, contratantes, contratistas, aprendices y trabajadores de todas las actividades económicas.</p>
+                            </div>
+                            <div className="bg-[#1f2937] p-4 rounded-lg border border-gray-700">
+                                <h3 className="font-bold text-red-400 flex items-center gap-2"><Icon name="AlertTriangle" size={18}/> Definición de Altura</h3>
+                                <p className="text-xs text-gray-400 mt-2">Se considera trabajo en alturas a toda actividad donde exista riesgo de caer a <strong>2.00 metros</strong> o más (antes era 1.50m).</p>
+                            </div>
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "Según la Resolución 4272 de 2021, ¿a partir de qué altura se considera trabajo en alturas?",
+                    options: ["1.50 metros", "1.80 metros", "2.00 metros"],
+                    correct: 2
+                }
+            },
+            {
+                id: 2,
+                title: "Excepciones y Actividades Especiales",
+                speech: "La norma es estricta, pero reconoce excepciones. Las actividades de emergencia, rescate, operaciones militares, deportivas o artísticas no siguen este reglamento al pie de la letra, pero ¡ojo! eso no significa que no se cuiden. Deben seguir estándares internacionales y hacer análisis de riesgos.",
+                content: (
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-bold text-white mb-4">Actividades Exceptuadas</h3>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-[#2a2a2a] p-3 rounded flex items-center gap-3">
+                                <Icon name="Ambulance" className="text-red-500" />
+                                <span>Atención de Emergencias y Rescate</span>
+                            </div>
+                            <div className="bg-[#2a2a2a] p-3 rounded flex items-center gap-3">
+                                <Icon name="Shield" className="text-green-500" />
+                                <span>Operaciones Militares y Policiales</span>
+                            </div>
+                            <div className="bg-[#2a2a2a] p-3 rounded flex items-center gap-3">
+                                <Icon name="Mountain" className="text-blue-500" />
+                                <span>Actividades Deportivas / Alta Montaña</span>
+                            </div>
+                            <div className="bg-[#2a2a2a] p-3 rounded flex items-center gap-3">
+                                <Icon name="Palette" className="text-purple-500" />
+                                <span>Actos Lúdicos o Artísticos</span>
+                            </div>
+                        </div>
+                        <div className="bg-blue-900/20 p-4 rounded text-xs text-blue-200 mt-2">
+                            <strong>Nota Importante:</strong> Aunque estén exceptuadas, se debe realizar identificación de peligros y valoración de riesgos.
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Qué deben hacer las actividades exceptuadas para garantizar la seguridad?",
+                    options: ["Nada, están exentas de seguridad", "Realizar identificación de peligros y controles", "Solo usar casco"],
+                    correct: 1
+                }
+            },
+            {
+                id: 3,
+                title: "Roles y Responsabilidades",
+                speech: "En el trabajo en alturas, cada persona tiene un papel vital. El Administrador del Programa diseña y gestiona. El Coordinador es el líder en campo que autoriza. El Trabajador Autorizado es quien sube, y el Ayudante apoya desde el piso. Todos deben estar certificados.",
+                content: (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm tech-table rounded-lg overflow-hidden">
+                            <thead>
+                                <tr>
+                                    <th className="p-3">Rol</th>
+                                    <th className="p-3">Responsabilidad Clave</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className="font-bold text-yellow-500">Administrador del Programa</td>
+                                    <td>Diseña, administra y asegura el cumplimiento del programa de TA.</td>
+                                </tr>
+                                <tr>
+                                    <td className="font-bold text-blue-400">Coordinador de TA</td>
+                                    <td>Identifica peligros, inspecciona equipos y <strong>firma permisos</strong>.</td>
+                                </tr>
+                                <tr>
+                                    <td className="font-bold text-green-400">Trabajador Autorizado</td>
+                                    <td>Realiza la labor en alturas. Debe tener capacitación vigente.</td>
+                                </tr>
+                                <tr>
+                                    <td className="font-bold text-gray-400">Ayudante de Seguridad</td>
+                                    <td>Apoya en tierra, controla el área y alerta peligros.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Quién es el responsable de firmar y autorizar los permisos de trabajo en alturas?",
+                    options: ["El Ayudante de Seguridad", "El Coordinador de Trabajo en Alturas", "El Gerente de la empresa"],
+                    correct: 1
+                }
+            },
+            {
+                id: 4,
+                title: "Medidas de Prevención",
+                speech: "Antes de pensar en caer, pensemos en no caer. Esa es la prevención. Incluye la capacitación, pero también los controles de ingeniería para eliminar el riesgo, y la señalización y delimitación del área para que nadie entre por error a la zona de peligro.",
+                content: (
+                    <div className="space-y-6">
+                        <HierarchyControlDiagram />
+                        <div className="space-y-3">
+                            <h3 className="font-bold text-white">Componentes de la Prevención:</h3>
+                            <ul className="list-disc pl-5 text-gray-400 text-sm space-y-2">
+                                <li><strong>Capacitación:</strong> Entrenamiento certificado para todos los involucrados.</li>
+                                <li><strong>Sistemas de Ingeniería:</strong> Cambios en diseño para evitar la exposición (ej. barandas permanentes).</li>
+                                <li><strong>Medidas Colectivas:</strong> Delimitación, señalización y control de acceso.</li>
+                                <li><strong>Permiso de Trabajo:</strong> Mecanismo administrativo de control.</li>
+                            </ul>
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Cuál es el objetivo principal de las medidas de prevención?",
+                    options: ["Detener la caída una vez ocurre", "Evitar que el trabajador caiga o se exponga al riesgo", "Rescatar al trabajador"],
+                    correct: 1
+                }
+            },
+            {
+                id: 5,
+                title: "Sistemas de Acceso",
+                speech: "Para subir, necesitamos sistemas seguros: andamios, escaleras, grúas canasta. La norma exige que estén certificados, que se inspeccionen antes de cada uso y que sean compatibles con el sistema de protección contra caídas.",
+                content: (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="bg-[#1f2937] p-3 rounded border-t-4 border-yellow-500">
+                                <h4 className="font-bold text-white">Andamios</h4>
+                                <p className="text-xs text-gray-400 mt-1">Deben ser certificados. Requieren tarjeta de inspección diaria (verde/roja).</p>
+                            </div>
+                            <div className="bg-[#1f2937] p-3 rounded border-t-4 border-yellow-500">
+                                <h4 className="font-bold text-white">Escaleras</h4>
+                                <p className="text-xs text-gray-400 mt-1">Dieléctricas si hay riesgo eléctrico. Siempre aseguradas arriba y abajo.</p>
+                            </div>
+                            <div className="bg-[#1f2937] p-3 rounded border-t-4 border-yellow-500">
+                                <h4 className="font-bold text-white">Elevadores</h4>
+                                <p className="text-xs text-gray-400 mt-1">Grúas y manlifts. Operados solo por personal certificado.</p>
+                            </div>
+                        </div>
+                        <div className="bg-red-900/20 p-4 rounded text-sm border border-red-800">
+                            <strong>Regla de Oro:</strong> Nunca use un sistema de acceso si la tarjeta de inspección no está firmada o indica "NO USAR".
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Qué requisito es indispensable para el uso de andamios?",
+                    options: ["Que sean de color amarillo", "Que tengan tarjeta de inspección y certificación", "Que sean de madera artesanal"],
+                    correct: 1
+                }
+            },
+            {
+                id: 6,
+                title: "Medidas de Protección Activas (ABC)",
+                speech: "Si la prevención falla, la protección nos salva. Las medidas activas entran en acción durante la caída. El núcleo es el sistema ABC: Anclaje donde nos aseguramos, Arnés que soporta el cuerpo, y Conector que une ambos.",
+                content: (
+                    <div className="space-y-4">
+                        <FallProtectionDiagram />
+                        <div className="grid grid-cols-3 gap-2 text-center mt-4">
+                            <div className="p-2 bg-red-900/30 rounded border border-red-700">
+                                <div className="font-bold text-red-400 text-xl">A</div>
+                                <div className="text-xs text-gray-300">Anclaje<br/>(Punto seguro)</div>
+                            </div>
+                            <div className="p-2 bg-yellow-900/30 rounded border border-yellow-700">
+                                <div className="font-bold text-yellow-400 text-xl">B</div>
+                                <div className="text-xs text-gray-300">Body<br/>(Arnés)</div>
+                            </div>
+                            <div className="p-2 bg-blue-900/30 rounded border border-blue-700">
+                                <div className="font-bold text-blue-400 text-xl">C</div>
+                                <div className="text-xs text-gray-300">Conector<br/>(Eslinga/Línea)</div>
+                            </div>
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Qué significan las siglas ABC en protección contra caídas?",
+                    options: ["Altura, Bajada, Casco", "Anclaje, Body (Arnés), Conector", "Andamio, Baranda, Cuerda"],
+                    correct: 1
+                }
+            },
+            {
+                id: 7,
+                title: "Puntos de Anclaje",
+                speech: "El punto de anclaje es tu vida. No sirve atarse a cualquier tubo. Un anclaje debe resistir 5000 libras por persona conectada. Pueden ser fijos o portátiles, pero siempre deben estar certificados o calculados por una persona calificada.",
+                content: (
+                    <div className="space-y-5">
+                        <div className="flex items-center justify-between bg-gray-800 p-4 rounded-lg border border-gray-600">
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Resistencia Mínima</h3>
+                                <p className="text-sm text-gray-400">Por cada persona conectada</p>
+                            </div>
+                            <div className="text-3xl font-mono font-bold text-yellow-500">5.000 lbs</div>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                            <p className="font-bold text-white">Tipos de Anclaje:</p>
+                            <ul className="list-disc pl-5 text-gray-400 space-y-1">
+                                <li><strong>Fijos:</strong> Instalados permanentemente en la estructura (argollas, platinas).</li>
+                                <li><strong>Portátiles:</strong> Se instalan y retiran (cintas tie-off, trípodes).</li>
+                            </ul>
+                        </div>
+                        <div className="text-xs text-red-400 bg-red-900/10 p-2 rounded">
+                            ⚠ Nunca use tuberías de gas, agua o eléctricas como puntos de anclaje.
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Cuál es la resistencia mínima requerida para un punto de anclaje certificado?",
+                    options: ["1.000 libras", "2.500 libras", "5.000 libras (22.2 kN)"],
+                    correct: 2
+                }
+            },
+            {
+                id: 8,
+                title: "Equipos y EPP: Selección e Inspección",
+                speech: "Tu equipo es personal e intransferible. El arnés debe ser de cuerpo entero, con correas pélvicas y pectorales. Los conectores deben tener doble seguro automático. Antes de usar cualquier equipo, debes inspeccionarlo visualmente: costuras, partes metálicas, etiquetas.",
+                content: (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-[#1a1a1a] p-4 rounded border border-gray-700">
+                            <h4 className="font-bold text-yellow-500 mb-2">Arnés de Cuerpo Entero</h4>
+                            <p className="text-xs text-gray-300">Debe distribuir la fuerza de impacto en muslos, pelvis, pecho y hombros. La argolla dorsal en D es para detención de caídas.</p>
+                        </div>
+                        <div className="bg-[#1a1a1a] p-4 rounded border border-gray-700">
+                            <h4 className="font-bold text-blue-500 mb-2">Conectores (Ganchos)</h4>
+                            <p className="text-xs text-gray-300">Deben contar con sistema de cierre y bloqueo automático (doble seguro) para evitar desconexión accidental.</p>
+                        </div>
+                        <div className="col-span-1 md:col-span-2 bg-gray-800 p-3 rounded">
+                            <h4 className="font-bold text-white text-sm">Criterios de Rechazo:</h4>
+                            <ul className="grid grid-cols-2 gap-2 text-xs text-gray-400 mt-2">
+                                <li>• Costuras rotas o deshilachadas</li>
+                                <li>• Partes metálicas oxidadas</li>
+                                <li>• Etiquetas ilegibles</li>
+                                <li>• Ha sufrido una caída previa</li>
+                            </ul>
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Qué se debe hacer con un equipo que ha sufrido el impacto de una caída?",
+                    options: ["Lavarlo y volver a usarlo", "Retirarlo de servicio inmediatamente", "Usarlo solo para restricción"],
+                    correct: 1
+                }
+            },
+            {
+                id: 9,
+                title: "Permiso de Trabajo en Alturas",
+                speech: "Sin papel no hay trabajo. El Permiso de Trabajo es un mecanismo de verificación obligatorio. Debe ser diligenciado en el sitio por el Coordinador y los trabajadores. Es una lista de chequeo que asegura que tenemos todo listo antes de subir.",
+                content: (
+                    <div className="space-y-4">
+                        <div className="bg-white text-black p-4 rounded shadow-lg transform rotate-1 max-w-sm mx-auto">
+                            <div className="border-b-2 border-black mb-2 pb-1 flex justify-between items-center">
+                                <h3 className="font-bold uppercase text-sm">Permiso de Trabajo</h3>
+                                <Icon name="ClipboardCheck" size={20} />
+                            </div>
+                            <ul className="text-xs space-y-2">
+                                <li className="flex gap-2"><div className="w-3 h-3 border border-black"></div> <span>Validez (Fecha/Hora)</span></li>
+                                <li className="flex gap-2"><div className="w-3 h-3 border border-black"></div> <span>Nombres Trabajadores</span></li>
+                                <li className="flex gap-2"><div className="w-3 h-3 border border-black"></div> <span>Análisis de Peligros</span></li>
+                                <li className="flex gap-2"><div className="w-3 h-3 border border-black"></div> <span>Verificación S. Social</span></li>
+                                <li className="flex gap-2"><div className="w-3 h-3 border border-black"></div> <span>Firma Coordinador</span></li>
+                            </ul>
+                        </div>
+                        <p className="text-xs text-center text-gray-400 mt-2">El permiso debe estar disponible y visible en el sitio de trabajo.</p>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Dónde debe permanecer el permiso de trabajo durante la actividad?",
+                    options: ["En la oficina del jefe", "En el sitio de trabajo, visible y accesible", "En la casa del trabajador"],
+                    correct: 1
+                }
+            },
+            {
+                id: 10,
+                title: "Plan de Rescate",
+                speech: "Nadie planea caerse, pero debemos planear cómo rescatar. La norma exige tener un Plan de Rescate escrito, practicado y con equipos disponibles en el sitio. El tiempo es crítico para evitar el trauma por suspensión.",
+                content: (
+                    <div className="space-y-4">
+                        <div className="bg-red-950 p-4 rounded-lg border border-red-800 flex flex-col items-center text-center">
+                            <Icon name="LifeBuoy" size={40} className="text-red-500 mb-2" />
+                            <h3 className="text-xl font-bold text-white">Respuesta a Emergencias</h3>
+                            <p className="text-sm text-gray-300 mt-2">Disponer de equipos y personal capacitado para rescatar a un trabajador suspendido en menos de <strong>15 minutos</strong> preferiblemente.</p>
+                        </div>
+                        <div className="text-sm text-gray-400 space-y-2">
+                            <p><strong>Requisitos:</strong></p>
+                            <ul className="list-disc pl-5">
+                                <li>Procedimiento escrito específico para el sitio.</li>
+                                <li>Equipos de rescate (camillas, kits de descenso) en el lugar.</li>
+                                <li>Brigadistas entrenados.</li>
+                            </ul>
+                        </div>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Por qué es crítico rescatar rápidamente a un trabajador suspendido?",
+                    options: ["Para que no pierda el día de trabajo", "Para evitar el trauma por suspensión (síndrome del arnés)", "Para recuperar el equipo"],
+                    correct: 1
+                }
+            },
+            {
+                id: 11,
+                title: "Equipos de Entrenamiento (Centros)",
+                speech: "Para los centros de entrenamiento, la norma es muy específica en el Anexo Técnico. Exige cantidades mínimas de cuerdas, mosquetones, frenos y cascos. Todo equipo usado para entrenar debe ser certificado y compatible.",
+                content: (
+                    <div className="overflow-x-auto">
+                        <p className="text-sm mb-2 text-gray-400">Requisitos mínimos de dotación según NTC 4272:</p>
+                        <table className="w-full text-xs tech-table">
+                            <thead>
+                                <tr><th>Equipo</th><th>Cantidad Mínima</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Cuerdas certificadas (estáticas/dinámicas)</td><td>200 metros</td></tr>
+                                <tr><td>Mosquetones (Acero/Aluminio)</td><td>40 unidades</td></tr>
+                                <tr><td>Frenos (Stop, ID, Grigri)</td><td>4 unidades</td></tr>
+                                <tr><td>Bloqueadores (Ascenedores)</td><td>4 unidades</td></tr>
+                                <tr><td>Cascos con barbuquejo</td><td>20 unidades</td></tr>
+                                <tr><td>Arneses de cuerpo entero</td><td>10 unidades</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                ),
+                quiz: {
+                    q: "¿Qué tipo de cuerdas se exigen mínimamente en los centros de entrenamiento?",
+                    options: ["Cuerdas de fique", "Cables de acero", "Cuerdas certificadas (estáticas/dinámicas)"],
+                    correct: 2
+                }
+            },
+            {
+                id: 12,
+                title: "Certificación y Cierre",
+                speech: "Has recorrido el camino completo de la Resolución 4272. Desde la normativa hasta el rescate. Ahora posees el conocimiento teórico necesario para identificar peligros y exigir seguridad. Tu vida vale más que cualquier trabajo.",
+                content: (
+                    <div className="text-center py-10">
+                        <div className="w-24 h-24 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-yellow-500/20">
+                            <Icon name="Award" size={48} className="text-white" />
+                        </div>
+                        <h2 className="text-3xl font-bold text-white mb-4">¡Curso Completado!</h2>
+                        <p className="text-gray-400 mb-8 max-w-md mx-auto">Has superado los 12 módulos de formación avanzada en Trabajo Seguro en Alturas NTC 4272.</p>
+                    </div>
+                ),
+                quiz: null
+            }
+        ];
+
+        function App() {
+            const [currentStep, setCurrentStep] = useState(0); 
+            const [completedSteps, setCompletedSteps] = useState([0]); 
+            const [userName, setUserName] = useState("");
+            const [userCedula, setUserCedula] = useState("");
+            const [courseStarted, setCourseStarted] = useState(false);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [showQuiz, setShowQuiz] = useState(false);
+            
+            const speak = (text) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'es-ES'; 
+                    const voices = window.speechSynthesis.getVoices();
+                    const spanishVoice = voices.find(v => v.lang.includes('es') && (v.name.includes('Paulina') || v.name.includes('Monica') || v.name.includes('Google') || v.name.includes('Sabina')));
+                    if (spanishVoice) utterance.voice = spanishVoice;
+
+                    utterance.onstart = () => setIsPlaying(true);
+                    utterance.onend = () => setIsPlaying(false);
+                    utterance.onerror = () => setIsPlaying(false);
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            const stopSpeech = () => {
+                window.speechSynthesis.cancel();
+                setIsPlaying(false);
+            };
+
+            useEffect(() => {
+                if (courseStarted && courseModules[currentStep]) {
+                    setShowQuiz(false); 
+                    setTimeout(() => speak(courseModules[currentStep].speech), 500);
+                }
+                return () => stopSpeech();
+            }, [currentStep, courseStarted]);
+
+            const handleQuizSubmit = (isCorrect) => {
+                if (isCorrect) {
+                    const nextStep = currentStep + 1;
+                    if (!completedSteps.includes(nextStep)) {
+                        setCompletedSteps([...completedSteps, nextStep]);
+                    }
+                    if (nextStep < courseModules.length) {
+                        setCurrentStep(nextStep);
+                    }
+                } else {
+                    alert("Respuesta incorrecta. En alturas no hay margen de error. Repasa el concepto.");
+                    speak("Respuesta incorrecta. Por tu seguridad, repasa el concepto clave.");
+                    setShowQuiz(false); 
+                }
+            };
+
+            const generatePDF = () => {
+                const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+                
+                doc.setFillColor(15, 23, 42); 
+                doc.rect(0, 0, 297, 210, 'F');
+
+                try {
+                    const img = document.getElementById('logo-entalpia');
+                    if (img) {
+                        const canvas = document.createElement("canvas");
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        const ctx = canvas.getContext("2d");
+                        
+                        ctx.globalAlpha = 0.1; 
+                        ctx.drawImage(img, 0, 0);
+                        
+                        const pageWidth = 297;
+                        const pageHeight = 210;
+                        const imgWidth = pageWidth * 0.75;
+                        const imgHeight = (img.naturalHeight / img.naturalWidth) * imgWidth;
+                        
+                        const x = (pageWidth - imgWidth) / 2;
+                        const y = (pageHeight - imgHeight) / 2;
+
+                        doc.addImage(canvas.toDataURL("image/png"), 'PNG', x, y, imgWidth, imgHeight, undefined, 'FAST');
+                    }
+                } catch(e) {}
+
+                doc.setLineWidth(1.5);
+                doc.setDrawColor(251, 191, 36); // Amber border for Safety
+                doc.rect(15, 15, 267, 180);
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(36);
+                doc.text("CONSTANCIA DE APROBACIÓN", 148.5, 55, { align: "center" });
+                
+                doc.setFontSize(14);
+                doc.setTextColor(148, 163, 184); 
+                doc.text("GasEngineering Hub certifica que:", 148.5, 75, { align: "center" });
+                
+                doc.setFontSize(30);
+                doc.setTextColor(251, 191, 36); // Amber
+                doc.text(userName.toUpperCase(), 148.5, 95, { align: "center" });
+                
+                doc.setFontSize(16);
+                doc.setTextColor(255, 255, 255);
+                doc.text(`ID: ${userCedula}`, 148.5, 108, { align: "center" });
+                
+                doc.setFontSize(18);
+                doc.setTextColor(200, 200, 200);
+                doc.text("Ha cumplido los requisitos técnicos de la capacitación:", 148.5, 130, { align: "center" });
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(22);
+                doc.text("NTC 4272: Trabajo Seguro en Alturas", 148.5, 145, { align: "center" });
+                
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(148, 163, 184);
+                doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString()}`, 148.5, 165, { align: "center" });
+                doc.text("Con el respaldo técnico de ENTALPIA", 148.5, 180, { align: "center" });
+
+                doc.save(`Certificado_NTC4272_${userName}.pdf`);
+            };
+
+            if (!courseStarted) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+                         <div className="absolute inset-0 login-watermark z-0"></div>
+                         <div className="bg-[#111]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-800 relative z-10">
+                            <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-yellow-900/40">
+                                <Icon name="HardHat" size={40} className="text-white -rotate-3" />
+                            </div>
+                            <h1 className="text-3xl font-bold text-center mb-2 text-white">NTC 4272</h1>
+                            <p className="text-center text-yellow-500 text-sm font-semibold tracking-wider mb-8 uppercase">Trabajo Seguro en Alturas</p>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs text-gray-500 font-bold ml-1 uppercase">Nombre Completo</label>
+                                    <input type="text" className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none transition-colors" 
+                                        value={userName} onChange={e => setUserName(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 font-bold ml-1 uppercase">Cédula / ID</label>
+                                    <input type="number" className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none transition-colors" 
+                                        value={userCedula} onChange={e => setUserCedula(e.target.value)} />
+                                </div>
+                                <button 
+                                    onClick={() => (userName.length > 3 && userCedula.length > 4) ? setCourseStarted(true) : alert("Complete sus datos")}
+                                    className="w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-lg font-bold text-black transition-all shadow-lg shadow-yellow-900/20 mt-4 flex items-center justify-center gap-2 group"
+                                >
+                                    Iniciar Curso Avanzado <Icon name="ArrowRight" size={18} className="group-hover:translate-x-1 transition-transform"/>
+                                </button>
+                            </div>
+                         </div>
+                    </div>
+                );
+            }
+
+            const activeModule = courseModules[currentStep];
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* SIDEBAR */}
+                    <aside className="w-80 bg-[#080808] border-r border-gray-900 hidden md:flex flex-col z-20">
+                        <div className="p-6 border-b border-gray-900 flex items-center gap-3">
+                            <div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center font-bold shadow-lg shadow-yellow-900/20 text-black">GE</div>
+                            <div>
+                                <h1 className="font-bold text-white leading-tight">GasEngineering</h1>
+                                <p className="text-xs text-yellow-500 font-medium">HSE Training</p>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+                            {courseModules.map((mod, idx) => {
+                                const isUnlocked = completedSteps.includes(idx);
+                                const isCurrent = idx === currentStep;
+                                const isCompleted = completedSteps.includes(idx + 1);
+
+                                return (
+                                    <button 
+                                        key={mod.id} 
+                                        onClick={() => isUnlocked && setCurrentStep(idx)}
+                                        className={`w-full p-3 rounded-lg text-sm flex items-center gap-3 transition-all text-left ${isCurrent ? 'bg-yellow-900/20 border border-yellow-800 text-yellow-200' : 'hover:bg-[#111] text-gray-400'} ${!isUnlocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                    >
+                                        <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-[10px] font-bold ${isCompleted ? 'bg-green-500/20 text-green-400' : isCurrent ? 'bg-yellow-500 text-black' : 'bg-gray-800'}`}>
+                                            {isCompleted ? <Icon name="Check" size={12} /> : idx + 1}
+                                        </div>
+                                        <div className="flex-1 truncate font-medium">{mod.title}</div>
+                                        {!isUnlocked && <Icon name="Lock" size={12} />}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                        <div className="p-4 bg-[#050505] border-t border-gray-900">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white">
+                                    {userName.substring(0,2).toUpperCase()}
+                                </div>
+                                <div className="overflow-hidden">
+                                    <p className="text-sm font-bold text-gray-200 truncate">{userName}</p>
+                                    <p className="text-[10px] text-gray-500 truncate">ID: {userCedula}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 flex flex-col relative z-10 bg-[#0a0a0a]">
+                        {/* Header */}
+                        <header className="px-6 py-4 border-b border-gray-900 flex justify-between items-center bg-[#0a0a0a]/80 backdrop-blur-md sticky top-0 z-30">
+                            <div>
+                                <p className="text-xs text-yellow-500 font-bold uppercase tracking-wider mb-1">Módulo Actual</p>
+                                <h2 className="font-bold text-xl text-white truncate max-w-md">{activeModule.title}</h2>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="relative w-20 h-10 overflow-hidden">
+                                    <VoiceWaveform isPlaying={isPlaying} height={40} />
+                                </div>
+                                <div className="hidden sm:block text-right">
+                                    <div className="font-bold text-sm text-gray-200">Instructor HSE</div>
+                                    <button onClick={() => isPlaying ? stopSpeech() : speak(activeModule.speech)} className="text-xs text-yellow-400 hover:text-yellow-300 flex items-center justify-end gap-1 mt-1">
+                                        {isPlaying ? <><Icon name="Pause" size={10}/> Pausar</> : <><Icon name="Play" size={10}/> Reproducir</>}
+                                    </button>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* Content Scroll */}
+                        <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar flex flex-col items-center">
+                            <div className="max-w-4xl w-full slide-enter key={currentStep}">
+                                
+                                {/* BANNER GRANDE (Onda Sonora) */}
+                                <div className="w-full h-40 md:h-56 relative mb-6 rounded-xl overflow-hidden shadow-2xl border border-gray-800 group bg-[#050505]">
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <VoiceWaveform isPlaying={isPlaying} height={200} />
+                                    </div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent"></div>
+                                    <div className="absolute bottom-4 left-6">
+                                        <span className="text-yellow-400 text-xs font-bold uppercase tracking-wider bg-yellow-900/20 px-2 py-1 rounded backdrop-blur-md border border-yellow-500/20">
+                                            HSE Certified
+                                        </span>
+                                        <h2 className="text-2xl font-bold text-white mt-1 drop-shadow-md">
+                                            Instructor Virtual
+                                        </h2>
+                                    </div>
+                                </div>
+
+                                <div className={`transition-all duration-500 ${showQuiz ? 'opacity-30 pointer-events-none blur-sm' : 'opacity-100'}`}>
+                                    {activeModule.content}
+                                    
+                                    <div className="mt-12 flex justify-end border-t border-gray-800 pt-8">
+                                        {activeModule.quiz ? (
+                                            <button 
+                                                onClick={() => { stopSpeech(); setShowQuiz(true); }}
+                                                className="bg-yellow-600 hover:bg-yellow-500 text-black px-8 py-4 rounded-xl font-bold flex items-center gap-3 shadow-xl hover:shadow-yellow-900/30 transition-all transform hover:-translate-y-1"
+                                            >
+                                                Validar Conocimiento <Icon name="ArrowRight" size={20} />
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={generatePDF}
+                                                className="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-3 shadow-xl hover:shadow-green-900/30 transition-all transform hover:-translate-y-1 animate-pulse"
+                                            >
+                                                Descargar Constancia <Icon name="Download" size={20} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Quiz Modal Overlay */}
+                        {showQuiz && activeModule.quiz && (
+                            <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm slide-enter">
+                                <div className="bg-[#111] p-8 rounded-2xl border border-gray-800 shadow-2xl max-w-2xl w-full relative">
+                                    <button onClick={() => setShowQuiz(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white"><Icon name="X" /></button>
+                                    
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-3 bg-yellow-900/30 rounded-lg text-yellow-400"><Icon name="HelpCircle" size={24} /></div>
+                                        <div>
+                                            <p className="text-xs text-yellow-400 font-bold uppercase tracking-wider">Evaluación de Progreso</p>
+                                            <h3 className="text-xl font-bold text-white">Pregunta de Control</h3>
+                                        </div>
+                                    </div>
+
+                                    <h4 className="text-lg text-gray-200 mb-8 font-medium leading-relaxed">{activeModule.quiz.q}</h4>
+
+                                    <div className="space-y-3">
+                                        {activeModule.quiz.options.map((opt, idx) => (
+                                            <button 
+                                                key={idx}
+                                                onClick={() => handleQuizSubmit(idx === activeModule.quiz.correct)}
+                                                className="w-full text-left p-5 rounded-xl bg-[#1a1a1a] border border-gray-800 hover:border-yellow-500 hover:bg-yellow-900/10 transition-all flex justify-between items-center group"
+                                            >
+                                                <span className="text-gray-300 group-hover:text-white">{opt}</span>
+                                                <div className="w-6 h-6 rounded-full border border-gray-600 group-hover:border-yellow-500 flex items-center justify-center">
+                                                    <div className="w-3 h-3 rounded-full bg-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
